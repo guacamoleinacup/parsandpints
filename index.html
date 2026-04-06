@@ -334,12 +334,22 @@ var SCHEDULE = [
   {week:18,date:'Tue Aug 25, 2026',course:'Whitnall Golf Course',  note:'Finals',     type:'playoff'}
 ];
 
-var DEFAULT_MATCHUPS = [
-  ['Jack Balistreri','Dan Bartels'],['Zach Bartels','Ben Bartels'],
-  ['Shaun Diederich','Matt Trepanier'],['Sam Harmeyer','John Trepanier'],
-  ['Alex Hein','Matt Sklander'],['Josh Mack','CJ Malek'],
-  ['Nick Kriesel','Jack Mielke'],['Alex Henry','Matt Phillips']
-];
+// Full round-robin schedule keyed by week number (scramble weeks 5,10 excluded)
+var WEEK_MATCHUPS = {
+  1:  [['Jack Balistreri','John Trepanier'],['Ben Bartels','Matt Sklander'],['Dan Bartels','Matt Phillips'],['Zach Bartels','Jack Mielke'],['Shaun Diederich','CJ Malek'],['Kaden Dykstra','Josh Mack'],['Sam Harmeyer','Nick Kriesel'],['Alex Hein','Alex Henry']],
+  2:  [['Jack Balistreri','Matt Sklander'],['John Trepanier','Matt Phillips'],['Ben Bartels','Jack Mielke'],['Dan Bartels','CJ Malek'],['Zach Bartels','Josh Mack'],['Shaun Diederich','Nick Kriesel'],['Kaden Dykstra','Alex Henry'],['Sam Harmeyer','Alex Hein']],
+  3:  [['Jack Balistreri','Matt Phillips'],['Matt Sklander','Jack Mielke'],['John Trepanier','CJ Malek'],['Ben Bartels','Josh Mack'],['Dan Bartels','Nick Kriesel'],['Zach Bartels','Alex Henry'],['Shaun Diederich','Alex Hein'],['Kaden Dykstra','Sam Harmeyer']],
+  4:  [['Jack Balistreri','Jack Mielke'],['Matt Phillips','CJ Malek'],['Matt Sklander','Josh Mack'],['John Trepanier','Nick Kriesel'],['Ben Bartels','Alex Henry'],['Dan Bartels','Alex Hein'],['Zach Bartels','Sam Harmeyer'],['Shaun Diederich','Kaden Dykstra']],
+  6:  [['Jack Balistreri','CJ Malek'],['Jack Mielke','Josh Mack'],['Matt Phillips','Nick Kriesel'],['Matt Sklander','Alex Henry'],['John Trepanier','Alex Hein'],['Ben Bartels','Sam Harmeyer'],['Dan Bartels','Kaden Dykstra'],['Zach Bartels','Shaun Diederich']],
+  7:  [['Jack Balistreri','Josh Mack'],['CJ Malek','Nick Kriesel'],['Jack Mielke','Alex Henry'],['Matt Phillips','Alex Hein'],['Matt Sklander','Sam Harmeyer'],['John Trepanier','Kaden Dykstra'],['Ben Bartels','Shaun Diederich'],['Dan Bartels','Zach Bartels']],
+  8:  [['Jack Balistreri','Nick Kriesel'],['Josh Mack','Alex Henry'],['CJ Malek','Alex Hein'],['Jack Mielke','Sam Harmeyer'],['Matt Phillips','Kaden Dykstra'],['Matt Sklander','Shaun Diederich'],['John Trepanier','Zach Bartels'],['Ben Bartels','Dan Bartels']],
+  9:  [['Jack Balistreri','Alex Henry'],['Nick Kriesel','Alex Hein'],['Josh Mack','Sam Harmeyer'],['CJ Malek','Kaden Dykstra'],['Jack Mielke','Shaun Diederich'],['Matt Phillips','Zach Bartels'],['Matt Sklander','Dan Bartels'],['John Trepanier','Ben Bartels']],
+  11: [['Jack Balistreri','Alex Hein'],['Alex Henry','Sam Harmeyer'],['Nick Kriesel','Kaden Dykstra'],['Josh Mack','Shaun Diederich'],['CJ Malek','Zach Bartels'],['Jack Mielke','Dan Bartels'],['Matt Phillips','Ben Bartels'],['Matt Sklander','John Trepanier']],
+  12: [['Jack Balistreri','Sam Harmeyer'],['Alex Hein','Kaden Dykstra'],['Alex Henry','Shaun Diederich'],['Nick Kriesel','Zach Bartels'],['Josh Mack','Dan Bartels'],['CJ Malek','Ben Bartels'],['Jack Mielke','John Trepanier'],['Matt Phillips','Matt Sklander']],
+  13: [['Jack Balistreri','Kaden Dykstra'],['Sam Harmeyer','Shaun Diederich'],['Alex Hein','Zach Bartels'],['Alex Henry','Dan Bartels'],['Nick Kriesel','Ben Bartels'],['Josh Mack','John Trepanier'],['CJ Malek','Matt Sklander'],['Jack Mielke','Matt Phillips']],
+  14: [['Jack Balistreri','Shaun Diederich'],['Kaden Dykstra','Zach Bartels'],['Sam Harmeyer','Dan Bartels'],['Alex Hein','Ben Bartels'],['Alex Henry','John Trepanier'],['Nick Kriesel','Matt Sklander'],['Josh Mack','Matt Phillips'],['CJ Malek','Jack Mielke']],
+  15: [['Jack Balistreri','Zach Bartels'],['Shaun Diederich','Dan Bartels'],['Kaden Dykstra','Ben Bartels'],['Sam Harmeyer','John Trepanier'],['Alex Hein','Matt Sklander'],['Alex Henry','Matt Phillips'],['Nick Kriesel','Jack Mielke'],['Josh Mack','CJ Malek']]
+};
 
 var COURSE_EMOJI = {
   'Oakwood Golf Course':'&#127795;','Whitnall Golf Course':'&#127807;',
@@ -608,7 +618,8 @@ function renderHomeUpNext() {
   for(var i=0;i<SCHEDULE.length;i++){if(!played[SCHEDULE[i].week]){next=SCHEDULE[i];break;}}
   var el=document.getElementById('home-up-next');
   if(!next){el.innerHTML='<div class="card"><div class="empty-state">Season complete!</div></div>';return;}
-  var pairs=DEFAULT_MATCHUPS.map(function(pair){
+  var upNextMatchups = WEEK_MATCHUPS[next.week] || [];
+  var pairs=upNextMatchups.map(function(pair){
     return '<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #eee;font-size:0.84rem">'
       +'<span>'+pair[0]+'</span><span style="color:var(--text-light);font-size:0.73rem">vs</span><span>'+pair[1]+'</span></div>';
   }).join('');
@@ -839,7 +850,8 @@ function weekModalWeekChange() {
   document.getElementById('modal-course').value=sched?sched.course:'';
   var existing=(DB.season2026.weeks||[]).find(function(w){return w.weekNum===wNum;});
   document.getElementById('modal-delete-btn').style.display=existing?'block':'none';
-  var matchups=existing?existing.matchups:DEFAULT_MATCHUPS.map(function(pair){
+  var weekPairs = WEEK_MATCHUPS[wNum] || [];
+  var matchups=existing?existing.matchups:weekPairs.map(function(pair){
     return {p1:{name:pair[0],hdcp:'',scores:new Array(9).fill(''),total:'',result:'',pts:''},
             p2:{name:pair[1],hdcp:'',scores:new Array(9).fill(''),total:'',result:'',pts:''}};
   });
