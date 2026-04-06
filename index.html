@@ -631,7 +631,7 @@ function renderHomeRecent() {
 }
 
 // ── HOME UP NEXT ──────────────────────
-function renderHomeUpNext() {
+async function renderHomeUpNext() {
   var played={};
   (DB.season2026.weeks||[]).forEach(function(w){played[w.weekNum]=true;});
   var next=null;
@@ -644,7 +644,22 @@ function renderHomeUpNext() {
       +'<span>'+pair[0]+'</span><span style="color:var(--text-light);font-size:0.73rem">vs</span><span>'+pair[1]+'</span></div>';
   }).join('');
   el.innerHTML='<div class="card"><div class="card-header">'+cEmoji(next.course)+' '+next.course+' &mdash; Week '+next.week+'</div>'
-    +'<div style="padding:14px"><div style="font-size:0.82rem;color:var(--text-light);margin-bottom:10px">'+next.date+' &middot; First tee 5:12 pm'+(next.note?' &middot; '+next.note:'')+'</div>'+pairs+'</div></div>';
+    +'<div style="padding:14px"><div style="font-size:0.82rem;color:var(--text-light);margin-bottom:10px">'+next.date+' &middot; First tee 5:12 pm'+(next.note?' &middot; '+next.note:'')+'</div>'
+    +'<div id="upnext-weather" style="margin-bottom:12px;padding:10px 12px;background:var(--green-pale);border-radius:4px;font-size:0.78rem;color:var(--text-light)">Loading forecast...</div>'
+    +pairs+'</div></div>';
+
+  // Fetch weather for up next course
+  fetchWeather(next.course, next.date).then(function(w) {
+    var el2 = document.getElementById('upnext-weather');
+    if (!el2) return;
+    var desc = w ? weatherCodeDesc(w.wcode) : null;
+    if (!w || w.type === 'future') {
+      el2.textContent = 'Forecast available within 15 days of game day.';
+    } else {
+      el2.innerHTML = '<div style="font-size:0.68rem;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--green-mid);margin-bottom:5px">Forecast at tee time</div>'
+        + renderWeatherBlock(w, false);
+    }
+  });
 }
 
 // ── SCHEDULE ──────────────────────────
