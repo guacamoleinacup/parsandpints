@@ -183,13 +183,14 @@ footer strong{color:var(--gold)}
 
 <section id="standings" class="section">
   <div class="section-title">Season Standings <small>2026</small></div>
-  <div class="notice">Points: 1 pt per hole won + 1 pt for match win = 10 pts available each week</div>
+  <div class="notice">Points: 1 pt per hole won + 1 pt for match win = 10 pts available each week &middot; Weeks 5 &amp; 10 are scrambles (no matchup points, no skins) &middot; Weeks 16&ndash;18 are playoffs (top 8)</div>
   <div class="card">
     <table>
       <thead><tr><th style="width:40px">#</th><th>Player</th><th class="num">Points</th><th class="num">W</th><th class="num">T</th><th class="num">L</th><th class="num">Handicap</th><th class="num">Avg Score</th><th class="num">Skins</th></tr></thead>
       <tbody id="full-standings-body"><tr><td colspan="9" style="text-align:center;padding:20px;color:var(--text-light)">Loading...</td></tr></tbody>
     </table>
   </div>
+  <div id="playoff-bracket-section"></div>
 </section>
 
 <section id="schedule" class="section">
@@ -313,24 +314,24 @@ var PLAYERS = [
 ];
 
 var SCHEDULE = [
-  {week:1, date:'Tue Apr 28, 2026',course:'Oakwood Golf Course',   note:'Back Nine'},
-  {week:2, date:'Tue May 5, 2026', course:'Whitnall Golf Course',  note:''},
-  {week:3, date:'Tue May 12, 2026',course:'Greenfield Golf Course',note:''},
-  {week:4, date:'Tue May 19, 2026',course:'Currie Golf Course',    note:''},
-  {week:5, date:'Tue May 26, 2026',course:'Oakwood Golf Course',   note:'Back Nine'},
-  {week:6, date:'Tue Jun 2, 2026', course:'Whitnall Golf Course',  note:''},
-  {week:7, date:'Tue Jun 9, 2026', course:'Greenfield Golf Course',note:''},
-  {week:8, date:'Tue Jun 16, 2026',course:'Currie Golf Course',    note:''},
-  {week:9, date:'Tue Jun 23, 2026',course:'Whitnall Golf Course',  note:''},
-  {week:10,date:'Tue Jun 30, 2026',course:'Oakwood Golf Course',   note:''},
-  {week:11,date:'Tue Jul 7, 2026', course:'Greenfield Golf Course',note:''},
-  {week:12,date:'Tue Jul 14, 2026',course:'Currie Golf Course',    note:''},
-  {week:13,date:'Tue Jul 21, 2026',course:'Oakwood Golf Course',   note:'Back Nine'},
-  {week:14,date:'Tue Jul 28, 2026',course:'Whitnall Golf Course',  note:''},
-  {week:15,date:'Tue Aug 4, 2026', course:'Greenfield Golf Course',note:''},
-  {week:16,date:'Tue Aug 11, 2026',course:'Currie Golf Course',    note:''},
-  {week:17,date:'Tue Aug 18, 2026',course:'Oakwood Golf Course',   note:''},
-  {week:18,date:'Tue Aug 25, 2026',course:'Whitnall Golf Course',  note:''}
+  {week:1, date:'Tue Apr 28, 2026',course:'Oakwood Golf Course',   note:'Back Nine',  type:'regular'},
+  {week:2, date:'Tue May 5, 2026', course:'Whitnall Golf Course',  note:'',           type:'regular'},
+  {week:3, date:'Tue May 12, 2026',course:'Greenfield Golf Course',note:'',           type:'regular'},
+  {week:4, date:'Tue May 19, 2026',course:'Currie Golf Course',    note:'',           type:'regular'},
+  {week:5, date:'Tue May 26, 2026',course:'Oakwood Golf Course',   note:'Back Nine',  type:'scramble'},
+  {week:6, date:'Tue Jun 2, 2026', course:'Whitnall Golf Course',  note:'',           type:'regular'},
+  {week:7, date:'Tue Jun 9, 2026', course:'Greenfield Golf Course',note:'',           type:'regular'},
+  {week:8, date:'Tue Jun 16, 2026',course:'Currie Golf Course',    note:'',           type:'regular'},
+  {week:9, date:'Tue Jun 23, 2026',course:'Whitnall Golf Course',  note:'',           type:'regular'},
+  {week:10,date:'Tue Jun 30, 2026',course:'Oakwood Golf Course',   note:'',           type:'scramble'},
+  {week:11,date:'Tue Jul 7, 2026', course:'Greenfield Golf Course',note:'',           type:'regular'},
+  {week:12,date:'Tue Jul 14, 2026',course:'Currie Golf Course',    note:'',           type:'regular'},
+  {week:13,date:'Tue Jul 21, 2026',course:'Oakwood Golf Course',   note:'Back Nine',  type:'regular'},
+  {week:14,date:'Tue Jul 28, 2026',course:'Whitnall Golf Course',  note:'',           type:'regular'},
+  {week:15,date:'Tue Aug 4, 2026', course:'Greenfield Golf Course',note:'',           type:'regular'},
+  {week:16,date:'Tue Aug 11, 2026',course:'Currie Golf Course',    note:'QF - Top 8', type:'playoff'},
+  {week:17,date:'Tue Aug 18, 2026',course:'Oakwood Golf Course',   note:'Semifinals', type:'playoff'},
+  {week:18,date:'Tue Aug 25, 2026',course:'Whitnall Golf Course',  note:'Finals',     type:'playoff'}
 ];
 
 var DEFAULT_MATCHUPS = [
@@ -367,7 +368,7 @@ var SEED = {
     weeks:[],
     skins:[]
   },
-  season2025:{champion:'CJ Malek',
+  season2025:{champion:'CJ Malek',scrambles:[{teams:2,winners:'Zach Bartels &amp; Dan Bartels'},{teams:4,winners:'Sam Harmeyer, Josh Mack, John Trepanier &amp; Matt Sklander'}],
   skinsSummary:[
     {name:'Jack Balistreri', holes:12, total:64.66, avg:5.39, net:12.66},
     {name:'Ben Bartels',     holes:8,  total:51.84, avg:6.48, net:-0.16},
@@ -404,7 +405,20 @@ var SEED = {
     {name:'Jack Mielke',    pts:46.5, record:'4-1-7', hdcp:6.6,  avg:45.40},
     {name:'Mike Trepanier', pts:37.5, record:'3-2-7', hdcp:18.7, avg:49.00}
   ]},
-  season2024:{champion:'',players:[]}
+  season2024:{champion:'John Trepanier',players:[
+    {name:'John Trepanier', pts:72.5, record:'8-2-2', hdcp:5.2,  avg:38.83},
+    {name:'Ben Bartels',    pts:72.5, record:'7-3-2', hdcp:18.8, avg:48.00},
+    {name:'Alex Hein',      pts:69.5, record:'8-1-3', hdcp:12.1, avg:43.92},
+    {name:'Zach Bartels',   pts:68.5, record:'6-2-4', hdcp:12.7, avg:43.25},
+    {name:'Sam Harmeyer',   pts:66.5, record:'7-2-3', hdcp:11.3, avg:44.00},
+    {name:'Dan Bartels',    pts:63.0, record:'6-2-4', hdcp:15.6, avg:46.00},
+    {name:'Shaun Diederich',pts:57.5, record:'3-2-7', hdcp:10.3, avg:44.08},
+    {name:'Alex Henry',     pts:53.5, record:'4-2-6', hdcp:19.9, avg:49.67},
+    {name:'Nick Kriesel',   pts:47.0, record:'3-1-8', hdcp:25.1, avg:53.09},
+    {name:'Josh Mack',      pts:46.0, record:'6-0-6', hdcp:26.2, avg:55.40},
+    {name:'CJ Malek',       pts:45.5, record:'3-1-7', hdcp:4.5,  avg:43.40},
+    {name:'Matt Sklander',  pts:43.0, record:'2-0-10',hdcp:10.1, avg:47.55}
+  ]}
 };
 
 // ── JSONBIN ───────────────────────────
@@ -519,6 +533,7 @@ function renderAll() {
   renderHomeUpNext();
   renderResults();
   renderPlayers(s);
+  renderPlayoffBracket(s);
   renderSkins();
   renderHistory();
   document.getElementById('hero-weeks-played').textContent = (DB.season2026.weeks||[]).length;
@@ -610,10 +625,16 @@ function renderSchedule() {
     var done=!!played[w.week], isNext=!done&&!nextSet;
     if(isNext)nextSet=true;
     var badge=done?'<span class="week-badge badge-past">Done</span>':isNext?'<span class="week-badge badge-next">Up Next</span>':'';
-    return '<div class="week-card'+(done?' past':'')+(isNext?' current':'')+'"><div class="week-card-header"><span>Week '+w.week+'</span>'+badge+'</div>'
+    var typeBadge='';
+    if(w.type==='scramble') typeBadge='<span style="display:inline-block;font-size:0.65rem;padding:2px 7px;border-radius:10px;font-weight:600;background:#e8f4ff;color:#1a5a8a;margin-top:5px">&#127939; Scramble &middot; $10 side pot</span>';
+    if(w.type==='playoff')  typeBadge='<span style="display:inline-block;font-size:0.65rem;padding:2px 7px;border-radius:10px;font-weight:600;background:#fff3e0;color:#b35c00;margin-top:5px">&#127942; Playoffs &middot; '+w.note+'</span>';
+    var headerStyle=w.type==='playoff'?'background:var(--green-deep);border-bottom:2px solid var(--gold)':w.type==='scramble'?'background:#1a4a6a':'';
+    return '<div class="week-card'+(done?' past':'')+(isNext?' current':'')+'"><div class="week-card-header" style="'+headerStyle+'"><span>Week '+w.week+'</span>'+badge+'</div>'
       +'<div class="week-card-body"><div class="course-name">'+cEmoji(w.course)+' '+w.course+'</div>'
       +'<div class="course-detail">'+w.date+'</div>'
-      +'<div class="course-detail">5:12 pm &middot; 16 players'+(w.note?' &middot; '+w.note:'')+'</div></div></div>';
+      +'<div class="course-detail">5:12 pm &middot; 16 players'+(w.type==='regular'&&w.note?' &middot; '+w.note:'')+'</div>'
+      +(typeBadge?'<div>'+typeBadge+'</div>':'')
+      +'</div></div>';
   }).join('');
 }
 
@@ -652,6 +673,63 @@ function renderResults() {
       +'<th>Total</th><th>Result</th><th>Pts</th></tr></thead>'
       +'<tbody>'+parRow+mRows+'</tbody></table></div></div></div>';
   }).join('');
+}
+
+// ── PLAYOFF BRACKET ──────────────────
+function renderPlayoffBracket(standings) {
+  var el = document.getElementById('playoff-bracket-section');
+  if (!el) return;
+
+  // Regular season = weeks 1-15 only
+  var regularWeeks = (DB.season2026.weeks||[]).filter(function(w){ return w.weekNum <= 15; });
+  var weeksPlayed = regularWeeks.length;
+
+  // Only show bracket info once we're past week 14 or any playoff week exists
+  var playoffWeeks = (DB.season2026.weeks||[]).filter(function(w){ return w.weekNum >= 16; });
+  var regularDone = weeksPlayed >= 15;
+
+  if (!regularDone && !playoffWeeks.length) {
+    // Show projected seeding once enough weeks played to be interesting
+    if (weeksPlayed < 5) { el.innerHTML = ''; return; }
+  }
+
+  // Top 8 by pts -> w -> hdcp
+  var top8 = standings.slice().sort(function(a,b){
+    if (b.pts !== a.pts) return b.pts - a.pts;
+    if (b.w !== a.w) return b.w - a.w;
+    return (a.hdcp||99) - (b.hdcp||99);
+  }).slice(0,8);
+
+  var label = regularDone ? 'Playoff Seeding' : 'Projected Playoff Seeding (after '+weeksPlayed+' weeks)';
+  var notice = regularDone
+    ? '<div class="notice">Regular season complete. Top 8 advance to single-elimination playoffs. Bracket reseeds each round.</div>'
+    : '<div class="notice">Projected based on current standings. Updates live as weeks are entered. Tiebreaker: Points &rarr; Wins &rarr; Handicap.</div>';
+
+  var matchups = [
+    [0,7],[3,4],[2,5],[1,6]  // 1v8, 4v5, 3v6, 2v7 quarterfinal seedings
+  ];
+
+  var bracketRows = matchups.map(function(pair) {
+    var p1 = top8[pair[0]], p2 = top8[pair[1]];
+    if (!p1 || !p2) return '';
+    return '<tr>'
+      +'<td style="text-align:center;width:30px"><span class="rank-badge rank-'+(pair[0]+1)+'">'+(pair[0]+1)+'</span></td>'
+      +'<td class="name">'+p1.first+' '+p1.last+'</td>'
+      +'<td class="num" style="color:var(--text-light);font-size:0.8rem">'+p1.pts+' pts</td>'
+      +'<td style="text-align:center;color:var(--text-light);font-size:0.75rem;padding:0 8px">vs</td>'
+      +'<td style="text-align:center;width:30px"><span class="rank-badge">'+(pair[1]+1)+'</span></td>'
+      +'<td class="name">'+p2.first+' '+p2.last+'</td>'
+      +'<td class="num" style="color:var(--text-light);font-size:0.8rem">'+p2.pts+' pts</td>'
+      +'</tr>';
+  }).join('');
+
+  el.innerHTML = notice
+    +'<div class="card"><div class="card-header">&#127942; '+label+' &mdash; Quarterfinals (Week 16, Aug 11)</div>'
+    +'<table><thead><tr><th>Seed</th><th>Player</th><th class="num">Pts</th><th></th><th>Seed</th><th>Player</th><th class="num">Pts</th></tr></thead>'
+    +'<tbody>'+bracketRows+'</tbody></table>'
+    +'<div style="padding:12px 14px;font-size:0.78rem;color:var(--text-light);border-top:1px solid var(--border)">'
+    +'SF: Week 17 (Aug 18) &middot; Finals: Week 18 (Aug 25) &middot; Bracket reseeds after each round'
+    +'</div></div>';
 }
 
 // ── PLAYERS ───────────────────────────
@@ -698,10 +776,19 @@ function renderHistory() {
     if(!el) return;
     if(!data||!data.players||!data.players.length){
       el.innerHTML=(yr==='2024'
-        ?'<div class="notice">2024 was the inaugural season of Pars &amp; Pints.</div>'
+        ?'<div class="notice">2024 was the inaugural season of Pars &amp; Pints. 12-man league. No skins that year.</div>'
         :'<div class="notice">2025 season data not yet entered.</div>')
         +'<div class="card"><div class="empty-state">Use Admin to add historical data.</div></div>';
       return;
+    }
+    var scrambleHtml = '';
+    if (data.scrambles && data.scrambles.length) {
+      scrambleHtml = '<div class="card"><div class="card-header">&#127939; '+yr+' Scramble Winners</div>'
+        +'<table><thead><tr><th>Format</th><th>Winners</th></tr></thead><tbody>'
+        +data.scrambles.map(function(s){
+          return '<tr><td style="font-weight:600;color:var(--green-deep)">'+s.teams+'-Man Scramble</td><td>'+s.winners+'</td></tr>';
+        }).join('')
+        +'</tbody></table></div>';
     }
     var skinsHtml = '';
     if (data.skinsSummary && data.skinsSummary.length) {
@@ -727,14 +814,17 @@ function renderHistory() {
           +'<td style="text-align:center;font-size:0.83rem">'+(p.record||'--')+'</td>'
           +'<td class="num">'+(p.hdcp||'--')+'</td>'
           +'<td class="num">'+(p.avg||'--')+'</td></tr>';
-      }).join('')+'</tbody></table></div>'+skinsHtml;
+      }).join('')+'</tbody></table></div>'+scrambleHtml+skinsHtml;
   });
 }
 
 // ── WEEK MODAL ────────────────────────
 function openWeekModal() {
   document.getElementById('modal-week-num').innerHTML='<option value="">Select week...</option>'
-    +SCHEDULE.map(function(s){return '<option value="'+s.week+'">Week '+s.week+' - '+s.course+'</option>';}).join('');
+    +SCHEDULE.filter(function(s){return s.type!=='scramble';}).map(function(s){
+      var label = s.type==='playoff' ? 'Week '+s.week+' [PLAYOFF] - '+s.course : 'Week '+s.week+' - '+s.course;
+      return '<option value="'+s.week+'">'+label+'</option>';
+    }).join('');
   document.getElementById('modal-matchups-container').innerHTML='';
   document.getElementById('modal-course').value='';
   document.getElementById('modal-save-status').textContent='';
