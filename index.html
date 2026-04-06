@@ -293,6 +293,19 @@ footer strong{color:var(--gold)}
   </div>
 </div>
 
+<!-- MATCHUP MODAL -->
+<div class="modal-overlay" id="matchup-modal">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <h3 id="matchup-modal-title">Week Matchups</h3>
+      <button class="modal-close" onclick="closeModal('matchup-modal')">&times;</button>
+    </div>
+    <div class="modal-body" style="padding:0">
+      <div id="matchup-modal-body"></div>
+    </div>
+  </div>
+</div>
+
 <footer><strong>Pars &amp; Pints Summer League</strong> &nbsp;&middot;&nbsp; Est. 2024</footer>
 
 <script>
@@ -640,11 +653,13 @@ function renderSchedule() {
     if(w.type==='scramble') typeBadge='<span style="display:inline-block;font-size:0.65rem;padding:2px 7px;border-radius:10px;font-weight:600;background:#e8f4ff;color:#1a5a8a;margin-top:5px">&#127939; Scramble &middot; $10 side pot</span>';
     if(w.type==='playoff')  typeBadge='<span style="display:inline-block;font-size:0.65rem;padding:2px 7px;border-radius:10px;font-weight:600;background:#fff3e0;color:#b35c00;margin-top:5px">&#127942; Playoffs &middot; '+w.note+'</span>';
     var headerStyle=w.type==='playoff'?'background:var(--green-deep);border-bottom:2px solid var(--gold)':w.type==='scramble'?'background:#1a4a6a':'';
-    return '<div class="week-card'+(done?' past':'')+(isNext?' current':'')+'"><div class="week-card-header" style="'+headerStyle+'"><span>Week '+w.week+'</span>'+badge+'</div>'
+    return '<div class="week-card'+(done?' past':'')+(isNext?' current':'')+'" style="cursor:pointer" onclick="openMatchupModal('+w.week+')">'
+      +'<div class="week-card-header" style="'+headerStyle+'"><span>Week '+w.week+'</span>'+badge+'</div>'
       +'<div class="week-card-body"><div class="course-name">'+cEmoji(w.course)+' '+w.course+'</div>'
       +'<div class="course-detail">'+w.date+'</div>'
       +'<div class="course-detail">5:12 pm &middot; 16 players'+(w.type==='regular'&&w.note?' &middot; '+w.note:'')+'</div>'
       +(typeBadge?'<div>'+typeBadge+'</div>':'')
+      +'<div style="margin-top:8px;font-size:0.72rem;color:var(--green-light);font-weight:600">View Matchups &rsaquo;</div>'
       +'</div></div>';
   }).join('');
 }
@@ -970,6 +985,47 @@ async function saveHistory(){
   var ok=await saveDB();
   document.getElementById('hist-save-status').textContent=ok?'History saved!':'Error.';
   if(ok){renderHistory();setTimeout(function(){closeModal('history-modal');},1200);}
+}
+
+// ── MATCHUP MODAL ─────────────────────
+function openMatchupModal(weekNum) {
+  var sched = SCHEDULE.find(function(s){ return s.week === weekNum; }) || {};
+  var pairs = WEEK_MATCHUPS[weekNum] || [];
+  var title = 'Week ' + weekNum + ' Matchups';
+  document.getElementById('matchup-modal-title').innerHTML = title;
+
+  var typeBar = '';
+  if (sched.type === 'scramble') {
+    typeBar = '<div style="background:#1a4a6a;color:#9dd4f5;font-size:0.78rem;padding:8px 16px;font-weight:600">&#127939; Scramble Week &mdash; No matchup points or skins</div>';
+  } else if (sched.type === 'playoff') {
+    typeBar = '<div style="background:var(--green-deep);color:var(--gold);font-size:0.78rem;padding:8px 16px;font-weight:600;border-bottom:1px solid var(--gold)">&#127942; Playoff Week &mdash; ' + sched.note + ' &mdash; Top 8 single elimination</div>';
+  }
+
+  var courseBar = '<div style="background:var(--cream-dark);padding:10px 16px;font-size:0.82rem;color:var(--text-mid);border-bottom:1px solid var(--border)">'
+    + cEmoji(sched.course) + ' <strong>' + (sched.course||'') + '</strong>'
+    + (sched.note && sched.type==='regular' ? ' &middot; ' + sched.note : '')
+    + ' &nbsp;&middot;&nbsp; ' + (sched.date||'') + ' &nbsp;&middot;&nbsp; 5:12 pm'
+    + '</div>';
+
+  var rows = '';
+  if (sched.type === 'scramble') {
+    rows = '<div style="padding:24px;text-align:center;color:var(--text-light);font-style:italic">Scramble &mdash; teams TBD on the course.</div>';
+  } else if (sched.type === 'playoff') {
+    rows = '<div style="padding:24px;text-align:center;color:var(--text-light);font-style:italic">Playoff bracket determined by standings after Week 15.</div>';
+  } else if (!pairs.length) {
+    rows = '<div style="padding:24px;text-align:center;color:var(--text-light);font-style:italic">Matchups not available.</div>';
+  } else {
+    rows = pairs.map(function(pair, i) {
+      return '<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #eee">'
+        + '<span style="font-weight:600;color:var(--text-dark)">' + pair[0] + '</span>'
+        + '<span style="font-size:0.72rem;color:var(--text-light);padding:0 10px">vs</span>'
+        + '<span style="font-weight:600;color:var(--text-dark)">' + pair[1] + '</span>'
+        + '</div>';
+    }).join('');
+  }
+
+  document.getElementById('matchup-modal-body').innerHTML = typeBar + courseBar + rows;
+  document.getElementById('matchup-modal').classList.add('open');
 }
 
 // ── MODAL UTILS ───────────────────────
