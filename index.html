@@ -1,0 +1,1165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pars & Pints Summer League</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Source+Sans+3:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --green-deep: #1a3a2a;
+    --green-mid: #2d5a3d;
+    --green-light: #4a8c5c;
+    --green-pale: #e8f2eb;
+    --cream: #faf8f3;
+    --cream-dark: #f0ece0;
+    --gold: #c9a84c;
+    --gold-light: #e8cc7a;
+    --text-dark: #1a1a1a;
+    --text-mid: #3d3d3d;
+    --text-light: #666;
+    --white: #ffffff;
+    --border: #d4c9a8;
+    --shadow: rgba(26,58,42,0.15);
+    --red: #c0392b;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Source Sans 3', sans-serif; background: var(--cream); color: var(--text-dark); min-height: 100vh; }
+
+  /* HEADER */
+  header { background: var(--green-deep); position: sticky; top: 0; z-index: 100; border-bottom: 3px solid var(--gold); box-shadow: 0 2px 20px rgba(0,0,0,0.4); }
+  .header-top { text-align: center; padding: 18px 20px 10px; border-bottom: 1px solid rgba(201,168,76,0.3); }
+  .league-name { font-family: 'Playfair Display', serif; font-size: 2rem; font-weight: 900; color: var(--cream); letter-spacing: 0.04em; line-height: 1; }
+  .league-name span { color: var(--gold); }
+  .league-sub { font-size: 0.72rem; color: var(--gold-light); letter-spacing: 0.25em; text-transform: uppercase; margin-top: 3px; }
+  nav { display: flex; justify-content: center; flex-wrap: wrap; gap: 0; }
+  nav button { background: none; border: none; color: rgba(250,248,243,0.7); font-family: 'Source Sans 3', sans-serif; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; padding: 10px 16px; cursor: pointer; transition: all 0.2s; border-bottom: 2px solid transparent; }
+  nav button:hover { color: var(--cream); }
+  nav button.active { color: var(--gold); border-bottom-color: var(--gold); }
+
+  /* HERO */
+  .hero { background: linear-gradient(135deg, var(--green-deep) 0%, var(--green-mid) 60%, var(--green-light) 100%); padding: 40px 20px 32px; text-align: center; position: relative; overflow: hidden; }
+  .hero::before { content: ''; position: absolute; inset: 0; background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Ccircle cx='30' cy='30' r='20'/%3E%3C/g%3E%3C/svg%3E"); pointer-events: none; }
+  .hero h2 { font-family: 'Playfair Display', serif; font-size: 1.5rem; color: var(--cream); font-weight: 400; font-style: italic; }
+  .hero-stats { display: flex; justify-content: center; gap: 36px; margin-top: 20px; flex-wrap: wrap; }
+  .hero-stat .val { font-family: 'Playfair Display', serif; font-size: 1.9rem; font-weight: 700; color: var(--gold); display: block; }
+  .hero-stat .lbl { font-size: 0.68rem; letter-spacing: 0.15em; text-transform: uppercase; color: rgba(250,248,243,0.6); }
+
+  /* MAIN */
+  main { max-width: 1100px; margin: 0 auto; padding: 28px 20px 60px; }
+  .section { display: none; }
+  .section.active { display: block; }
+
+  /* SECTION TITLE */
+  .section-title { font-family: 'Playfair Display', serif; font-size: 1.6rem; color: var(--green-deep); border-bottom: 2px solid var(--gold); padding-bottom: 8px; margin-bottom: 20px; display: flex; align-items: baseline; gap: 12px; }
+  .section-title small { font-family: 'Source Sans 3', sans-serif; font-size: 0.72rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--text-light); font-weight: 400; }
+
+  /* CARD */
+  .card { background: var(--white); border: 1px solid var(--border); border-radius: 4px; box-shadow: 0 2px 12px var(--shadow); overflow: hidden; margin-bottom: 20px; }
+  .card-header { background: var(--green-deep); color: var(--cream); padding: 11px 18px; font-family: 'Playfair Display', serif; font-size: 1rem; font-weight: 700; display: flex; align-items: center; gap: 8px; border-bottom: 2px solid var(--gold); }
+
+  /* TABLES */
+  table { width: 100%; border-collapse: collapse; font-size: 0.87rem; }
+  thead th { background: var(--cream-dark); color: var(--green-deep); font-family: 'Source Sans 3', sans-serif; font-weight: 600; font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase; padding: 9px 14px; text-align: left; border-bottom: 2px solid var(--border); }
+  thead th.num { text-align: center; }
+  tbody tr { border-bottom: 1px solid #eee; transition: background 0.15s; }
+  tbody tr:hover { background: var(--green-pale); }
+  tbody tr:last-child { border-bottom: none; }
+  tbody td { padding: 9px 14px; color: var(--text-mid); }
+  tbody td.num { text-align: center; font-variant-numeric: tabular-nums; }
+  tbody td.name { font-weight: 600; color: var(--text-dark); }
+  .rank-badge { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; font-size: 0.7rem; font-weight: 700; color: var(--white); background: var(--green-light); }
+  .rank-1 { background: var(--gold); color: var(--green-deep); }
+  .rank-2 { background: #a8a8a8; }
+  .rank-3 { background: #b87333; }
+  .pts-cell { font-family: 'Playfair Display', serif; font-size: 1rem; font-weight: 700; color: var(--green-deep); text-align: center; }
+
+  /* SCORECARD */
+  .scorecard-wrap { overflow-x: auto; }
+  .scorecard { min-width: 680px; }
+  .scorecard th, .scorecard td { text-align: center; padding: 6px 9px; font-size: 0.81rem; }
+  .scorecard thead th { text-align: center; }
+  .scorecard .par-row td { color: var(--text-light); font-style: italic; font-size: 0.76rem; }
+  .hole-win { background: #fff9e6; font-weight: 700; color: var(--green-deep); }
+  .matchup-divider { height: 5px; background: var(--cream-dark); }
+
+  /* TAGS */
+  .tag { display: inline-block; font-size: 0.65rem; padding: 2px 7px; border-radius: 10px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
+  .tag-win { background: #e6f7e6; color: #2d7a2d; }
+  .tag-loss { background: #fde8e8; color: var(--red); }
+  .tag-as { background: #f0f0f0; color: #666; }
+  .tag-dq { background: #fff3cd; color: #856404; }
+
+  /* SCHEDULE */
+  .schedule-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 14px; }
+  .week-card { background: var(--white); border: 1px solid var(--border); border-radius: 4px; overflow: hidden; box-shadow: 0 1px 6px var(--shadow); transition: box-shadow 0.2s, transform 0.2s; }
+  .week-card:hover { box-shadow: 0 4px 16px var(--shadow); transform: translateY(-1px); }
+  .week-card.past { opacity: 0.7; }
+  .week-card.current { border-color: var(--gold); box-shadow: 0 0 0 2px var(--gold); }
+  .week-card-header { background: var(--green-mid); color: var(--cream); padding: 9px 13px; font-size: 0.73rem; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
+  .week-card.current .week-card-header { background: var(--green-deep); border-bottom: 2px solid var(--gold); }
+  .week-card-body { padding: 11px 13px; }
+  .course-name { font-family: 'Playfair Display', serif; font-size: 1rem; color: var(--green-deep); font-weight: 700; }
+  .course-detail { font-size: 0.76rem; color: var(--text-light); margin-top: 2px; }
+  .week-badge { font-size: 0.67rem; padding: 2px 7px; border-radius: 10px; font-weight: 600; }
+  .badge-past { background: rgba(255,255,255,0.15); }
+  .badge-next { background: var(--gold); color: var(--green-deep); }
+
+  /* PLAYER GRID */
+  .player-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 13px; margin-bottom: 24px; }
+  .player-card { background: var(--white); border: 1px solid var(--border); border-radius: 4px; padding: 15px; text-align: center; box-shadow: 0 1px 4px var(--shadow); transition: all 0.2s; }
+  .player-card:hover { border-color: var(--green-light); box-shadow: 0 3px 14px var(--shadow); transform: translateY(-2px); }
+  .player-avatar { width: 44px; height: 44px; border-radius: 50%; background: var(--green-mid); color: var(--cream); font-family: 'Playfair Display', serif; font-size: 1rem; font-weight: 700; display: flex; align-items: center; justify-content: center; margin: 0 auto 9px; }
+  .player-full-name { font-family: 'Libre Baskerville', serif; font-size: 0.86rem; font-weight: 700; color: var(--green-deep); }
+  .player-hdcp { font-size: 0.73rem; color: var(--text-light); margin-top: 2px; }
+  .player-pts { margin-top: 7px; font-family: 'Playfair Display', serif; font-size: 1.3rem; font-weight: 700; color: var(--gold); }
+  .player-pts-lbl { font-size: 0.63rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-light); }
+
+  /* INNER TABS */
+  .inner-tabs { display: flex; gap: 0; border-bottom: 2px solid var(--border); margin-bottom: 18px; flex-wrap: wrap; }
+  .inner-tab { background: none; border: none; padding: 7px 16px; font-family: 'Source Sans 3', sans-serif; font-size: 0.77rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-light); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.15s; }
+  .inner-tab:hover { color: var(--green-mid); }
+  .inner-tab.active { color: var(--green-deep); border-bottom-color: var(--green-deep); }
+  .inner-panel { display: none; }
+  .inner-panel.active { display: block; }
+
+  /* SKINS */
+  .skin-pot { text-align: center; padding: 20px; background: linear-gradient(135deg, var(--green-deep), var(--green-mid)); color: var(--cream); }
+  .pot-amount { font-family: 'Playfair Display', serif; font-size: 3rem; font-weight: 900; color: var(--gold); }
+  .pot-label { font-size: 0.73rem; letter-spacing: 0.2em; text-transform: uppercase; opacity: 0.7; margin-top: 4px; }
+
+  /* TWO COL */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+
+  /* NOTICE */
+  .notice { background: var(--green-pale); border-left: 3px solid var(--green-light); padding: 9px 13px; font-size: 0.81rem; color: var(--green-deep); margin-bottom: 16px; border-radius: 0 4px 4px 0; }
+
+  /* ADMIN */
+  .admin-bar { background: var(--green-deep); border: 1px solid var(--gold); border-radius: 4px; padding: 12px 16px; margin-bottom: 20px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .admin-bar input { padding: 6px 10px; border: 1px solid var(--border); border-radius: 3px; font-size: 0.82rem; background: var(--cream); }
+  .admin-bar button { padding: 6px 14px; background: var(--gold); border: none; border-radius: 3px; font-size: 0.8rem; font-weight: 600; cursor: pointer; color: var(--green-deep); font-family: 'Source Sans 3', sans-serif; }
+  .admin-bar button:hover { background: var(--gold-light); }
+  .admin-badge { background: var(--gold); color: var(--green-deep); font-size: 0.7rem; font-weight: 700; padding: 3px 10px; border-radius: 10px; letter-spacing: 0.08em; text-transform: uppercase; }
+  .admin-locked { color: rgba(250,248,243,0.6); font-size: 0.8rem; }
+
+  /* ADMIN MODAL */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 200; align-items: center; justify-content: center; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--white); border-radius: 6px; width: 100%; max-width: 680px; max-height: 90vh; overflow-y: auto; box-shadow: 0 8px 40px rgba(0,0,0,0.4); }
+  .modal-header { background: var(--green-deep); color: var(--cream); padding: 14px 18px; border-bottom: 2px solid var(--gold); display: flex; justify-content: space-between; align-items: center; }
+  .modal-header h3 { font-family: 'Playfair Display', serif; font-size: 1.1rem; }
+  .modal-close { background: none; border: none; color: var(--cream); font-size: 1.4rem; cursor: pointer; line-height: 1; }
+  .modal-body { padding: 20px; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+  .form-group { display: flex; flex-direction: column; gap: 4px; }
+  .form-group label { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-light); }
+  .form-group input, .form-group select { padding: 7px 10px; border: 1px solid var(--border); border-radius: 3px; font-size: 0.85rem; font-family: 'Source Sans 3', sans-serif; }
+  .form-group input:focus, .form-group select:focus { outline: none; border-color: var(--green-light); }
+  .score-grid { display: grid; grid-template-columns: repeat(9,1fr); gap: 6px; margin: 8px 0; }
+  .score-grid input { text-align: center; padding: 6px 2px; border: 1px solid var(--border); border-radius: 3px; font-size: 0.9rem; }
+  .score-grid input:focus { outline: none; border-color: var(--gold); background: #fffbf0; }
+  .matchup-section { border: 1px solid var(--border); border-radius: 4px; padding: 14px; margin-bottom: 14px; }
+  .matchup-section h4 { font-family: 'Playfair Display', serif; font-size: 0.95rem; color: var(--green-deep); margin-bottom: 10px; }
+  .save-btn { background: var(--green-deep); color: var(--cream); border: none; padding: 10px 24px; border-radius: 3px; font-size: 0.85rem; font-weight: 600; cursor: pointer; border: 1px solid var(--gold); font-family: 'Source Sans 3', sans-serif; }
+  .save-btn:hover { background: var(--green-mid); }
+  .delete-btn { background: #fde8e8; color: var(--red); border: 1px solid #f5c6c6; padding: 10px 18px; border-radius: 3px; font-size: 0.85rem; font-weight: 600; cursor: pointer; font-family: 'Source Sans 3', sans-serif; }
+
+  .empty-state { text-align: center; padding: 36px; color: var(--text-light); font-style: italic; }
+  .loading { text-align: center; padding: 40px; color: var(--text-light); }
+  .loading::after { content: ''; display: inline-block; width: 20px; height: 20px; border: 2px solid var(--border); border-top-color: var(--green-mid); border-radius: 50%; animation: spin 0.8s linear infinite; margin-left: 8px; vertical-align: middle; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* FOOTER */
+  footer { text-align: center; padding: 20px; background: var(--green-deep); color: rgba(250,248,243,0.4); font-size: 0.73rem; letter-spacing: 0.1em; border-top: 2px solid var(--gold); }
+  footer strong { color: var(--gold); }
+
+  @media (max-width: 680px) {
+    .two-col { grid-template-columns: 1fr; }
+    nav button { padding: 8px 10px; font-size: 0.68rem; }
+    .league-name { font-size: 1.5rem; }
+    .hero-stats { gap: 20px; }
+    .form-row { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-top">
+    <div class="league-name">Pars <span>&</span> Pints</div>
+    <div class="league-sub">Summer Golf League &nbsp;·&nbsp; Est. 2024</div>
+  </div>
+  <nav>
+    <button class="active" onclick="showSection('home',this)">⛳ Home</button>
+    <button onclick="showSection('standings',this)">🏆 Standings</button>
+    <button onclick="showSection('schedule',this)">📅 Schedule</button>
+    <button onclick="showSection('results',this)">📋 Results</button>
+    <button onclick="showSection('players',this)">👤 Players</button>
+    <button onclick="showSection('skins',this)">💰 Skins</button>
+    <button onclick="showSection('history',this)">📖 History</button>
+  </nav>
+</header>
+
+<div class="hero">
+  <h2>2026 Season — Underway</h2>
+  <div class="hero-stats">
+    <div class="hero-stat"><span class="val">16</span><span class="lbl">Players</span></div>
+    <div class="hero-stat"><span class="val">18</span><span class="lbl">Weeks</span></div>
+    <div class="hero-stat"><span class="val" id="hero-weeks-played">—</span><span class="lbl">Weeks Played</span></div>
+    <div class="hero-stat"><span class="val" id="hero-pot">$832</span><span class="lbl">Skins Pot</span></div>
+  </div>
+</div>
+
+<main>
+
+<!-- ADMIN BAR -->
+<div class="admin-bar">
+  <div id="admin-locked-ui" style="display:flex;align-items:center;gap:10px;width:100%">
+    <span class="admin-locked">🔒 Admin</span>
+    <input type="password" id="admin-pw-input" placeholder="Password" style="width:140px" onkeydown="if(event.key==='Enter')tryAdminLogin()">
+    <button onclick="tryAdminLogin()">Unlock</button>
+    <span id="admin-err" style="color:#f5a623;font-size:0.78rem;display:none">Incorrect password</span>
+  </div>
+  <div id="admin-unlocked-ui" style="display:none;align-items:center;gap:10px;flex-wrap:wrap;width:100%">
+    <span class="admin-badge">✓ Admin Mode</span>
+    <button onclick="openWeekModal()">+ Add / Edit Week Results</button>
+    <button onclick="openSkinsModal()">+ Add Skins Result</button>
+    <button onclick="openHistoryModal()">+ Add History</button>
+    <button onclick="adminLogout()" style="background:rgba(255,255,255,0.15);color:var(--cream);margin-left:auto">Lock</button>
+  </div>
+</div>
+
+<!-- HOME -->
+<section id="home" class="section active">
+  <div class="two-col">
+    <div>
+      <div class="section-title">Standings <small>2026 Season</small></div>
+      <div class="card">
+        <table>
+          <thead><tr><th style="width:36px">#</th><th>Player</th><th class="num">Pts</th><th class="num">W-T-L</th><th class="num">HDCP</th></tr></thead>
+          <tbody id="home-standings-body"><tr><td colspan="5" class="loading">Loading</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <div>
+      <div class="section-title">Recent Results</div>
+      <div id="home-recent-results"><div class="card"><div class="loading">Loading</div></div></div>
+      <div class="section-title" style="margin-top:20px">Up Next</div>
+      <div id="home-up-next"><div class="card"><div class="loading">Loading</div></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- STANDINGS -->
+<section id="standings" class="section">
+  <div class="section-title">Season Standings <small>2026</small></div>
+  <div class="notice">Points: 1 pt per hole won + 1 pt for match win = 10 pts available each week</div>
+  <div class="card">
+    <table>
+      <thead><tr><th style="width:40px">#</th><th>Player</th><th class="num">Points</th><th class="num">W</th><th class="num">T</th><th class="num">L</th><th class="num">Handicap</th><th class="num">Avg Score</th><th class="num">Skins</th></tr></thead>
+      <tbody id="full-standings-body"><tr><td colspan="9" class="loading">Loading</td></tr></tbody>
+    </table>
+  </div>
+</section>
+
+<!-- SCHEDULE -->
+<section id="schedule" class="section">
+  <div class="section-title">2026 Schedule <small>18 Weeks</small></div>
+  <div class="schedule-grid" id="schedule-grid"></div>
+</section>
+
+<!-- RESULTS -->
+<section id="results" class="section">
+  <div class="section-title">Results <small>2026 Season</small></div>
+  <div class="inner-tabs" id="results-tabs"></div>
+  <div id="results-panels"></div>
+</section>
+
+<!-- PLAYERS -->
+<section id="players" class="section">
+  <div class="section-title">Player Profiles <small>2026 Roster</small></div>
+  <div class="player-grid" id="player-grid"></div>
+</section>
+
+<!-- SKINS -->
+<section id="skins" class="section">
+  <div class="section-title">Skins <small>2026 Season</small></div>
+  <div class="card">
+    <div class="skin-pot">
+      <div class="pot-amount">$832</div>
+      <div class="pot-label">Season Pot · 16 players × $52</div>
+    </div>
+  </div>
+  <div class="notice">A skin is won by the lowest net score on a hole that no other player ties. Carry-over skins accumulate until won.</div>
+  <div id="skins-content"><div class="loading">Loading</div></div>
+</section>
+
+<!-- HISTORY -->
+<section id="history" class="section">
+  <div class="section-title">League History</div>
+  <div class="inner-tabs">
+    <button class="inner-tab active" onclick="showInnerTab('history-section','hist-2025',this)">2025 Season</button>
+    <button class="inner-tab" onclick="showInnerTab('history-section','hist-2024',this)">2024 Season</button>
+  </div>
+  <div id="hist-2025" class="inner-panel active">
+    <div id="hist-2025-content"><div class="loading">Loading</div></div>
+  </div>
+  <div id="hist-2024" class="inner-panel">
+    <div id="hist-2024-content"><div class="loading">Loading</div></div>
+  </div>
+</section>
+
+</main>
+
+<!-- WEEK MODAL -->
+<div class="modal-overlay" id="week-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Add / Edit Week Results</h3>
+      <button class="modal-close" onclick="closeModal('week-modal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Week #</label>
+          <select id="modal-week-num" onchange="weekModalWeekChange()">
+            <option value="">Select week...</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Course</label>
+          <input type="text" id="modal-course" readonly style="background:#f9f9f9">
+        </div>
+      </div>
+      <div id="modal-matchups-container"></div>
+      <div style="display:flex;gap:10px;margin-top:16px">
+        <button class="save-btn" onclick="saveWeekResults()">💾 Save Results</button>
+        <button class="delete-btn" onclick="deleteWeekResults()" id="modal-delete-btn" style="display:none">🗑 Delete Week</button>
+      </div>
+      <div id="modal-save-status" style="margin-top:8px;font-size:0.82rem;color:var(--green-mid)"></div>
+    </div>
+  </div>
+</div>
+
+<!-- SKINS MODAL -->
+<div class="modal-overlay" id="skins-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Add Skins Result</h3>
+      <button class="modal-close" onclick="closeModal('skins-modal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Week #</label>
+          <select id="skins-week-num">
+            <option value="">Select week...</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Winner</label>
+          <select id="skins-winner">
+            <option value="">Select player...</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Hole Won</label>
+          <input type="number" id="skins-hole" min="1" max="9" placeholder="1–9">
+        </div>
+        <div class="form-group">
+          <label>Amount ($)</label>
+          <input type="number" id="skins-amount" placeholder="e.g. 52">
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:12px">
+        <label>Notes</label>
+        <input type="text" id="skins-notes" placeholder="e.g. Carry-over from Week 2">
+      </div>
+      <button class="save-btn" onclick="saveSkin()">💾 Save Skin</button>
+      <div id="skins-save-status" style="margin-top:8px;font-size:0.82rem;color:var(--green-mid)"></div>
+    </div>
+  </div>
+</div>
+
+<!-- HISTORY MODAL -->
+<div class="modal-overlay" id="history-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Add Historical Season</h3>
+      <button class="modal-close" onclick="closeModal('history-modal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="notice">Paste in final standings for 2024 or 2025. Enter one player per row.</div>
+      <div class="form-row" style="margin-top:12px">
+        <div class="form-group">
+          <label>Season Year</label>
+          <select id="hist-year">
+            <option value="2025">2025</option>
+            <option value="2024">2024</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Champion</label>
+          <input type="text" id="hist-champion" placeholder="First Last">
+        </div>
+      </div>
+      <div id="hist-player-rows"></div>
+      <button onclick="addHistPlayerRow()" style="margin:8px 0 14px;background:none;border:1px dashed var(--border);padding:6px 14px;border-radius:3px;cursor:pointer;font-size:0.82rem;color:var(--text-light)">+ Add Player Row</button>
+      <br>
+      <button class="save-btn" onclick="saveHistory()">💾 Save History</button>
+      <div id="hist-save-status" style="margin-top:8px;font-size:0.82rem;color:var(--green-mid)"></div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <strong>Pars &amp; Pints Summer League</strong> &nbsp;·&nbsp; Est. 2024
+</footer>
+
+<script>
+// ══════════════════════════════════════════════
+// CONFIG
+// ══════════════════════════════════════════════
+const BIN_ID   = '69d3f958856a68218905b11a';
+const API_KEY  = '$2a$10$bi8u/5Db8qyxEsv/QYyvuu03trS2sjASrsf0TXa.m3CIfARihdZdS';
+const ADMIN_PW = 'dewgolf123!';
+const BIN_URL  = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
+
+// ══════════════════════════════════════════════
+// STATIC DATA
+// ══════════════════════════════════════════════
+const PLAYERS = [
+  { id:1,  first:'Jack',  last:'Balistreri' },
+  { id:2,  first:'Ben',   last:'Bartels'    },
+  { id:3,  first:'Dan',   last:'Bartels'    },
+  { id:4,  first:'Zach',  last:'Bartels'    },
+  { id:5,  first:'Shaun', last:'Diederich'  },
+  { id:6,  first:'Kaden', last:'Dykstra'    },
+  { id:7,  first:'Sam',   last:'Harmeyer'   },
+  { id:8,  first:'Alex',  last:'Hein'       },
+  { id:9,  first:'Alex',  last:'Henry'      },
+  { id:10, first:'Nick',  last:'Kriesel'    },
+  { id:11, first:'Josh',  last:'Mack'       },
+  { id:12, first:'CJ',    last:'Malek'      },
+  { id:13, first:'Jack',  last:'Mielke'     },
+  { id:14, first:'Matt',  last:'Phillips'   },
+  { id:15, first:'Matt',  last:'Sklander'   },
+  { id:16, first:'John',  last:'Trepanier'  },
+];
+
+const SCHEDULE = [
+  { week:1,  date:'Tue Apr 28, 2026', course:'Oakwood Golf Course',    note:'Back Nine' },
+  { week:2,  date:'Tue May 5, 2026',  course:'Whitnall Golf Course',   note:'' },
+  { week:3,  date:'Tue May 12, 2026', course:'Greenfield Golf Course', note:'' },
+  { week:4,  date:'Tue May 19, 2026', course:'Currie Golf Course',     note:'' },
+  { week:5,  date:'Tue May 26, 2026', course:'Oakwood Golf Course',    note:'Back Nine' },
+  { week:6,  date:'Tue Jun 2, 2026',  course:'Whitnall Golf Course',   note:'' },
+  { week:7,  date:'Tue Jun 9, 2026',  course:'Greenfield Golf Course', note:'' },
+  { week:8,  date:'Tue Jun 16, 2026', course:'Currie Golf Course',     note:'' },
+  { week:9,  date:'Tue Jun 23, 2026', course:'Whitnall Golf Course',   note:'' },
+  { week:10, date:'Tue Jun 30, 2026', course:'Oakwood Golf Course',    note:'' },
+  { week:11, date:'Tue Jul 7, 2026',  course:'Greenfield Golf Course', note:'' },
+  { week:12, date:'Tue Jul 14, 2026', course:'Currie Golf Course',     note:'' },
+  { week:13, date:'Tue Jul 21, 2026', course:'Oakwood Golf Course',    note:'Back Nine' },
+  { week:14, date:'Tue Jul 28, 2026', course:'Whitnall Golf Course',   note:'' },
+  { week:15, date:'Tue Aug 4, 2026',  course:'Greenfield Golf Course', note:'' },
+  { week:16, date:'Tue Aug 11, 2026', course:'Currie Golf Course',     note:'' },
+  { week:17, date:'Tue Aug 18, 2026', course:'Oakwood Golf Course',    note:'' },
+  { week:18, date:'Tue Aug 25, 2026', course:'Whitnall Golf Course',   note:'' },
+];
+
+// Default matchup pairings (same each week unless changed)
+const DEFAULT_MATCHUPS = [
+  ['Jack Balistreri','Dan Bartels'],
+  ['Zach Bartels','Ben Bartels'],
+  ['Shaun Diederich','John Trepanier'],  // note: M Trepanier was in w1 but may be same person
+  ['Sam Harmeyer','John Trepanier'],
+  ['Alex Hein','Matt Sklander'],
+  ['Josh Mack','CJ Malek'],
+  ['Nick Kriesel','Jack Mielke'],
+  ['Alex Henry','Matt Phillips'],
+];
+
+const COURSE_EMOJI = { 'Oakwood Golf Course':'🌳','Whitnall Golf Course':'🌿','Greenfield Golf Course':'🍃','Currie Golf Course':'⛳' };
+
+// Course pars (9-hole) — update per course as needed
+const COURSE_PARS = {
+  'Oakwood Golf Course':    [4,5,4,3,4,5,4,3,4],
+  'Whitnall Golf Course':   [4,4,3,5,4,3,4,5,4],
+  'Greenfield Golf Course': [4,3,5,4,4,3,5,4,4],
+  'Currie Golf Course':     [4,4,4,3,5,4,3,4,5],
+};
+
+// ══════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════
+let DB = null;
+let isAdmin = false;
+
+const EMPTY_DB = {
+  season2026: {
+    players: [
+      {"id":1,"first":"Jack","last":"Balistreri","hdcp":15.8,"skins":0},
+      {"id":2,"first":"Ben","last":"Bartels","hdcp":20.4,"skins":0},
+      {"id":3,"first":"Dan","last":"Bartels","hdcp":11.3,"skins":0},
+      {"id":4,"first":"Zach","last":"Bartels","hdcp":13.2,"skins":0},
+      {"id":5,"first":"Shaun","last":"Diederich","hdcp":10.7,"skins":0},
+      {"id":6,"first":"Kaden","last":"Dykstra","hdcp":null,"skins":0},
+      {"id":7,"first":"Sam","last":"Harmeyer","hdcp":10.1,"skins":0},
+      {"id":8,"first":"Alex","last":"Hein","hdcp":10.9,"skins":0},
+      {"id":9,"first":"Alex","last":"Henry","hdcp":20.1,"skins":0},
+      {"id":10,"first":"Nick","last":"Kriesel","hdcp":23.2,"skins":0},
+      {"id":11,"first":"Josh","last":"Mack","hdcp":28.6,"skins":0},
+      {"id":12,"first":"CJ","last":"Malek","hdcp":4.7,"skins":0},
+      {"id":13,"first":"Jack","last":"Mielke","hdcp":6.6,"skins":0},
+      {"id":14,"first":"Matt","last":"Phillips","hdcp":19.8,"skins":0},
+      {"id":15,"first":"Matt","last":"Sklander","hdcp":11.9,"skins":0},
+      {"id":16,"first":"John","last":"Trepanier","hdcp":6.8,"skins":0}
+    ],
+    weeks: [
+      {
+        weekNum: 1,
+        matchups: [
+          {p1:{name:"Jack Balistreri",hdcp:15.8,scores:[5,5,6,3,6,6,4,3,5],total:43,result:"AS",pts:5},   p2:{name:"Dan Bartels",   hdcp:11.3,scores:[3,5,6,5,4,6,6,3,5],total:43,result:"AS",  pts:5}},
+          {p1:{name:"Zach Bartels",   hdcp:13.2,scores:[5,4,6,4,4,5,4,4,4],total:40,result:"5UP",pts:8},  p2:{name:"Ben Bartels",   hdcp:20.4,scores:[7,6,6,3,6,8,5,6,6],total:53,result:"",    pts:2}},
+          {p1:{name:"Shaun Diederich",hdcp:10.7,scores:[4,7,5,4,5,5,5,4,5],total:44,result:"WIN",pts:7.5},p2:{name:"Matt Trepanier",hdcp:18.7,scores:null,             total:null,result:"DQ",   pts:0}},
+          {p1:{name:"Sam Harmeyer",   hdcp:10.1,scores:[4,8,7,5,4,8,5,4,4],total:49,result:"",   pts:3.5},p2:{name:"John Trepanier",hdcp:6.8, scores:[5,5,5,4,4,6,5,3,4],total:41,result:"2UP", pts:6.5}},
+          {p1:{name:"Alex Hein",      hdcp:10.9,scores:[4,6,4,4,5,6,5,4,4],total:42,result:"3UP",pts:7},  p2:{name:"Matt Sklander", hdcp:11.9,scores:[5,6,5,5,4,6,6,4,6],total:47,result:"",    pts:3}},
+          {p1:{name:"Josh Mack",      hdcp:28.6,scores:[5,9,6,5,6,6,6,5,5],total:53,result:"",   pts:4},  p2:{name:"CJ Malek",      hdcp:4.7, scores:[5,6,5,4,4,4,4,3,5],total:40,result:"1UP", pts:6}},
+          {p1:{name:"Nick Kriesel",   hdcp:23.2,scores:null,                total:null,result:"DQ",pts:0}, p2:{name:"Jack Mielke",   hdcp:6.6, scores:[6,7,7,4,4,6,5,3,6],total:48,result:"WIN", pts:7.5}},
+          {p1:{name:"Alex Henry",     hdcp:20.1,scores:[6,10,6,5,6,6,6,6,4],total:55,result:"",  pts:3.5},p2:{name:"Matt Phillips", hdcp:19.8,scores:[6,7,6,4,5,7,6,4,7],total:52,result:"2UP", pts:6.5}},
+        ]
+      }
+    ],
+    skins: [],
+  },
+  season2025: { champion: '', players: [] },
+  season2024: { champion: '', players: [] },
+};
+
+// ══════════════════════════════════════════════
+// JSONBIN
+// ══════════════════════════════════════════════
+async function loadDB() {
+  try {
+    const r = await fetch(BIN_URL + '/latest', { headers: { 'X-Master-Key': API_KEY } });
+    const j = await r.json();
+    // Brand new bin returns no record or empty object — auto-seed it
+    if (!j.record || Object.keys(j.record).length === 0) {
+      DB = JSON.parse(JSON.stringify(EMPTY_DB));
+      await saveDB(); // write seed data to bin on first visit
+    } else {
+      DB = j.record;
+      if (!DB.season2026) DB.season2026 = EMPTY_DB.season2026;
+      if (!DB.season2025) DB.season2025 = EMPTY_DB.season2025;
+      if (!DB.season2024) DB.season2024 = EMPTY_DB.season2024;
+      if (!DB.season2026.skins) DB.season2026.skins = [];
+    }
+  } catch(e) {
+    DB = JSON.parse(JSON.stringify(EMPTY_DB));
+  }
+  renderAll();
+}
+
+async function saveDB() {
+  const r = await fetch(BIN_URL, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'X-Master-Key': API_KEY },
+    body: JSON.stringify(DB),
+  });
+  return r.ok;
+}
+
+// ══════════════════════════════════════════════
+// NAV
+// ══════════════════════════════════════════════
+function showSection(id, btn) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if (btn) btn.classList.add('active');
+}
+
+function showInnerTab(sectionId, tabId, btn) {
+  const parent = document.getElementById(sectionId) || document.getElementById('history');
+  const panels = document.querySelectorAll(`#${tabId}`);
+  // simpler: just toggle by matching id
+  document.querySelectorAll('.inner-panel').forEach(p => {
+    if ([tabId].includes(p.id) || p.parentElement.contains(document.getElementById(tabId))) {}
+  });
+  // Find sibling panels
+  const panel = document.getElementById(tabId);
+  if (!panel) return;
+  const container = panel.parentElement;
+  container.querySelectorAll('.inner-panel').forEach(p => p.classList.remove('active'));
+  panel.classList.add('active');
+  if (btn) {
+    btn.closest('.inner-tabs').querySelectorAll('.inner-tab').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+  }
+}
+
+// ══════════════════════════════════════════════
+// ADMIN
+// ══════════════════════════════════════════════
+function tryAdminLogin() {
+  const pw = document.getElementById('admin-pw-input').value;
+  if (pw === ADMIN_PW) {
+    isAdmin = true;
+    document.getElementById('admin-locked-ui').style.display = 'none';
+    document.getElementById('admin-unlocked-ui').style.display = 'flex';
+    document.getElementById('admin-err').style.display = 'none';
+  } else {
+    document.getElementById('admin-err').style.display = 'inline';
+  }
+}
+
+function adminLogout() {
+  isAdmin = false;
+  document.getElementById('admin-locked-ui').style.display = 'flex';
+  document.getElementById('admin-unlocked-ui').style.display = 'none';
+  document.getElementById('admin-pw-input').value = '';
+}
+
+// ══════════════════════════════════════════════
+// COMPUTED STANDINGS
+// ══════════════════════════════════════════════
+function computeStandings() {
+  const map = {};
+  PLAYERS.forEach(p => {
+    const fullName = `${p.first} ${p.last}`;
+    map[fullName] = { ...p, pts: 0, w: 0, t: 0, l: 0, scores: [], hdcp: null, skins: 0 };
+  });
+
+  // Pull handicaps from DB players
+  (DB.season2026.players || []).forEach(dp => {
+    const key = `${dp.first} ${dp.last}`;
+    if (map[key]) { map[key].hdcp = dp.hdcp; map[key].skins = dp.skins || 0; }
+  });
+
+  // Tally from weeks
+  (DB.season2026.weeks || []).forEach(week => {
+    (week.matchups || []).forEach(m => {
+      ['p1','p2'].forEach(side => {
+        const p = m[side];
+        if (!p || p.result === 'DQ') return;
+        const key = p.name;
+        if (!map[key]) return;
+        map[key].pts += (p.pts || 0);
+        if (p.total) map[key].scores.push(p.total);
+        if ((p.pts || 0) > (m[side==='p1'?'p2':'p1'].pts || 0)) map[key].w++;
+        else if ((p.pts || 0) === (m[side==='p1'?'p2':'p1'].pts || 0)) map[key].t++;
+        else map[key].l++;
+      });
+    });
+  });
+
+  // Skins
+  (DB.season2026.skins || []).forEach(s => {
+    if (map[s.winner]) map[s.winner].skins++;
+  });
+
+  return Object.values(map).sort((a,b) => b.pts - a.pts);
+}
+
+// ══════════════════════════════════════════════
+// RENDER ALL
+// ══════════════════════════════════════════════
+function renderAll() {
+  const standings = computeStandings();
+  renderHomeStandings(standings);
+  renderFullStandings(standings);
+  renderHomeRecent();
+  renderHomeUpNext();
+  renderSchedule();
+  renderResults();
+  renderPlayers(standings);
+  renderSkins();
+  renderHistory();
+  renderHeroStats();
+}
+
+// ══════════════════════════════════════════════
+// HERO STATS
+// ══════════════════════════════════════════════
+function renderHeroStats() {
+  const played = (DB.season2026.weeks || []).length;
+  document.getElementById('hero-weeks-played').textContent = played;
+}
+
+// ══════════════════════════════════════════════
+// STANDINGS RENDERERS
+// ══════════════════════════════════════════════
+function rankBadge(rank) {
+  if (rank <= 3) return `<span class="rank-badge rank-${rank}">${rank}</span>`;
+  return `<span style="font-size:0.78rem;color:var(--text-light)">${rank}</span>`;
+}
+
+function renderHomeStandings(standings) {
+  document.getElementById('home-standings-body').innerHTML = standings.map((p,i) => `
+    <tr>
+      <td style="text-align:center">${rankBadge(i+1)}</td>
+      <td class="name">${p.first} ${p.last}</td>
+      <td class="pts-cell">${p.pts || '0'}</td>
+      <td style="text-align:center;font-size:0.83rem">${p.w}-${p.t}-${p.l}</td>
+      <td class="num">${p.hdcp ?? '—'}</td>
+    </tr>`).join('');
+}
+
+function renderFullStandings(standings) {
+  document.getElementById('full-standings-body').innerHTML = standings.map((p,i) => {
+    const avg = p.scores.length ? (p.scores.reduce((a,b)=>a+b,0)/p.scores.length).toFixed(1) : '—';
+    return `<tr>
+      <td style="text-align:center">${rankBadge(i+1)}</td>
+      <td class="name">${p.first} ${p.last}</td>
+      <td class="pts-cell">${p.pts || '0'}</td>
+      <td class="num">${p.w}</td><td class="num">${p.t}</td><td class="num">${p.l}</td>
+      <td class="num">${p.hdcp ?? '—'}</td>
+      <td class="num">${avg}</td>
+      <td class="num">${p.skins || 0}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════
+// HOME RECENT / UP NEXT
+// ══════════════════════════════════════════════
+function resultTag(result) {
+  if (!result) return '';
+  if (result === 'DQ') return `<span class="tag tag-dq">DQ</span>`;
+  if (result === 'AS') return `<span class="tag tag-as">AS</span>`;
+  if (result === 'WIN' || result.includes('UP')) return `<span class="tag tag-win">${result}</span>`;
+  return `<span class="tag tag-loss">${result}</span>`;
+}
+
+function renderHomeRecent() {
+  const weeks = DB.season2026.weeks || [];
+  const el = document.getElementById('home-recent-results');
+  if (!weeks.length) { el.innerHTML = '<div class="card"><div class="empty-state">No results yet — check back after Week 1.</div></div>'; return; }
+  const latest = weeks[weeks.length - 1];
+  const sched = SCHEDULE.find(s => s.week === latest.weekNum) || {};
+  el.innerHTML = `<div class="card">
+    <div class="card-header">${COURSE_EMOJI[sched.course]||'⛳'} ${sched.course || 'Week '+latest.weekNum} · ${sched.date||''}</div>
+    <table>
+      <thead><tr><th>Matchup</th><th class="num">Gross</th><th>Result</th><th class="num">Pts</th></tr></thead>
+      <tbody>${(latest.matchups||[]).flatMap(m => {
+        const p1w = (m.p1.pts||0) > (m.p2.pts||0);
+        const p2w = (m.p2.pts||0) > (m.p1.pts||0);
+        return [`<tr>
+          <td class="name" style="${p1w?'color:var(--green-mid)':''}">${m.p1.name} <small style="color:var(--text-light)">(${m.p1.hdcp})</small></td>
+          <td class="num">${m.p1.total||'—'}</td><td>${resultTag(m.p1.result)}</td><td class="pts-cell">${m.p1.pts}</td></tr>`,
+        `<tr style="background:var(--cream-dark)">
+          <td class="name" style="${p2w?'color:var(--green-mid)':''}; padding-left:22px">vs ${m.p2.name} <small style="color:var(--text-light)">(${m.p2.hdcp})</small></td>
+          <td class="num">${m.p2.total||'—'}</td><td>${resultTag(m.p2.result)}</td><td class="pts-cell">${m.p2.pts}</td></tr>`,
+        `<tr class="matchup-divider"><td colspan="4"></td></tr>`];
+      }).join('')}</tbody>
+    </table>
+  </div>`;
+}
+
+function renderHomeUpNext() {
+  const played = new Set((DB.season2026.weeks||[]).map(w => w.weekNum));
+  const next = SCHEDULE.find(s => !played.has(s.week));
+  const el = document.getElementById('home-up-next');
+  if (!next) { el.innerHTML = '<div class="card"><div class="empty-state">Season complete!</div></div>'; return; }
+  el.innerHTML = `<div class="card">
+    <div class="card-header">${COURSE_EMOJI[next.course]||'⛳'} ${next.course} — Week ${next.week}</div>
+    <div style="padding:14px">
+      <div style="font-size:0.82rem;color:var(--text-light);margin-bottom:10px">${next.date} · First tee 5:12 pm${next.note?' · '+next.note:''}</div>
+      ${DEFAULT_MATCHUPS.map(([a,b]) => `<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #eee;font-size:0.84rem"><span>${a}</span><span style="color:var(--text-light);font-size:0.73rem">vs</span><span>${b}</span></div>`).join('')}
+    </div>
+  </div>`;
+}
+
+// ══════════════════════════════════════════════
+// SCHEDULE
+// ══════════════════════════════════════════════
+function renderSchedule() {
+  const played = new Set((DB.season2026.weeks||[]).map(w => w.weekNum));
+  const allPlayed = [...played];
+  const nextWeek = SCHEDULE.find(s => !played.has(s.week));
+  document.getElementById('schedule-grid').innerHTML = SCHEDULE.map(w => {
+    const done = played.has(w.week);
+    const isNext = nextWeek && nextWeek.week === w.week;
+    const badge = done ? '<span class="week-badge badge-past">✓ Done</span>' : isNext ? '<span class="week-badge badge-next">Up Next</span>' : '';
+    return `<div class="week-card ${done?'past':isNext?'current':''}">
+      <div class="week-card-header"><span>Week ${w.week}</span>${badge}</div>
+      <div class="week-card-body">
+        <div class="course-name">${COURSE_EMOJI[w.course]||'⛳'} ${w.course}</div>
+        <div class="course-detail">${w.date}</div>
+        <div class="course-detail">🕐 5:12 pm · 16 players${w.note?' · '+w.note:''}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════
+// RESULTS
+// ══════════════════════════════════════════════
+function renderResults() {
+  const weeks = DB.season2026.weeks || [];
+  const tabsEl = document.getElementById('results-tabs');
+  const panelsEl = document.getElementById('results-panels');
+
+  if (!weeks.length) {
+    tabsEl.innerHTML = '';
+    panelsEl.innerHTML = '<div class="empty-state">No results yet — check back after Week 1.</div>';
+    return;
+  }
+
+  tabsEl.innerHTML = weeks.map((w,i) => {
+    const s = SCHEDULE.find(sc => sc.week === w.weekNum) || {};
+    return `<button class="inner-tab ${i===weeks.length-1?'active':''}" onclick="showInnerTab('results-section','res-week-${w.weekNum}',this)">Wk ${w.weekNum} — ${(s.course||'').replace(' Golf Course','')}</button>`;
+  }).join('');
+
+  panelsEl.innerHTML = weeks.map((w,i) => {
+    const s = SCHEDULE.find(sc => sc.week === w.weekNum) || {};
+    const par = COURSE_PARS[s.course] || [4,4,4,3,5,4,3,4,4];
+    const parTotal = par.reduce((a,b)=>a+b,0);
+
+    const parRow = `<tr class="par-row"><td style="text-align:left;font-weight:600;color:var(--green-deep)">Par</td>${par.map(p=>`<td>${p}</td>`).join('')}<td>${parTotal}</td><td></td><td></td></tr>`;
+
+    const matchupRows = (w.matchups||[]).flatMap(m => {
+      function pRow(p, opp) {
+        const sc = p.scores ? p.scores.map((s,hi) => {
+          const cls = s < par[hi] ? 'hole-win' : '';
+          return `<td class="${cls}">${s}</td>`;
+        }).join('') : par.map(()=>`<td style="color:#ccc">—</td>`).join('');
+        const ptsCls = (p.pts||0) > (opp.pts||0) ? 'style="color:var(--green-mid)"' : '';
+        return `<tr><td style="text-align:left" class="name" ${ptsCls}>${p.name} <small style="opacity:0.55">(${p.hdcp})</small></td>${sc}<td style="font-weight:700">${p.total??'—'}</td><td>${resultTag(p.result)}</td><td class="pts-cell">${p.pts}</td></tr>`;
+      }
+      return [pRow(m.p1,m.p2), pRow(m.p2,m.p1), `<tr class="matchup-divider"><td colspan="13"></td></tr>`];
+    }).join('');
+
+    return `<div id="res-week-${w.weekNum}" class="inner-panel ${i===weeks.length-1?'active':''}">
+      <div class="card">
+        <div class="card-header">${COURSE_EMOJI[s.course]||'⛳'} ${s.course||'Week '+w.weekNum} · ${s.date||''}</div>
+        <div class="scorecard-wrap">
+          <table class="scorecard">
+            <thead><tr><th style="text-align:left">Player</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th><th>9</th><th>Total</th><th>Result</th><th>Pts</th></tr></thead>
+            <tbody>${parRow}${matchupRows}</tbody>
+          </table>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════
+// PLAYERS
+// ══════════════════════════════════════════════
+function renderPlayers(standings) {
+  document.getElementById('player-grid').innerHTML = standings.map((p,i) => {
+    const initials = p.first[0] + p.last[0];
+    const avg = p.scores.length ? (p.scores.reduce((a,b)=>a+b,0)/p.scores.length).toFixed(1) : '—';
+    return `<div class="player-card">
+      <div class="player-avatar">${initials}</div>
+      <div class="player-full-name">${p.first} ${p.last}</div>
+      <div class="player-hdcp">${p.hdcp ? 'HDCP ' + p.hdcp : 'No HDCP on file'}</div>
+      <div class="player-pts">${p.pts || 0}</div>
+      <div class="player-pts-lbl">Season Pts · #${i+1} · Avg ${avg}</div>
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════
+// SKINS
+// ══════════════════════════════════════════════
+function renderSkins() {
+  const skins = DB.season2026.skins || [];
+  const el = document.getElementById('skins-content');
+  if (!skins.length) {
+    el.innerHTML = '<div class="card"><div class="empty-state">No skins recorded yet.</div></div>';
+    return;
+  }
+  const totalPaid = skins.reduce((a,s) => a + (s.amount||0), 0);
+  const remaining = 832 - totalPaid;
+
+  // Group by winner
+  const byWinner = {};
+  skins.forEach(s => {
+    if (!byWinner[s.winner]) byWinner[s.winner] = { count: 0, total: 0 };
+    byWinner[s.winner].count++;
+    byWinner[s.winner].total += (s.amount||0);
+  });
+
+  el.innerHTML = `
+  <div class="two-col" style="margin-bottom:20px">
+    <div class="card">
+      <div class="card-header">💰 Pot Summary</div>
+      <table>
+        <tbody>
+          <tr><td>Total Pot</td><td class="pts-cell">$832</td></tr>
+          <tr><td>Paid Out</td><td class="pts-cell" style="color:var(--red)">$${totalPaid}</td></tr>
+          <tr><td>Remaining</td><td class="pts-cell" style="color:var(--green-mid)">$${remaining}</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card">
+      <div class="card-header">🏆 Skins Leaders</div>
+      <table>
+        <thead><tr><th>Player</th><th class="num">Skins</th><th class="num">Earnings</th></tr></thead>
+        <tbody>${Object.entries(byWinner).sort((a,b)=>b[1].count-a[1].count).map(([name,d])=>`<tr><td class="name">${name}</td><td class="num">${d.count}</td><td class="pts-cell">$${d.total}</td></tr>`).join('')}</tbody>
+      </table>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header">📋 All Skins Results</div>
+    <table>
+      <thead><tr><th class="num">Week</th><th>Winner</th><th class="num">Hole</th><th class="num">Amount</th><th>Notes</th></tr></thead>
+      <tbody>${skins.map(s => `<tr><td class="num">${s.week}</td><td class="name">${s.winner}</td><td class="num">${s.hole||'—'}</td><td class="pts-cell">$${s.amount||0}</td><td style="font-size:0.82rem;color:var(--text-light)">${s.notes||''}</td></tr>`).join('')}</tbody>
+    </table>
+  </div>`;
+}
+
+// ══════════════════════════════════════════════
+// HISTORY
+// ══════════════════════════════════════════════
+function renderHistory() {
+  ['2025','2024'].forEach(yr => {
+    const data = DB[`season${yr}`];
+    const el = document.getElementById(`hist-${yr}-content`);
+    if (!data || !data.players || !data.players.length) {
+      el.innerHTML = `<div class="notice">2024 was the inaugural season of Pars &amp; Pints.</div><div class="card"><div class="empty-state">Historical data not yet entered. Use Admin → Add History to populate.</div></div>`;
+      return;
+    }
+    el.innerHTML = `
+      ${data.champion ? `<div class="notice">🏆 ${yr} Champion: <strong>${data.champion}</strong></div>` : ''}
+      <div class="card">
+        <div class="card-header">🏆 ${yr} Final Standings</div>
+        <table>
+          <thead><tr><th>#</th><th>Player</th><th class="num">Points</th><th class="num">W-T-L</th><th class="num">HDCP</th></tr></thead>
+          <tbody>${data.players.map((p,i) => `<tr><td style="text-align:center">${rankBadge(i+1)}</td><td class="name">${p.name}</td><td class="pts-cell">${p.pts||0}</td><td style="text-align:center;font-size:0.83rem">${p.record||'—'}</td><td class="num">${p.hdcp||'—'}</td></tr>`).join('')}</tbody>
+        </table>
+      </div>`;
+  });
+}
+
+// ══════════════════════════════════════════════
+// WEEK MODAL
+// ══════════════════════════════════════════════
+function openWeekModal() {
+  // Populate week select
+  const sel = document.getElementById('modal-week-num');
+  sel.innerHTML = '<option value="">Select week...</option>' + SCHEDULE.map(s => `<option value="${s.week}">Week ${s.week} — ${s.course}</option>`).join('');
+  document.getElementById('modal-matchups-container').innerHTML = '';
+  document.getElementById('modal-course').value = '';
+  document.getElementById('modal-save-status').textContent = '';
+  document.getElementById('modal-delete-btn').style.display = 'none';
+  document.getElementById('week-modal').classList.add('open');
+}
+
+function weekModalWeekChange() {
+  const wNum = parseInt(document.getElementById('modal-week-num').value);
+  if (!wNum) return;
+  const sched = SCHEDULE.find(s => s.week === wNum);
+  document.getElementById('modal-course').value = sched ? sched.course : '';
+
+  // Check if data exists
+  const existing = (DB.season2026.weeks||[]).find(w => w.weekNum === wNum);
+  document.getElementById('modal-delete-btn').style.display = existing ? 'block' : 'none';
+
+  // Build matchup input blocks
+  const matchups = existing ? existing.matchups : DEFAULT_MATCHUPS.map(([a,b]) => ({
+    p1: { name: a, hdcp: '', scores: Array(9).fill(''), total: '', result: '', pts: '' },
+    p2: { name: b, hdcp: '', scores: Array(9).fill(''), total: '', result: '', pts: '' },
+  }));
+
+  const par = COURSE_PARS[sched?.course] || [4,4,4,3,5,4,3,4,4];
+
+  document.getElementById('modal-matchups-container').innerHTML = matchups.map((m, mi) => {
+    function playerBlock(p, side) {
+      const scores = (p.scores||Array(9).fill('')).map((s,hi) =>
+        `<input type="number" min="1" max="15" value="${s||''}" id="sc-${mi}-${side}-${hi}" placeholder="${par[hi]}" onchange="autoCalcTotal(${mi},'${side}')">`
+      ).join('');
+      return `
+        <div style="margin-bottom:8px">
+          <div style="display:flex;gap:10px;margin-bottom:6px;align-items:center">
+            <input type="text" value="${p.name||''}" id="name-${mi}-${side}" placeholder="Player name" style="flex:1;padding:5px 8px;border:1px solid var(--border);border-radius:3px;font-size:0.83rem">
+            <input type="number" step="0.1" value="${p.hdcp||''}" id="hdcp-${mi}-${side}" placeholder="HDCP" style="width:70px;padding:5px 8px;border:1px solid var(--border);border-radius:3px;font-size:0.83rem">
+          </div>
+          <div style="font-size:0.68rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-light);margin-bottom:3px">Hole Scores (Par: ${par.join('-')})</div>
+          <div class="score-grid">${scores}</div>
+          <div style="display:flex;gap:10px;margin-top:6px;align-items:center">
+            <div class="form-group" style="flex:1"><label>Total</label><input type="number" id="tot-${mi}-${side}" value="${p.total||''}" placeholder="Total" style="width:100%"></div>
+            <div class="form-group" style="flex:1"><label>Result</label>
+              <select id="res-${mi}-${side}">
+                <option value="">—</option>
+                ${['WIN','1UP','2UP','3UP','4UP','5UP','6UP','7UP','8UP','AS','DQ'].map(r => `<option value="${r}" ${p.result===r?'selected':''}>${r}</option>`).join('')}
+              </select>
+            </div>
+            <div class="form-group" style="flex:1"><label>Points</label><input type="number" step="0.5" id="pts-${mi}-${side}" value="${p.pts||''}" placeholder="0–10"></div>
+          </div>
+        </div>`;
+    }
+    return `<div class="matchup-section">
+      <h4>Matchup ${mi+1}: ${m.p1.name||'Player A'} vs ${m.p2.name||'Player B'}</h4>
+      ${playerBlock(m.p1,'p1')}
+      <div style="text-align:center;color:var(--text-light);font-size:0.8rem;margin:4px 0">— vs —</div>
+      ${playerBlock(m.p2,'p2')}
+    </div>`;
+  }).join('');
+}
+
+function autoCalcTotal(mi, side) {
+  let sum = 0;
+  for (let h = 0; h < 9; h++) {
+    const v = parseInt(document.getElementById(`sc-${mi}-${side}-${h}`)?.value);
+    if (!isNaN(v)) sum += v;
+  }
+  if (sum > 0) document.getElementById(`tot-${mi}-${side}`).value = sum;
+}
+
+async function saveWeekResults() {
+  const wNum = parseInt(document.getElementById('modal-week-num').value);
+  if (!wNum) return;
+  const status = document.getElementById('modal-save-status');
+  status.textContent = 'Saving...';
+
+  const matchupCount = document.querySelectorAll('.matchup-section').length;
+  const matchups = [];
+  for (let mi = 0; mi < matchupCount; mi++) {
+    function getPlayer(side) {
+      const scores = [];
+      for (let h = 0; h < 9; h++) {
+        const v = document.getElementById(`sc-${mi}-${side}-${h}`)?.value;
+        scores.push(v ? parseInt(v) : null);
+      }
+      return {
+        name:   document.getElementById(`name-${mi}-${side}`)?.value || '',
+        hdcp:   parseFloat(document.getElementById(`hdcp-${mi}-${side}`)?.value) || null,
+        scores: scores.every(s => s === null) ? null : scores,
+        total:  parseInt(document.getElementById(`tot-${mi}-${side}`)?.value) || null,
+        result: document.getElementById(`res-${mi}-${side}`)?.value || '',
+        pts:    parseFloat(document.getElementById(`pts-${mi}-${side}`)?.value) || 0,
+      };
+    }
+    matchups.push({ p1: getPlayer('p1'), p2: getPlayer('p2') });
+  }
+
+  // Update or insert week
+  if (!DB.season2026.weeks) DB.season2026.weeks = [];
+  const idx = DB.season2026.weeks.findIndex(w => w.weekNum === wNum);
+  const weekData = { weekNum: wNum, matchups };
+  if (idx >= 0) DB.season2026.weeks[idx] = weekData;
+  else DB.season2026.weeks.push(weekData);
+  DB.season2026.weeks.sort((a,b) => a.weekNum - b.weekNum);
+
+  // Also update handicaps in player list
+  matchups.forEach(m => {
+    ['p1','p2'].forEach(side => {
+      const p = m[side];
+      if (!p.name || !p.hdcp) return;
+      const dbp = DB.season2026.players.find(dp => `${dp.first} ${dp.last}` === p.name);
+      if (dbp) dbp.hdcp = p.hdcp;
+    });
+  });
+
+  const ok = await saveDB();
+  status.textContent = ok ? '✓ Saved successfully!' : '✗ Save failed — check connection.';
+  if (ok) { renderAll(); setTimeout(() => closeModal('week-modal'), 1200); }
+}
+
+async function deleteWeekResults() {
+  const wNum = parseInt(document.getElementById('modal-week-num').value);
+  if (!wNum || !confirm(`Delete all results for Week ${wNum}?`)) return;
+  DB.season2026.weeks = (DB.season2026.weeks||[]).filter(w => w.weekNum !== wNum);
+  const ok = await saveDB();
+  document.getElementById('modal-save-status').textContent = ok ? '✓ Deleted.' : '✗ Error.';
+  if (ok) { renderAll(); setTimeout(() => closeModal('week-modal'), 1000); }
+}
+
+// ══════════════════════════════════════════════
+// SKINS MODAL
+// ══════════════════════════════════════════════
+function openSkinsModal() {
+  const wSel = document.getElementById('skins-week-num');
+  wSel.innerHTML = '<option value="">Select week...</option>' + SCHEDULE.map(s => `<option value="${s.week}">Week ${s.week}</option>`).join('');
+  const pSel = document.getElementById('skins-winner');
+  pSel.innerHTML = '<option value="">Select player...</option>' + PLAYERS.map(p => `<option>${p.first} ${p.last}</option>`).join('');
+  document.getElementById('skins-save-status').textContent = '';
+  document.getElementById('skins-modal').classList.add('open');
+}
+
+async function saveSkin() {
+  const skin = {
+    week:   parseInt(document.getElementById('skins-week-num').value),
+    winner: document.getElementById('skins-winner').value,
+    hole:   parseInt(document.getElementById('skins-hole').value) || null,
+    amount: parseFloat(document.getElementById('skins-amount').value) || 0,
+    notes:  document.getElementById('skins-notes').value,
+  };
+  if (!skin.week || !skin.winner) return;
+  if (!DB.season2026.skins) DB.season2026.skins = [];
+  DB.season2026.skins.push(skin);
+  const ok = await saveDB();
+  document.getElementById('skins-save-status').textContent = ok ? '✓ Skin saved!' : '✗ Error saving.';
+  if (ok) { renderAll(); setTimeout(() => closeModal('skins-modal'), 1200); }
+}
+
+// ══════════════════════════════════════════════
+// HISTORY MODAL
+// ══════════════════════════════════════════════
+function openHistoryModal() {
+  document.getElementById('hist-player-rows').innerHTML = '';
+  for (let i = 0; i < 16; i++) addHistPlayerRow();
+  document.getElementById('hist-save-status').textContent = '';
+  document.getElementById('history-modal').classList.add('open');
+}
+
+function addHistPlayerRow() {
+  const div = document.createElement('div');
+  div.className = 'form-row';
+  div.style.marginBottom = '6px';
+  div.innerHTML = `
+    <div class="form-group"><label>Name</label><input type="text" placeholder="First Last" class="hist-name"></div>
+    <div class="form-group" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
+      <div><label>Pts</label><input type="number" step="0.5" placeholder="0" class="hist-pts"></div>
+      <div><label>W-T-L</label><input type="text" placeholder="0-0-0" class="hist-record"></div>
+      <div><label>HDCP</label><input type="number" step="0.1" placeholder="—" class="hist-hdcp"></div>
+    </div>`;
+  document.getElementById('hist-player-rows').appendChild(div);
+}
+
+async function saveHistory() {
+  const yr = document.getElementById('hist-year').value;
+  const champion = document.getElementById('hist-champion').value;
+  const rows = document.getElementById('hist-player-rows').querySelectorAll('.form-row');
+  const players = [];
+  rows.forEach(row => {
+    const name = row.querySelector('.hist-name').value.trim();
+    if (!name) return;
+    players.push({
+      name,
+      pts:    parseFloat(row.querySelector('.hist-pts').value) || 0,
+      record: row.querySelector('.hist-record').value || '',
+      hdcp:   parseFloat(row.querySelector('.hist-hdcp').value) || null,
+    });
+  });
+  DB[`season${yr}`] = { champion, players };
+  const ok = await saveDB();
+  document.getElementById('hist-save-status').textContent = ok ? '✓ History saved!' : '✗ Error saving.';
+  if (ok) { renderHistory(); setTimeout(() => closeModal('history-modal'), 1200); }
+}
+
+// ══════════════════════════════════════════════
+// MODAL UTILS
+// ══════════════════════════════════════════════
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+// Close on overlay click
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('open'); });
+});
+
+// ══════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════
+renderSchedule(); // Static, render immediately
+loadDB();
+</script>
+</body>
+</html>
