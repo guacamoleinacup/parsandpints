@@ -164,7 +164,7 @@ footer strong{color:var(--gold)}
       <div class="section-title">Standings <small>2026 Season</small></div>
       <div class="card">
         <table>
-          <thead><tr><th style="width:36px">#</th><th>Player</th><th class="num">Pts</th><th class="num">W-T-L</th><th class="num">HDCP</th></tr></thead>
+          <thead><tr><th style="width:36px">#</th><th>Player</th><th class="num">Pts</th><th class="num" style="min-width:70px;white-space:nowrap">W-T-L</th><th class="num">HDCP</th></tr></thead>
           <tbody id="home-standings-body"><tr><td colspan="5" style="text-align:center;padding:20px;color:var(--text-light)">Loading...</td></tr></tbody>
         </table>
         <div style="padding:10px 14px;border-top:1px solid var(--border);text-align:center">
@@ -957,7 +957,7 @@ function renderHistory() {
     }
     el.innerHTML=(data.champion?'<div class="notice">Champion: <strong>'+data.champion+'</strong></div>':'')
       +'<div class="card"><div class="card-header">'+yr+' Final Standings</div>'
-      +'<table><thead><tr><th>#</th><th>Player</th><th class="num">Points</th><th class="num">W-T-L</th><th class="num">HDCP</th><th class="num">Avg Score</th></tr></thead><tbody>'
+      +'<table><thead><tr><th>#</th><th>Player</th><th class="num">Points</th><th class="num" style="min-width:70px;white-space:nowrap">W-T-L</th><th class="num">HDCP</th><th class="num">Avg Score</th></tr></thead><tbody>'
       +data.players.map(function(p,i){
         return '<tr><td style="text-align:center">'+rankBadge(i+1)+'</td><td class="name">'+p.name+'</td>'
           +'<td class="pts-cell">'+(p.pts||0)+'</td>'
