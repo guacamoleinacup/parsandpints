@@ -127,9 +127,6 @@ footer strong{color:var(--gold)}
     <button onclick="showSection('standings',this)">&#127942; Standings</button>
     <button onclick="showSection('schedule',this)">&#128197; Schedule</button>
     <button onclick="showSection('results',this)">&#128203; Results</button>
-    <button onclick="showSection('players',this)">&#128100; Players</button>
-    <button onclick="showSection('skins',this)">&#128176; Skins</button>
-    <button onclick="showSection('history',this)">&#128214; History</button>
   </nav>
 </header>
 
@@ -170,6 +167,9 @@ footer strong{color:var(--gold)}
           <thead><tr><th style="width:36px">#</th><th>Player</th><th class="num">Pts</th><th class="num">W-T-L</th><th class="num">HDCP</th></tr></thead>
           <tbody id="home-standings-body"><tr><td colspan="5" style="text-align:center;padding:20px;color:var(--text-light)">Loading...</td></tr></tbody>
         </table>
+        <div style="padding:10px 14px;border-top:1px solid var(--border);text-align:center">
+          <button onclick="showSection('standings',document.querySelectorAll('nav button')[1])" style="background:none;border:none;color:var(--green-mid);font-size:0.8rem;font-weight:600;cursor:pointer;font-family:'Source Sans 3',sans-serif">View Full Standings &amp; History &rsaquo;</button>
+        </div>
       </div>
     </div>
     <div>
@@ -182,15 +182,31 @@ footer strong{color:var(--gold)}
 </section>
 
 <section id="standings" class="section">
-  <div class="section-title">Season Standings <small>2026</small></div>
-  <div class="notice">Points: 1 pt per hole won + 1 pt for match win = 10 pts available each week &middot; Weeks 5 &amp; 10 are scrambles (no matchup points, no skins) &middot; Weeks 16&ndash;18 are playoffs (top 8)</div>
-  <div class="card">
-    <table>
-      <thead><tr><th style="width:40px">#</th><th>Player</th><th class="num">Points</th><th class="num">W</th><th class="num">T</th><th class="num">L</th><th class="num">Handicap</th><th class="num">Avg Score</th><th class="num">Skins</th></tr></thead>
-      <tbody id="full-standings-body"><tr><td colspan="9" style="text-align:center;padding:20px;color:var(--text-light)">Loading...</td></tr></tbody>
-    </table>
+  <div class="inner-tabs" id="standings-season-tabs">
+    <button class="inner-tab active" onclick="switchStandingsSeason('2026',this)">2026 Season</button>
+    <button class="inner-tab" onclick="switchStandingsSeason('2025',this)">2025 Season</button>
+    <button class="inner-tab" onclick="switchStandingsSeason('2024',this)">2024 Season</button>
   </div>
-  <div id="playoff-bracket-section"></div>
+
+  <div id="standings-2026-panel" class="inner-panel active">
+    <div class="notice">Points: 1 pt per hole won + 1 pt for match win = 10 pts available each week &middot; Weeks 5 &amp; 10 are scrambles (no matchup points, no skins) &middot; Weeks 16&ndash;18 are playoffs (top 8)</div>
+    <div class="card">
+      <table>
+        <thead><tr><th style="width:40px">#</th><th>Player</th><th class="num">Points</th><th class="num">W</th><th class="num">T</th><th class="num">L</th><th class="num">Handicap</th><th class="num">Avg Score</th><th class="num">Skins</th></tr></thead>
+        <tbody id="full-standings-body"><tr><td colspan="9" style="text-align:center;padding:20px;color:var(--text-light)">Loading...</td></tr></tbody>
+      </table>
+    </div>
+    <div id="playoff-bracket-section"></div>
+    <div id="player-modal-anchor"></div>
+  </div>
+
+  <div id="standings-2025-panel" class="inner-panel">
+    <div id="hist-2025-content"><div style="text-align:center;padding:20px;color:var(--text-light)">Loading...</div></div>
+  </div>
+
+  <div id="standings-2024-panel" class="inner-panel">
+    <div id="hist-2024-content"><div style="text-align:center;padding:20px;color:var(--text-light)">Loading...</div></div>
+  </div>
 </section>
 
 <section id="schedule" class="section">
@@ -200,40 +216,33 @@ footer strong{color:var(--gold)}
 
 <section id="results" class="section">
   <div class="section-title">Results <small>2026 Season</small></div>
-  <div class="inner-tabs" id="results-tabs"></div>
-  <div id="results-panels"></div>
+  <div class="inner-tabs" id="results-outer-tabs">
+    <button class="inner-tab active" onclick="showInnerTab('results-scorecards',this)">Scorecards</button>
+    <button class="inner-tab" onclick="showInnerTab('results-skins',this)">&#128176; Skins</button>
+  </div>
+  <div id="results-scorecards" class="inner-panel active">
+    <div class="inner-tabs" id="results-tabs"></div>
+    <div id="results-panels"></div>
+  </div>
+  <div id="results-skins" class="inner-panel">
+    <div class="card">
+      <div class="skin-pot">
+        <div class="pot-amount">$832</div>
+        <div class="pot-label">Season Pot &middot; 16 players x $52</div>
+      </div>
+    </div>
+    <div class="notice">A skin is won by the lowest net score on a hole that no other player ties. Carry-over skins accumulate until won.</div>
+    <div id="skins-content"><div style="text-align:center;padding:20px;color:var(--text-light)">Loading...</div></div>
+  </div>
 </section>
 
-<section id="players" class="section">
-  <div class="section-title">Player Profiles <small>2026 Roster</small></div>
+<section id="players" class="section" style="display:none">
   <div class="player-grid" id="player-grid"></div>
 </section>
 
-<section id="skins" class="section">
-  <div class="section-title">Skins <small>2026 Season</small></div>
-  <div class="card">
-    <div class="skin-pot">
-      <div class="pot-amount">$832</div>
-      <div class="pot-label">Season Pot &middot; 16 players x $52</div>
-    </div>
-  </div>
-  <div class="notice">A skin is won by the lowest net score on a hole that no other player ties. Carry-over skins accumulate until won.</div>
-  <div id="skins-content"><div style="text-align:center;padding:20px;color:var(--text-light)">Loading...</div></div>
-</section>
 
-<section id="history" class="section">
-  <div class="section-title">League History</div>
-  <div class="inner-tabs">
-    <button class="inner-tab active" onclick="showInnerTab('hist-2025',this)">2025 Season</button>
-    <button class="inner-tab" onclick="showInnerTab('hist-2024',this)">2024 Season</button>
-  </div>
-  <div id="hist-2025" class="inner-panel active">
-    <div id="hist-2025-content"><div style="text-align:center;padding:20px;color:var(--text-light)">Loading...</div></div>
-  </div>
-  <div id="hist-2024" class="inner-panel">
-    <div id="hist-2024-content"><div style="text-align:center;padding:20px;color:var(--text-light)">Loading...</div></div>
-  </div>
-</section>
+
+
 </main>
 
 <!-- WEEK MODAL -->
@@ -562,7 +571,6 @@ function renderAll() {
   renderHomeRecent();
   renderHomeUpNext();
   renderResults();
-  renderPlayers(s);
   renderPlayoffBracket(s);
   renderSkins();
   renderHistory();
@@ -586,10 +594,11 @@ function avg(arr){return arr.length?(arr.reduce(function(a,b){return a+b;},0)/ar
 
 // ── HOME STANDINGS ────────────────────
 function renderHomeStandings(st) {
-  document.getElementById('home-standings-body').innerHTML = st.map(function(p,i){
-    return '<tr>'
+  document.getElementById('home-standings-body').innerHTML = st.slice(0,5).map(function(p,i){
+    var name = p.first+' '+p.last;
+    return '<tr style="cursor:pointer" onclick="openPlayerModal(''+name+'')">'
       +'<td style="text-align:center">'+rankBadge(i+1)+'</td>'
-      +'<td class="name">'+p.first+' '+p.last+'</td>'
+      +'<td class="name" style="color:var(--green-mid)">'+name+'</td>'
       +'<td class="pts-cell">'+(p.pts||0)+'</td>'
       +'<td style="text-align:center;font-size:0.83rem">'+p.w+'-'+p.t+'-'+p.l+'</td>'
       +'<td class="num">'+(p.hdcp!=null?p.hdcp:'--')+'</td></tr>';
@@ -599,9 +608,10 @@ function renderHomeStandings(st) {
 // ── FULL STANDINGS ────────────────────
 function renderFullStandings(st) {
   document.getElementById('full-standings-body').innerHTML = st.map(function(p,i){
-    return '<tr>'
+    var name = p.first+' '+p.last;
+    return '<tr style="cursor:pointer" onclick="openPlayerModal(''+name+'')">'
       +'<td style="text-align:center">'+rankBadge(i+1)+'</td>'
-      +'<td class="name">'+p.first+' '+p.last+'</td>'
+      +'<td class="name" style="color:var(--green-mid)">'+name+' <span style="font-size:0.68rem;opacity:0.5">&rsaquo;</span></td>'
       +'<td class="pts-cell">'+(p.pts||0)+'</td>'
       +'<td class="num">'+p.w+'</td><td class="num">'+p.t+'</td><td class="num">'+p.l+'</td>'
       +'<td class="num">'+(p.hdcp!=null?p.hdcp:'--')+'</td>'
@@ -727,6 +737,88 @@ function renderResults() {
       +'<th>Total</th><th>Result</th><th>Pts</th></tr></thead>'
       +'<tbody>'+parRow+mRows+'</tbody></table></div></div></div>';
   }).join('');
+}
+
+// ── STANDINGS SEASON SWITCHER ─────────
+function switchStandingsSeason(yr, btn) {
+  // Switch inner panels
+  ['2026','2025','2024'].forEach(function(y) {
+    var p = document.getElementById('standings-'+y+'-panel');
+    if (p) p.classList.toggle('active', y === yr);
+  });
+  if (btn) {
+    btn.closest('.inner-tabs').querySelectorAll('.inner-tab').forEach(function(t){t.classList.remove('active');});
+    btn.classList.add('active');
+  }
+  // Render history if needed
+  if (yr !== '2026') renderHistory();
+}
+
+// ── PLAYER MODAL ──────────────────────
+function openPlayerModal(playerName) {
+  var standings = computeStandings();
+  var p = standings.find(function(s){ return s.first+' '+s.last === playerName; });
+  if (!p) return;
+
+  // Find who they haven't played
+  var played = new Set();
+  (DB.season2026.weeks||[]).forEach(function(week){
+    (week.matchups||[]).forEach(function(m){
+      if (m.p1.name === playerName) played.add(m.p2.name);
+      if (m.p2.name === playerName) played.add(m.p1.name);
+    });
+  });
+
+  // Find scheduled opponents from WEEK_MATCHUPS
+  var scheduledOpps = {};
+  Object.keys(WEEK_MATCHUPS).forEach(function(wk){
+    WEEK_MATCHUPS[wk].forEach(function(pair){
+      if (pair[0] === playerName) scheduledOpps[pair[1]] = parseInt(wk);
+      if (pair[1] === playerName) scheduledOpps[pair[0]] = parseInt(wk);
+    });
+  });
+
+  var avg = p.scores.length ? (p.scores.reduce(function(a,b){return a+b;},0)/p.scores.length).toFixed(1) : '--';
+  var initials = p.first[0] + p.last[0];
+
+  var scheduleRows = Object.keys(scheduledOpps).sort(function(a,b){
+    return scheduledOpps[a] - scheduledOpps[b];
+  }).map(function(opp) {
+    var wk = scheduledOpps[opp];
+    var done = played.has(opp);
+    var sched = SCHEDULE.find(function(s){return s.week===wk;})||{};
+    return '<tr>'
+      +'<td class="num" style="color:var(--text-light)">'+(sched.date||'Wk '+wk)+'</td>'
+      +'<td class="name">'+opp+'</td>'
+      +'<td style="text-align:center">'+(done?'<span class="tag tag-win">Done</span>':'<span class="tag tag-as">Upcoming</span>')+'</td>'
+      +'</tr>';
+  }).join('');
+
+  document.getElementById('matchup-modal-title').innerHTML = initials + ' &nbsp; ' + playerName;
+  document.getElementById('matchup-modal-body').innerHTML =
+    '<div style="background:var(--green-deep);padding:20px;display:flex;align-items:center;gap:16px">'
+    +'<div style="width:56px;height:56px;border-radius:50%;background:var(--gold);color:var(--green-deep);font-family:'Playfair Display',serif;font-size:1.3rem;font-weight:700;display:flex;align-items:center;justify-content:center">'+initials+'</div>'
+    +'<div>'
+    +'<div style="font-family:'Playfair Display',serif;font-size:1.2rem;color:var(--cream);font-weight:700">'+playerName+'</div>'
+    +'<div style="font-size:0.78rem;color:var(--gold-light);margin-top:2px">HDCP '+(p.hdcp!=null?p.hdcp:'--')+'</div>'
+    +'</div>'
+    +'<div style="margin-left:auto;text-align:right">'
+    +'<div style="font-family:'Playfair Display',serif;font-size:2rem;font-weight:700;color:var(--gold)">'+(p.pts||0)+'</div>'
+    +'<div style="font-size:0.68rem;letter-spacing:0.1em;text-transform:uppercase;color:rgba(250,248,243,0.6)">Season Pts</div>'
+    +'</div></div>'
+    +'<div style="display:grid;grid-template-columns:repeat(4,1fr);text-align:center;padding:14px;border-bottom:1px solid var(--border);background:var(--cream-dark)">'
+    +'<div><div style="font-family:'Playfair Display',serif;font-size:1.3rem;font-weight:700;color:var(--green-deep)">'+p.w+'</div><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-light)">Wins</div></div>'
+    +'<div><div style="font-family:'Playfair Display',serif;font-size:1.3rem;font-weight:700;color:var(--green-deep)">'+p.t+'</div><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-light)">Ties</div></div>'
+    +'<div><div style="font-family:'Playfair Display',serif;font-size:1.3rem;font-weight:700;color:var(--green-deep)">'+p.l+'</div><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-light)">Losses</div></div>'
+    +'<div><div style="font-family:'Playfair Display',serif;font-size:1.3rem;font-weight:700;color:var(--green-deep)">'+avg+'</div><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-light)">Avg Score</div></div>'
+    +'</div>'
+    +'<div style="padding:14px;border-bottom:1px solid var(--border)">'
+    +'<div style="font-size:0.7rem;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-light);margin-bottom:8px">Schedule</div>'
+    +'<table style="width:100%"><thead><tr><th style="text-align:left;font-size:0.68rem">Date</th><th style="text-align:left;font-size:0.68rem">Opponent</th><th style="text-align:center;font-size:0.68rem">Status</th></tr></thead>'
+    +'<tbody>'+scheduleRows+'</tbody></table>'
+    +'</div>';
+
+  document.getElementById('matchup-modal').classList.add('open');
 }
 
 // ── PLAYOFF BRACKET ──────────────────
