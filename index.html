@@ -795,22 +795,23 @@ function openPlayerModal(playerName) {
   }).join('');
 
   document.getElementById('matchup-modal-title').innerHTML = initials + ' &nbsp; ' + playerName;
+  var ff = 'font-family:serif';
   document.getElementById('matchup-modal-body').innerHTML =
     '<div style="background:var(--green-deep);padding:20px;display:flex;align-items:center;gap:16px">'
-    +'<div style="width:56px;height:56px;border-radius:50%;background:var(--gold);color:var(--green-deep);font-family:'Playfair Display',serif;font-size:1.3rem;font-weight:700;display:flex;align-items:center;justify-content:center">'+initials+'</div>'
+    +'<div style="width:56px;height:56px;border-radius:50%;background:var(--gold);color:var(--green-deep);'+ff+';font-size:1.3rem;font-weight:700;display:flex;align-items:center;justify-content:center">'+initials+'</div>'
     +'<div>'
-    +'<div style="font-family:'Playfair Display',serif;font-size:1.2rem;color:var(--cream);font-weight:700">'+playerName+'</div>'
+    +'<div style="'+ff+';font-size:1.2rem;color:var(--cream);font-weight:700">'+playerName+'</div>'
     +'<div style="font-size:0.78rem;color:var(--gold-light);margin-top:2px">HDCP '+(p.hdcp!=null?p.hdcp:'--')+'</div>'
     +'</div>'
     +'<div style="margin-left:auto;text-align:right">'
-    +'<div style="font-family:'Playfair Display',serif;font-size:2rem;font-weight:700;color:var(--gold)">'+(p.pts||0)+'</div>'
+    +'<div style="'+ff+';font-size:2rem;font-weight:700;color:var(--gold)">'+(p.pts||0)+'</div>'
     +'<div style="font-size:0.68rem;letter-spacing:0.1em;text-transform:uppercase;color:rgba(250,248,243,0.6)">Season Pts</div>'
     +'</div></div>'
     +'<div style="display:grid;grid-template-columns:repeat(4,1fr);text-align:center;padding:14px;border-bottom:1px solid var(--border);background:var(--cream-dark)">'
-    +'<div><div style="font-family:'Playfair Display',serif;font-size:1.3rem;font-weight:700;color:var(--green-deep)">'+p.w+'</div><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-light)">Wins</div></div>'
-    +'<div><div style="font-family:'Playfair Display',serif;font-size:1.3rem;font-weight:700;color:var(--green-deep)">'+p.t+'</div><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-light)">Ties</div></div>'
-    +'<div><div style="font-family:'Playfair Display',serif;font-size:1.3rem;font-weight:700;color:var(--green-deep)">'+p.l+'</div><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-light)">Losses</div></div>'
-    +'<div><div style="font-family:'Playfair Display',serif;font-size:1.3rem;font-weight:700;color:var(--green-deep)">'+avg+'</div><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-light)">Avg Score</div></div>'
+    +'<div><div style="'+ff+';font-size:1.3rem;font-weight:700;color:var(--green-deep)">'+p.w+'</div><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-light)">Wins</div></div>'
+    +'<div><div style="'+ff+';font-size:1.3rem;font-weight:700;color:var(--green-deep)">'+p.t+'</div><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-light)">Ties</div></div>'
+    +'<div><div style="'+ff+';font-size:1.3rem;font-weight:700;color:var(--green-deep)">'+p.l+'</div><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-light)">Losses</div></div>'
+    +'<div><div style="'+ff+';font-size:1.3rem;font-weight:700;color:var(--green-deep)">'+avg+'</div><div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-light)">Avg Score</div></div>'
     +'</div>'
     +'<div style="padding:14px;border-bottom:1px solid var(--border)">'
     +'<div style="font-size:0.7rem;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-light);margin-bottom:8px">Schedule</div>'
