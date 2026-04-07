@@ -596,7 +596,7 @@ function avg(arr){return arr.length?(arr.reduce(function(a,b){return a+b;},0)/ar
 function renderHomeStandings(st) {
   document.getElementById('home-standings-body').innerHTML = st.slice(0,5).map(function(p,i){
     var name = p.first+' '+p.last;
-    return '<tr style="cursor:pointer" onclick="openPlayerModal(''+name+'')">'
+    return '<tr style="cursor:pointer" onclick="openPlayerModal('+i+')">'
       +'<td style="text-align:center">'+rankBadge(i+1)+'</td>'
       +'<td class="name" style="color:var(--green-mid)">'+name+'</td>'
       +'<td class="pts-cell">'+(p.pts||0)+'</td>'
@@ -609,7 +609,7 @@ function renderHomeStandings(st) {
 function renderFullStandings(st) {
   document.getElementById('full-standings-body').innerHTML = st.map(function(p,i){
     var name = p.first+' '+p.last;
-    return '<tr style="cursor:pointer" onclick="openPlayerModal(''+name+'')">'
+    return '<tr style="cursor:pointer" onclick="openPlayerModal('+i+')">'
       +'<td style="text-align:center">'+rankBadge(i+1)+'</td>'
       +'<td class="name" style="color:var(--green-mid)">'+name+' <span style="font-size:0.68rem;opacity:0.5">&rsaquo;</span></td>'
       +'<td class="pts-cell">'+(p.pts||0)+'</td>'
@@ -755,26 +755,28 @@ function switchStandingsSeason(yr, btn) {
 }
 
 // ── PLAYER MODAL ──────────────────────
-function openPlayerModal(playerName) {
+function openPlayerModal(idx) {
   var standings = computeStandings();
-  var p = standings.find(function(s){ return s.first+' '+s.last === playerName; });
+  var p = standings[idx];
   if (!p) return;
 
   // Find who they haven't played
   var played = new Set();
   (DB.season2026.weeks||[]).forEach(function(week){
     (week.matchups||[]).forEach(function(m){
-      if (m.p1.name === playerName) played.add(m.p2.name);
-      if (m.p2.name === playerName) played.add(m.p1.name);
+      var pName = p.first+' '+p.last;
+      if (m.p1.name === pName) played.add(m.p2.name);
+      if (m.p2.name === pName) played.add(m.p1.name);
     });
   });
 
   // Find scheduled opponents from WEEK_MATCHUPS
   var scheduledOpps = {};
+  var pName2 = p.first+' '+p.last;
   Object.keys(WEEK_MATCHUPS).forEach(function(wk){
     WEEK_MATCHUPS[wk].forEach(function(pair){
-      if (pair[0] === playerName) scheduledOpps[pair[1]] = parseInt(wk);
-      if (pair[1] === playerName) scheduledOpps[pair[0]] = parseInt(wk);
+      if (pair[0] === pName2) scheduledOpps[pair[1]] = parseInt(wk);
+      if (pair[1] === pName2) scheduledOpps[pair[0]] = parseInt(wk);
     });
   });
 
@@ -794,6 +796,7 @@ function openPlayerModal(playerName) {
       +'</tr>';
   }).join('');
 
+  var playerName = p.first+' '+p.last;
   document.getElementById('matchup-modal-title').innerHTML = initials + ' &nbsp; ' + playerName;
   var ff = 'font-family:serif';
   document.getElementById('matchup-modal-body').innerHTML =
