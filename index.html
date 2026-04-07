@@ -685,7 +685,7 @@ function renderSchedule() {
       +'<div class="week-card-header" style="'+headerStyle+'"><span>Week '+w.week+'</span>'+badge+'</div>'
       +'<div class="week-card-body"><div class="course-name">'+cEmoji(w.course)+' '+w.course+'</div>'
       +'<div class="course-detail">'+w.date+'</div>'
-      +'<div class="course-detail">5:12 pm &middot; 16 players'+(w.type==='regular'&&w.note?' &middot; '+w.note:'')+'</div>'
+      +'<div class="course-detail">5:12 pm &middot; 16 players'+(w.note&&w.type!=='playoff'?' &middot; '+w.note:'')+'</div>'
       +(typeBadge?'<div>'+typeBadge+'</div>':'')
       +'<div style="margin-top:8px;font-size:0.72rem;color:var(--green-light);font-weight:600">View Matchups &rsaquo;</div>'
       +'</div></div>';
@@ -1131,7 +1131,7 @@ async function openMatchupModal(weekNum) {
 
   var courseBar = '<div style="background:var(--cream-dark);padding:10px 16px;font-size:0.82rem;color:var(--text-mid);border-bottom:1px solid var(--border)">'
     + cEmoji(sched.course) + ' <strong>' + (sched.course||'') + '</strong>'
-    + (sched.note && sched.type==='regular' ? ' &middot; ' + sched.note : '')
+    + (sched.note && sched.type!=='playoff' ? ' &middot; ' + sched.note : '')
     + ' &nbsp;&middot;&nbsp; ' + (sched.date||'') + ' &nbsp;&middot;&nbsp; 5:12 pm'
     + '</div>';
 
