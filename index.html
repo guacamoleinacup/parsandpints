@@ -639,10 +639,15 @@ async function renderHomeUpNext() {
   var el=document.getElementById('home-up-next');
   if(!next){el.innerHTML='<div class="card"><div class="empty-state">Season complete!</div></div>';return;}
   var upNextMatchups = WEEK_MATCHUPS[next.week] || [];
-  var pairs=upNextMatchups.map(function(pair){
-    return '<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #eee;font-size:0.84rem">'
-      +'<span>'+pair[0]+'</span><span style="color:var(--text-light);font-size:0.73rem">vs</span><span>'+pair[1]+'</span></div>';
-  }).join('');
+  var pairs = '';
+  for (var ti = 0; ti < upNextMatchups.length; ti += 2) {
+    var group = upNextMatchups.slice(ti, ti + 2);
+    pairs += '<div style="font-size:0.68rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--green-mid);padding:8px 0 4px">Tee Time ' + (ti/2 + 1) + '</div>';
+    pairs += group.map(function(pair) {
+      return '<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #eee;font-size:0.84rem">'
+        +'<span>'+pair[0]+'</span><span style="color:var(--text-light);font-size:0.73rem">vs</span><span>'+pair[1]+'</span></div>';
+    }).join('');
+  }
   el.innerHTML='<div class="card"><div class="card-header">'+cEmoji(next.course)+' '+next.course+' &mdash; Week '+next.week+'</div>'
     +'<div style="padding:14px"><div style="font-size:0.82rem;color:var(--text-light);margin-bottom:10px">'+next.date+' &middot; First tee 5:12 pm'+(next.note?' &middot; '+next.note:'')+'</div>'
     +'<div id="upnext-weather" style="margin-bottom:12px;padding:10px 12px;background:var(--green-pale);border-radius:4px;font-size:0.78rem;color:var(--text-light)">Loading forecast...</div>'
