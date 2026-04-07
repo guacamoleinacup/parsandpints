@@ -655,8 +655,8 @@ async function renderHomeUpNext() {
     var teeTimes = ['5:12 pm','5:20 pm','5:28 pm','5:36 pm'];
     pairs += '<div style="font-size:0.68rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--green-mid);padding:8px 0 4px">Tee Time ' + (ti/2 + 1) + ' (' + teeTimes[ti/2] + ')</div>';
     pairs += group.map(function(pair) {
-      return '<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #eee;font-size:0.84rem">'
-        +'<span>'+pair[0]+'</span><span style="color:var(--text-light);font-size:0.73rem">vs</span><span>'+pair[1]+'</span></div>';
+      return '<div style="display:grid;grid-template-columns:1fr 28px 1fr;align-items:center;padding:5px 0;border-bottom:1px solid #eee;font-size:0.84rem">'
+        +'<span>'+pair[0]+'</span><span style="color:var(--text-light);font-size:0.73rem;text-align:center">vs</span><span style="text-align:right">'+pair[1]+'</span></div>';
     }).join('');
   }
   el.innerHTML='<div class="card"><div class="card-header">'+cEmoji(next.course)+' '+next.course+' &mdash; Week '+next.week+'</div>'
@@ -1248,10 +1248,10 @@ async function openMatchupModal(weekNum) {
       var teeTimes2 = ['5:12 pm','5:20 pm','5:28 pm','5:36 pm'];
       var teeLabel = '<div style="background:var(--green-deep);color:var(--gold);font-size:0.68rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;padding:6px 16px">Tee Time ' + (gi + 1) + ' &nbsp;&middot;&nbsp; ' + teeTimes2[gi] + '</div>';
       var matchRows = group.map(function(pair) {
-        return '<div style="display:flex;align-items:center;justify-content:space-between;padding:11px 16px;border-bottom:1px solid #eee">'
+        return '<div style="display:grid;grid-template-columns:1fr 28px 1fr;align-items:center;padding:11px 16px;border-bottom:1px solid #eee">'
           + '<span style="font-weight:600;color:var(--text-dark)">' + pair[0] + '</span>'
-          + '<span style="font-size:0.72rem;color:var(--text-light);padding:0 10px">vs</span>'
-          + '<span style="font-weight:600;color:var(--text-dark)">' + pair[1] + '</span>'
+          + '<span style="font-size:0.72rem;color:var(--text-light);text-align:center">vs</span>'
+          + '<span style="font-weight:600;color:var(--text-dark);text-align:right">' + pair[1] + '</span>'
           + '</div>';
       }).join('');
       return teeLabel + matchRows;
