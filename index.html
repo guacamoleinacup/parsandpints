@@ -326,6 +326,11 @@ footer strong{color:var(--gold)}
   </div>
 </div>
 
+<!-- PHOTO OVERLAY -->
+<div id="photo-overlay" onclick="closePhotoOverlay()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:300;align-items:center;justify-content:center;cursor:zoom-out">
+  <img id="photo-overlay-img" src="" style="max-width:90vw;max-height:90vh;border-radius:8px;box-shadow:0 8px 40px rgba(0,0,0,0.6)">
+</div>
+
 <footer><strong>Pars &amp; Pints Summer League</strong> &nbsp;&middot;&nbsp; Est. 2024</footer>
 
 <script>
@@ -392,10 +397,11 @@ var COURSE_EMOJI = {
 function playerAvatar(name, initials, size) {
   size = size || 44;
   var photo = 'images/' + name.replace(' ', '-') + '.jpg';
-  var imgStyle = 'width:'+size+'px;height:'+size+'px;border-radius:50%;object-fit:cover;object-position:center 20%;display:block;';
+  var imgStyle = 'width:'+size+'px;height:'+size+'px;border-radius:50%;object-fit:cover;object-position:center 20%;display:block;cursor:zoom-in;';
   var divStyle = 'display:none;width:'+size+'px;height:'+size+'px;border-radius:50%;background:var(--green-mid);color:var(--cream);font-family:serif;font-size:'+(size*0.4)+'px;font-weight:700;align-items:center;justify-content:center;flex-shrink:0';
   var onErr = 'this.style.display=&quot;none&quot;;this.nextSibling.style.display=&quot;flex&quot;';
-  return '<img src="'+photo+'" alt="'+name+'" style="'+imgStyle+'" onerror="'+onErr+'">'
+  var onClick = 'event.stopPropagation();openPhotoOverlay(this.src)';
+  return '<img src="'+photo+'" alt="'+name+'" style="'+imgStyle+'" onclick="'+onClick+'" onerror="'+onErr+'">'
     +'<div style="'+divStyle+'">'+initials+'</div>';
 }
 
@@ -710,9 +716,9 @@ async function renderHomeUpNext() {
       var idx0 = standings.findIndex(function(s){ return s.first+' '+s.last === pair[0]; });
       var idx1 = standings.findIndex(function(s){ return s.first+' '+s.last === pair[1]; });
       return '<div style="display:grid;grid-template-columns:1fr 28px 1fr;align-items:center;padding:5px 0;border-bottom:1px solid #eee;font-size:0.84rem">'
-        +'<span style="color:var(--green-mid);cursor:pointer;font-weight:600" onclick="openPlayerModal('+' idx0 '+')" >'+pair[0]+'</span>'
+        +'<span style="color:var(--green-mid);cursor:pointer;font-weight:600" onclick="openPlayerModal('+idx0+')">'+pair[0]+'</span>'
         +'<span style="color:var(--text-light);font-size:0.73rem;text-align:center">vs</span>'
-        +'<span style="color:var(--green-mid);cursor:pointer;font-weight:600;text-align:right" onclick="openPlayerModal('+' idx1 +'+')" >'+pair[1]+'</span>'
+        +'<span style="color:var(--green-mid);cursor:pointer;font-weight:600;text-align:right" onclick="openPlayerModal('+idx1+')">'+pair[1]+'</span>'
         +'</div>';
     }).join('');
   }
@@ -1337,6 +1343,16 @@ async function openMatchupModal(weekNum) {
     + '</div>';
   var wb = document.getElementById('weather-block');
   if (wb) wb.outerHTML = weatherHtml;
+}
+
+// ── PHOTO OVERLAY ─────────────────────
+function openPhotoOverlay(src) {
+  var el = document.getElementById('photo-overlay');
+  document.getElementById('photo-overlay-img').src = src;
+  el.style.display = 'flex';
+}
+function closePhotoOverlay() {
+  document.getElementById('photo-overlay').style.display = 'none';
 }
 
 // ── MODAL UTILS ───────────────────────
