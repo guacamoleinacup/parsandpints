@@ -378,18 +378,14 @@ var COURSE_EMOJI = {
   'Greenfield Golf Course':'&#127808;','Currie Golf Course':'&#9971;'
 };
 
-// Player photo filenames in images/ folder (add as photos are collected)
-var PLAYER_PHOTOS = {
-  'John Trepanier': 'John-Trepanier.jpg'
-};
-
 function playerAvatar(name, initials, size) {
   size = size || 44;
-  var photo = PLAYER_PHOTOS[name];
-  if (photo) {
-    return '<img src="images/'+photo+'" alt="'+name+'" style="width:'+size+'px;height:'+size+'px;border-radius:50%;object-fit:cover;object-position:center 20%;display:block;">';
-  }
-  return '<div style="width:'+size+'px;height:'+size+'px;border-radius:50%;background:var(--green-mid);color:var(--cream);font-family:serif;font-size:'+(size*0.4)+'px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">'+initials+'</div>';
+  var photo = 'images/' + name.replace(' ', '-') + '.jpg';
+  var imgStyle = 'width:'+size+'px;height:'+size+'px;border-radius:50%;object-fit:cover;object-position:center 20%;display:block;';
+  var divStyle = 'display:none;width:'+size+'px;height:'+size+'px;border-radius:50%;background:var(--green-mid);color:var(--cream);font-family:serif;font-size:'+(size*0.4)+'px;font-weight:700;align-items:center;justify-content:center;flex-shrink:0';
+  var onErr = 'this.style.display=&quot;none&quot;;this.nextSibling.style.display=&quot;flex&quot;';
+  return '<img src="'+photo+'" alt="'+name+'" style="'+imgStyle+'" onerror="'+onErr+'">'
+    +'<div style="'+divStyle+'">'+initials+'</div>';
 }
 
 var COURSE_COORDS = {
