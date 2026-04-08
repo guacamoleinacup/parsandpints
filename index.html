@@ -121,6 +121,17 @@ footer strong{color:var(--gold)}
   <div class="header-top">
     <div class="league-name">Pars <span>&amp;</span> Pints</div>
     <div class="league-sub">Summer Golf League &nbsp;&middot;&nbsp; Est. 2024</div>
+    <div style="display:flex;align-items:center;justify-content:center;gap:14px;margin-top:6px">
+      <div style="display:flex;align-items:center;gap:4px">
+        <span id="sync-dot" style="width:6px;height:6px;border-radius:50%;background:#888;display:inline-block;transition:background 0.4s"></span>
+        <span id="sync-label" style="color:rgba(250,248,243,0.4);font-size:0.65rem;letter-spacing:0.1em;text-transform:uppercase">Connecting...</span>
+      </div>
+      <span style="color:rgba(250,248,243,0.2);font-size:0.6rem">&middot;</span>
+      <div style="display:flex;align-items:center;gap:4px">
+        <span id="weather-dot" style="width:6px;height:6px;border-radius:50%;background:#888;display:inline-block;transition:background 0.4s"></span>
+        <span id="weather-label" style="color:rgba(250,248,243,0.4);font-size:0.65rem;letter-spacing:0.1em;text-transform:uppercase">Weather</span>
+      </div>
+    </div>
   </div>
   <nav>
     <button class="active" onclick="showSection('home',this)">&#9971; Home</button>
@@ -137,17 +148,6 @@ footer strong{color:var(--gold)}
     <div class="hero-stat"><span class="val">18</span><span class="lbl">Weeks</span></div>
     <div class="hero-stat"><span class="val" id="hero-weeks-played">0</span><span class="lbl">Weeks Played</span></div>
     <div class="hero-stat"><span class="val">$832</span><span class="lbl">Skins Pot</span></div>
-  </div>
-</div>
-
-<div id="status-bar" style="background:var(--green-deep);border-bottom:1px solid rgba(201,168,76,0.2);padding:5px 16px;display:flex;align-items:center;gap:16px;font-size:0.7rem;letter-spacing:0.08em;text-transform:uppercase;font-family:'Source Sans 3',sans-serif">
-  <div style="display:flex;align-items:center;gap:5px">
-    <span id="sync-dot" style="width:7px;height:7px;border-radius:50%;background:#888;display:inline-block;transition:background 0.4s"></span>
-    <span id="sync-label" style="color:rgba(250,248,243,0.45)">Connecting...</span>
-  </div>
-  <div style="display:flex;align-items:center;gap:5px">
-    <span id="weather-dot" style="width:7px;height:7px;border-radius:50%;background:#888;display:inline-block;transition:background 0.4s"></span>
-    <span id="weather-label" style="color:rgba(250,248,243,0.45)">Weather</span>
   </div>
 </div>
 
@@ -716,13 +716,15 @@ async function renderHomeUpNext() {
     +pairs+'</div></div>';
 
   // Fetch weather for up next course
+  setWeatherStatus('loading');
   fetchWeather(next.course, next.date).then(function(w) {
     var el2 = document.getElementById('upnext-weather');
     if (!el2) return;
-    var desc = w ? weatherCodeDesc(w.wcode) : null;
     if (!w || w.type === 'future') {
+      setWeatherStatus('unavailable');
       el2.textContent = 'Forecast available within 15 days of game day.';
     } else {
+      setWeatherStatus('ok');
       el2.innerHTML = '<div style="font-size:0.68rem;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--green-mid);margin-bottom:5px">Forecast at tee time</div>'
         + renderWeatherBlock(w, false);
     }
@@ -1166,7 +1168,6 @@ async function saveHistory(){
 var weatherCache = {};
 
 async function fetchWeather(course, dateStr) {
-  setWeatherStatus('loading');
   // dateStr format: 'Tue Apr 28, 2026'
   var cacheKey = course + '|' + dateStr;
   if (weatherCache[cacheKey]) return weatherCache[cacheKey];
@@ -1224,10 +1225,8 @@ async function fetchWeather(course, dateStr) {
       temp: temp, wind: wind, wdir: wdir, precip: precip, wcode: wcode
     };
     weatherCache[cacheKey] = result;
-    setWeatherStatus(result.type === 'future' ? 'unavailable' : 'ok');
     return result;
   } catch(e) {
-    setWeatherStatus('unavailable');
     return null;
   }
 }
