@@ -891,15 +891,12 @@ function openPlayerModal(idx) {
     +'<tbody>'+scheduleRows+'</tbody></table>'
     +'</div>';
 
-  if (document.getElementById('matchup-modal').classList.contains('open')) {
-    // Coming from within the modal (e.g. schedule popup) — push to stack
-    pushModal(modalTitle, modalBody);
-  } else {
-    // Fresh open from standings
-    modalStack = [];
-    document.getElementById('modal-back-btn').style.display = 'none';
-    document.getElementById('matchup-modal-title').innerHTML = modalTitle;
-    document.getElementById('matchup-modal-body').innerHTML = modalBody;
+  var fromModal = document.getElementById('matchup-modal').classList.contains('open');
+  document.getElementById('matchup-modal-title').innerHTML = modalTitle;
+  document.getElementById('matchup-modal-body').innerHTML = modalBody;
+  document.getElementById('modal-back-btn').style.display = (fromModal && modalBackWeek != null) ? 'inline' : 'none';
+  if (!fromModal) {
+    modalBackWeek = null;
     document.getElementById('matchup-modal').classList.add('open');
   }
 }
@@ -1293,7 +1290,7 @@ function renderWeatherBlock(w, isHistorical) {
 
 // ── MATCHUP MODAL ─────────────────────
 async function openMatchupModal(weekNum) {
-  modalStack = [];
+  modalBackWeek = null;
   document.getElementById('modal-back-btn').style.display = 'none';
   var sched = SCHEDULE.find(function(s){ return s.week === weekNum; }) || {};
   var pairs = WEEK_MATCHUPS[weekNum] || [];
@@ -1333,9 +1330,9 @@ async function openMatchupModal(weekNum) {
         var i0 = st.findIndex(function(s){ return s.first+' '+s.last === pair[0]; });
         var i1 = st.findIndex(function(s){ return s.first+' '+s.last === pair[1]; });
         return '<div style="display:grid;grid-template-columns:1fr 28px 1fr;align-items:center;padding:11px 16px;border-bottom:1px solid #eee">'
-          + '<span style="font-weight:600;color:var(--green-mid);cursor:pointer" onclick="openPlayerModal('+i0+')">'+pair[0]+'</span>'
+          + '<span style="font-weight:600;color:var(--green-mid);cursor:pointer" onclick="modalBackWeek='+weekNum+';openPlayerModal('+i0+')">'+pair[0]+'</span>'
           + '<span style="font-size:0.72rem;color:var(--text-light);text-align:center">vs</span>'
-          + '<span style="font-weight:600;color:var(--green-mid);cursor:pointer;text-align:right" onclick="openPlayerModal('+i1+')">'+pair[1]+'</span>'
+          + '<span style="font-weight:600;color:var(--green-mid);cursor:pointer;text-align:right" onclick="modalBackWeek='+weekNum+';openPlayerModal('+i1+')">'+pair[1]+'</span>'
           + '</div>';
       }).join('');
       return teeLabel + matchRows;
@@ -1363,25 +1360,13 @@ async function openMatchupModal(weekNum) {
   if (wb) wb.outerHTML = weatherHtml;
 }
 
-// ── MODAL HISTORY STACK ───────────────
-var modalStack = []; // each entry: {title, html}
-
-function pushModal(title, html) {
-  // Save current state before overwriting
-  var curTitle = document.getElementById('matchup-modal-title').innerHTML;
-  var curHtml  = document.getElementById('matchup-modal-body').innerHTML;
-  if (curTitle && curHtml) modalStack.push({title: curTitle, html: curHtml});
-  document.getElementById('matchup-modal-title').innerHTML = title;
-  document.getElementById('matchup-modal-body').innerHTML  = html;
-  document.getElementById('modal-back-btn').style.display  = modalStack.length ? 'inline' : 'none';
-}
+// ── MODAL BACK ────────────────────────
+var modalBackWeek = null; // week number to return to when back is pressed
 
 function modalGoBack() {
-  if (!modalStack.length) return;
-  var prev = modalStack.pop();
-  document.getElementById('matchup-modal-title').innerHTML = prev.title;
-  document.getElementById('matchup-modal-body').innerHTML  = prev.html;
-  document.getElementById('modal-back-btn').style.display  = modalStack.length ? 'inline' : 'none';
+  if (modalBackWeek == null) return;
+  openMatchupModal(modalBackWeek);
+  modalBackWeek = null;
 }
 
 // ── PHOTO OVERLAY ─────────────────────
