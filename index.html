@@ -317,7 +317,10 @@ footer strong{color:var(--gold)}
 <div class="modal-overlay" id="matchup-modal">
   <div class="modal" style="max-width:480px">
     <div class="modal-header">
-      <h3 id="matchup-modal-title">Week Matchups</h3>
+      <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0">
+        <button id="modal-back-btn" onclick="modalGoBack()" style="display:none;background:none;border:none;color:var(--gold);font-size:1.1rem;cursor:pointer;padding:0;line-height:1">&#8592;</button>
+        <h3 id="matchup-modal-title" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Week Matchups</h3>
+      </div>
       <button class="modal-close" onclick="closeModal('matchup-modal')">&times;</button>
     </div>
     <div class="modal-body" style="padding:0">
@@ -864,8 +867,8 @@ function openPlayerModal(idx) {
 
   var ff = 'font-family:serif';
   var playerName = p.first+' '+p.last;
-  document.getElementById('matchup-modal-title').innerHTML = initials + ' &nbsp; ' + playerName;
-  document.getElementById('matchup-modal-body').innerHTML =
+  var modalTitle = initials + ' &nbsp; ' + playerName;
+  var modalBody =
     '<div style="background:var(--green-deep);padding:20px;display:flex;align-items:center;gap:16px">'
     +playerAvatar(playerName, initials, 56)
     +'<div>'
@@ -888,7 +891,17 @@ function openPlayerModal(idx) {
     +'<tbody>'+scheduleRows+'</tbody></table>'
     +'</div>';
 
-  document.getElementById('matchup-modal').classList.add('open');
+  if (document.getElementById('matchup-modal').classList.contains('open')) {
+    // Coming from within the modal (e.g. schedule popup) — push to stack
+    pushModal(modalTitle, modalBody);
+  } else {
+    // Fresh open from standings
+    modalStack = [];
+    document.getElementById('modal-back-btn').style.display = 'none';
+    document.getElementById('matchup-modal-title').innerHTML = modalTitle;
+    document.getElementById('matchup-modal-body').innerHTML = modalBody;
+    document.getElementById('matchup-modal').classList.add('open');
+  }
 }
 
 // ── PLAYOFF BRACKET ──────────────────
@@ -1280,6 +1293,8 @@ function renderWeatherBlock(w, isHistorical) {
 
 // ── MATCHUP MODAL ─────────────────────
 async function openMatchupModal(weekNum) {
+  modalStack = [];
+  document.getElementById('modal-back-btn').style.display = 'none';
   var sched = SCHEDULE.find(function(s){ return s.week === weekNum; }) || {};
   var pairs = WEEK_MATCHUPS[weekNum] || [];
   document.getElementById('matchup-modal-title').innerHTML = 'Week ' + weekNum + ' &mdash; ' + (sched.course||'').replace(' Golf Course','');
@@ -1346,6 +1361,27 @@ async function openMatchupModal(weekNum) {
     + '</div>';
   var wb = document.getElementById('weather-block');
   if (wb) wb.outerHTML = weatherHtml;
+}
+
+// ── MODAL HISTORY STACK ───────────────
+var modalStack = []; // each entry: {title, html}
+
+function pushModal(title, html) {
+  // Save current state before overwriting
+  var curTitle = document.getElementById('matchup-modal-title').innerHTML;
+  var curHtml  = document.getElementById('matchup-modal-body').innerHTML;
+  if (curTitle && curHtml) modalStack.push({title: curTitle, html: curHtml});
+  document.getElementById('matchup-modal-title').innerHTML = title;
+  document.getElementById('matchup-modal-body').innerHTML  = html;
+  document.getElementById('modal-back-btn').style.display  = modalStack.length ? 'inline' : 'none';
+}
+
+function modalGoBack() {
+  if (!modalStack.length) return;
+  var prev = modalStack.pop();
+  document.getElementById('matchup-modal-title').innerHTML = prev.title;
+  document.getElementById('matchup-modal-body').innerHTML  = prev.html;
+  document.getElementById('modal-back-btn').style.display  = modalStack.length ? 'inline' : 'none';
 }
 
 // ── PHOTO OVERLAY ─────────────────────
