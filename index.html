@@ -693,6 +693,7 @@ function renderHomeRecent() {
 
 // ── HOME UP NEXT ──────────────────────
 async function renderHomeUpNext() {
+  var standings=computeStandings();
   var played={};
   (DB.season2026.weeks||[]).forEach(function(w){played[w.weekNum]=true;});
   var next=null;
@@ -706,8 +707,13 @@ async function renderHomeUpNext() {
     var teeTimes = ['5:12 pm','5:20 pm','5:28 pm','5:36 pm'];
     pairs += '<div style="font-size:0.68rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--green-mid);padding:8px 0 4px">Tee Time ' + (ti/2 + 1) + ' (' + teeTimes[ti/2] + ')</div>';
     pairs += group.map(function(pair) {
+      var idx0 = standings.findIndex(function(s){ return s.first+' '+s.last === pair[0]; });
+      var idx1 = standings.findIndex(function(s){ return s.first+' '+s.last === pair[1]; });
       return '<div style="display:grid;grid-template-columns:1fr 28px 1fr;align-items:center;padding:5px 0;border-bottom:1px solid #eee;font-size:0.84rem">'
-        +'<span>'+pair[0]+'</span><span style="color:var(--text-light);font-size:0.73rem;text-align:center">vs</span><span style="text-align:right">'+pair[1]+'</span></div>';
+        +'<span style="color:var(--green-mid);cursor:pointer;font-weight:600" onclick="openPlayerModal('+' idx0 '+')" >'+pair[0]+'</span>'
+        +'<span style="color:var(--text-light);font-size:0.73rem;text-align:center">vs</span>'
+        +'<span style="color:var(--green-mid);cursor:pointer;font-weight:600;text-align:right" onclick="openPlayerModal('+' idx1 +'+')" >'+pair[1]+'</span>'
+        +'</div>';
     }).join('');
   }
   el.innerHTML='<div class="card"><div class="card-header">'+cEmoji(next.course)+' '+next.course+' &mdash; Week '+next.week+'</div>'
@@ -842,9 +848,10 @@ function openPlayerModal(idx) {
     var wk = scheduledOpps[opp];
     var done = played.has(opp);
     var sched = SCHEDULE.find(function(s){return s.week===wk;})||{};
-    return '<tr>'
+    var oppIdx = standings.findIndex(function(s){ return s.first+' '+s.last === opp; });
+    return '<tr style="cursor:pointer" onclick="openPlayerModal('+oppIdx+')">'
       +'<td class="num" style="color:var(--text-light)">'+(sched.date||'Wk '+wk)+'</td>'
-      +'<td class="name">'+opp+'</td>'
+      +'<td class="name" style="color:var(--green-mid)">'+opp+'</td>'
       +'<td style="text-align:center">'+(done?'<span class="tag tag-win">Done</span>':'<span class="tag tag-as">Upcoming</span>')+'</td>'
       +'</tr>';
   }).join('');
