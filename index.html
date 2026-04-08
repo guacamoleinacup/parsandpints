@@ -140,6 +140,17 @@ footer strong{color:var(--gold)}
   </div>
 </div>
 
+<div id="status-bar" style="background:var(--green-deep);border-bottom:1px solid rgba(201,168,76,0.2);padding:5px 16px;display:flex;align-items:center;gap:16px;font-size:0.7rem;letter-spacing:0.08em;text-transform:uppercase;font-family:'Source Sans 3',sans-serif">
+  <div style="display:flex;align-items:center;gap:5px">
+    <span id="sync-dot" style="width:7px;height:7px;border-radius:50%;background:#888;display:inline-block;transition:background 0.4s"></span>
+    <span id="sync-label" style="color:rgba(250,248,243,0.45)">Connecting...</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:5px">
+    <span id="weather-dot" style="width:7px;height:7px;border-radius:50%;background:#888;display:inline-block;transition:background 0.4s"></span>
+    <span id="weather-label" style="color:rgba(250,248,243,0.45)">Weather</span>
+  </div>
+</div>
+
 <main>
 <div class="admin-bar">
   <div id="admin-locked-ui" style="display:flex;align-items:center;gap:10px;width:100%">
@@ -470,8 +481,34 @@ var SEED = {
   ]}
 };
 
+// ── STATUS INDICATORS ─────────────────
+function setSyncStatus(state) {
+  // state: 'loading' | 'ok' | 'error'
+  var dot = document.getElementById('sync-dot');
+  var lbl = document.getElementById('sync-label');
+  if (!dot) return;
+  var colors = {loading:'#f0a500', ok:'#4caf50', error:'#e53935'};
+  var labels = {loading:'Syncing...', ok:'Live', error:'Sync Error'};
+  dot.style.background = colors[state] || '#888';
+  lbl.textContent = labels[state] || state;
+  lbl.style.color = state === 'ok' ? 'rgba(250,248,243,0.6)' : 'rgba(250,248,243,0.8)';
+}
+
+function setWeatherStatus(state) {
+  // state: 'loading' | 'ok' | 'unavailable'
+  var dot = document.getElementById('weather-dot');
+  var lbl = document.getElementById('weather-label');
+  if (!dot) return;
+  var colors = {loading:'#f0a500', ok:'#4caf50', unavailable:'#888'};
+  var labels = {loading:'Weather...', ok:'Weather Live', unavailable:'Weather N/A'};
+  dot.style.background = colors[state] || '#888';
+  lbl.textContent = labels[state] || state;
+  lbl.style.color = state === 'ok' ? 'rgba(250,248,243,0.6)' : 'rgba(250,248,243,0.5)';
+}
+
 // ── JSONBIN ───────────────────────────
 async function loadDB() {
+  setSyncStatus('loading');
   try {
     var r = await fetch(BIN_URL + '/latest', {headers:{'X-Master-Key':API_KEY}});
     var j = await r.json();
@@ -487,16 +524,20 @@ async function loadDB() {
     }
   } catch(e) {
     DB = JSON.parse(JSON.stringify(SEED));
+    setSyncStatus('error');
   }
+  setSyncStatus('ok');
   renderAll();
 }
 
 async function saveDB() {
+  setSyncStatus('loading');
   var r = await fetch(BIN_URL, {
     method:'PUT',
     headers:{'Content-Type':'application/json','X-Master-Key':API_KEY},
     body:JSON.stringify(DB)
   });
+  setSyncStatus(r.ok ? 'ok' : 'error');
   return r.ok;
 }
 
@@ -1125,6 +1166,7 @@ async function saveHistory(){
 var weatherCache = {};
 
 async function fetchWeather(course, dateStr) {
+  setWeatherStatus('loading');
   // dateStr format: 'Tue Apr 28, 2026'
   var cacheKey = course + '|' + dateStr;
   if (weatherCache[cacheKey]) return weatherCache[cacheKey];
@@ -1182,8 +1224,10 @@ async function fetchWeather(course, dateStr) {
       temp: temp, wind: wind, wdir: wdir, precip: precip, wcode: wcode
     };
     weatherCache[cacheKey] = result;
+    setWeatherStatus(result.type === 'future' ? 'unavailable' : 'ok');
     return result;
   } catch(e) {
+    setWeatherStatus('unavailable');
     return null;
   }
 }
