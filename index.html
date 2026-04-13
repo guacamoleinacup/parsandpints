@@ -1025,6 +1025,63 @@ function calcHoleWinners(m, pars, holeHdcps) {
   });
 }
 
+// ── SKINS CALCULATION ────────────────
+function calcWeekSkins(weekData) {
+  // weekData: {matchups: [{p1:{name,hdcp,scores}, p2:{...}}], pars:[...]}
+  // Returns {tier1:[{name,hdcp,scores}], tier2:[...], results:{tier1:{name:skins}, tier2:{name:skins}}, earnings:{...}}
+  if (!weekData || !weekData.matchups) return null;
+
+  // Collect all players with scores
+  var allPlayers = [];
+  weekData.matchups.forEach(function(m) {
+    if (m.p1.name && m.p1.hdcp != null && m.p1.scores && m.p1.scores.some(function(s){return s!=null;}))
+      allPlayers.push({name:m.p1.name, hdcp:m.p1.hdcp, scores:m.p1.scores});
+    if (m.p2.name && m.p2.hdcp != null && m.p2.scores && m.p2.scores.some(function(s){return s!=null;}))
+      allPlayers.push({name:m.p2.name, hdcp:m.p2.hdcp, scores:m.p2.scores});
+  });
+
+  if (allPlayers.length < 2) return null;
+
+  // Sort by handicap ascending (lowest first), split into tiers
+  allPlayers.sort(function(a,b){return a.hdcp - b.hdcp;});
+  var mid = Math.floor(allPlayers.length / 2);
+  var tier2 = allPlayers.slice(0, mid);   // low hdcp = Tier 2 (Flight 1)
+  var tier1 = allPlayers.slice(mid);      // high hdcp = Tier 1 (Flight 2)
+
+  function skinsTier(players, pot) {
+    var skins = {};
+    players.forEach(function(p){skins[p.name]=0;});
+    for (var hole = 0; hole < 9; hole++) {
+      var scores = players.map(function(p){return {name:p.name,hdcp:p.hdcp,score:p.scores[hole]};})
+                          .filter(function(x){return x.score != null;});
+      if (!scores.length) continue;
+      var minScore = Math.min.apply(null, scores.map(function(x){return x.score;}));
+      var low = scores.filter(function(x){return x.score===minScore;});
+      if (low.length === 1) {
+        skins[low[0].name]++;
+      } else if (low.length === 2) {
+        // Tie — higher hdcp wins
+        var winner = low[0].hdcp > low[1].hdcp ? low[0] : low[1];
+        skins[winner.name]++;
+      }
+      // 3+ tie = no skin
+    }
+    var totalSkins = Object.values(skins).reduce(function(a,b){return a+b;},0);
+    var earnings = {};
+    Object.keys(skins).forEach(function(name){
+      earnings[name] = totalSkins > 0 && skins[name] > 0
+        ? Math.round((skins[name]/totalSkins)*pot*100)/100 : 0;
+    });
+    return {skins:skins, earnings:earnings, totalSkins:totalSkins, pot:pot};
+  }
+
+  return {
+    tier1: tier1, tier2: tier2,
+    t1: skinsTier(tier1, 32),
+    t2: skinsTier(tier2, 32),
+  };
+}
+
 // ── STANDINGS SEASON SWITCHER ─────────
 function switchStandingsSeason(yr, btn) {
   // Switch inner panels
@@ -1266,31 +1323,100 @@ function renderPlayers(st) {
   }).join('');
 }
 
-// ── SKINS ─────────────────────────────
+// ── SKINS ────────────────────────────
 function renderSkins() {
-  var skins=DB.season2026.skins||[], el=document.getElementById('skins-content');
-  if(!skins.length){el.innerHTML='<div class="card"><div class="empty-state">No skins recorded yet.</div></div>';return;}
-  var paid=skins.reduce(function(a,s){return a+(s.amount||0);},0);
-  var byW={};
-  skins.forEach(function(s){if(!byW[s.winner])byW[s.winner]={count:0,total:0};byW[s.winner].count++;byW[s.winner].total+=(s.amount||0);});
-  el.innerHTML='<div class="two-col" style="margin-bottom:20px">'
-    +'<div class="card"><div class="card-header">Pot Summary</div><table><tbody>'
-    +'<tr><td>Total Pot</td><td class="pts-cell">$832</td></tr>'
-    +'<tr><td>Paid Out</td><td class="pts-cell" style="color:var(--red)">$'+paid+'</td></tr>'
-    +'<tr><td>Remaining</td><td class="pts-cell" style="color:var(--green-mid)">$'+(832-paid)+'</td></tr>'
-    +'</tbody></table></div>'
-    +'<div class="card"><div class="card-header">Skins Leaders</div>'
-    +'<table><thead><tr><th>Player</th><th class="num">Skins</th><th class="num">Earnings</th></tr></thead><tbody>'
-    +Object.keys(byW).sort(function(a,b){return byW[b].count-byW[a].count;}).map(function(n){
-      return '<tr><td class="name">'+n+'</td><td class="num">'+byW[n].count+'</td><td class="pts-cell">$'+byW[n].total+'</td></tr>';
-    }).join('')+'</tbody></table></div></div>'
-    +'<div class="card"><div class="card-header">All Skins Results</div>'
-    +'<table><thead><tr><th class="num">Week</th><th>Winner</th><th class="num">Hole</th><th class="num">Amount</th><th>Notes</th></tr></thead><tbody>'
-    +skins.map(function(s){
-      return '<tr><td class="num">'+s.week+'</td><td class="name">'+s.winner+'</td><td class="num">'+(s.hole||'--')+'</td><td class="pts-cell">$'+(s.amount||0)+'</td><td style="font-size:0.82rem;color:var(--text-light)">'+(s.notes||'')+'</td></tr>';
-    }).join('')+'</tbody></table></div>';
-}
+  var el = document.getElementById('skins-content');
+  if (!el) return;
+  var weeks = (DB.season2026.weeks || []).filter(function(w){
+    return w.matchups && w.matchups.some(function(m){
+      return m.p1.scores && m.p1.scores.some(function(s){return s!=null;});
+    });
+  });
 
+  if (!weeks.length) {
+    el.innerHTML = '<div class="empty-state">Skins will appear here once weekly scores are entered.</div>';
+    return;
+  }
+
+  // Season totals
+  var seasonSkins = {};   // name -> {skins, earnings}
+  var weekResults = [];
+
+  weeks.forEach(function(w) {
+    var result = calcWeekSkins(w);
+    if (!result) return;
+    var sched = SCHEDULE.find(function(s){return s.week===w.weekNum;})||{};
+
+    // Accumulate season totals
+    ['t1','t2'].forEach(function(tier){
+      Object.keys(result[tier].skins).forEach(function(name){
+        if (!seasonSkins[name]) seasonSkins[name] = {skins:0,earnings:0};
+        seasonSkins[name].skins += result[tier].skins[name];
+        seasonSkins[name].earnings += result[tier].earnings[name];
+      });
+    });
+
+    weekResults.push({weekNum:w.weekNum, sched:sched, result:result});
+  });
+
+  // Season leaderboard
+  var sorted = Object.keys(seasonSkins).sort(function(a,b){
+    return seasonSkins[b].earnings - seasonSkins[a].earnings;
+  });
+  var pot = weeks.length * 64; // $32 x 2 tiers x weeks played
+  var leaderRows = sorted.filter(function(n){return seasonSkins[n].skins>0;}).map(function(name,i){
+    var s = seasonSkins[name];
+    var net = s.earnings - 52; // entry fee
+    var netCol = net >= 0 ? 'color:#2d7a2d' : 'color:#c0392b';
+    var netStr = (net >= 0 ? '+$' : '-$') + Math.abs(net).toFixed(2);
+    return '<tr>'
+      +'<td style="text-align:center">'+rankBadge(i+1)+'</td>'
+      +'<td class="name">'+name+'</td>'
+      +'<td class="num">'+s.skins+'</td>'
+      +'<td class="pts-cell">$'+s.earnings.toFixed(2)+'</td>'
+      +'<td class="num" style="font-weight:700;'+netCol+'">'+netStr+'</td>'
+      +'</tr>';
+  }).join('');
+
+  // Weekly breakdown
+  var weekCards = weekResults.map(function(wr){
+    var w = wr.result;
+    var sched = wr.sched;
+    function tierTable(tierName, tierData, tierPlayers) {
+      var rows = tierPlayers.map(function(p){
+        var sk = tierData.skins[p.name]||0;
+        var earn = tierData.earnings[p.name]||0;
+        return '<tr'+(sk>0?' style="font-weight:600"':'')+'>'
+          +'<td class="name">'+p.name+' <small style="opacity:0.5">('+p.hdcp+')</small></td>'
+          +'<td class="num">'+sk+'</td>'
+          +'<td class="num">'+(earn>0?'$'+earn.toFixed(2):'-')+'</td>'
+          +'</tr>';
+      }).join('');
+      return '<div style="margin-bottom:12px">'
+        +'<div style="font-size:0.68rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;'
+        +'color:var(--green-mid);padding:6px 0 4px">'+tierName+' &middot; $'+tierData.pot+' pot &middot; '+tierData.totalSkins+' skin'+(tierData.totalSkins!==1?'s':'')+' won</div>'
+        +'<table style="width:100%"><thead><tr><th style="text-align:left">Player</th>'
+        +'<th class="num">Skins</th><th class="num">Earned</th></tr></thead>'
+        +'<tbody>'+rows+'</tbody></table></div>';
+    }
+    return '<div class="card" style="margin-bottom:16px">'
+      +'<div class="card-header">'+cEmoji(sched.course)+' Week '+wr.weekNum+' &mdash; '+(sched.course||'').replace(' Golf Course','')+'</div>'
+      +'<div style="padding:14px">'
+      +tierTable('Tier 2 — Low Handicap', w.t2, w.tier2)
+      +tierTable('Tier 1 — High Handicap', w.t1, w.tier1)
+      +'</div></div>';
+  }).join('');
+
+  el.innerHTML = '<div class="card"><div class="skin-pot">'
+    +'<div class="pot-amount">$'+pot+'</div>'
+    +'<div class="pot-label">'+weeks.length+' week'+(weeks.length!==1?'s':'')+' played &middot; $64/week &middot; $32/tier</div>'
+    +'</div></div>'
+    +(leaderRows ? '<div class="card" style="margin-bottom:20px"><div class="card-header">&#127942; Season Skins Leaders</div>'
+      +'<table><thead><tr><th>#</th><th>Player</th><th class="num">Skins Won</th>'
+      +'<th class="num">Earnings</th><th class="num">Net</th></tr></thead>'
+      +'<tbody>'+leaderRows+'</tbody></table></div>' : '')
+    + weekCards;
+}
 // ── HISTORY ───────────────────────────
 function renderHistory() {
   ['2025','2024'].forEach(function(yr){
