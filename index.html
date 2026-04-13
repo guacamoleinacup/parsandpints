@@ -164,6 +164,7 @@ footer strong{color:var(--gold)}
     <button onclick="openWeekModal()">+ Add / Edit Week</button>
     <button onclick="openSkinsModal()">+ Add Skins</button>
     <button onclick="openHistoryModal()">+ Add History</button>
+        <button onclick="openLBOWModal()">&#127942; Add LBOW</button>
     <button onclick="reseedDB()" style="background:rgba(255,255,255,0.12);color:var(--gold);border:1px solid var(--gold)">&#8635; Re-seed Data</button>
     <button onclick="adminLogout()" style="background:rgba(255,255,255,0.15);color:var(--cream);margin-left:auto">Lock</button>
   </div>
@@ -236,6 +237,7 @@ footer strong{color:var(--gold)}
     <div class="inner-tabs" id="results-outer-tabs">
       <button class="inner-tab active" onclick="showInnerTab('results-scorecards',this)">Scorecards</button>
       <button class="inner-tab" onclick="showInnerTab('results-skins',this)">&#128176; Skins</button>
+      <button class="inner-tab" onclick="showInnerTab('results-lbow',this);renderLBOW()">&#127942; LBOW</button>
     </div>
     <div id="results-scorecards" class="inner-panel active">
       <div class="inner-tabs" id="results-tabs"></div>
@@ -251,12 +253,17 @@ footer strong{color:var(--gold)}
     <div class="notice">A skin is won by the lowest gross score on a hole. Two-way tie: higher handicap wins. Three-way or more: no skin awarded. No carry-overs.</div>
     <div id="skins-content"><div style="text-align:center;padding:20px;color:var(--text-light)">Loading...</div></div>
   </div>
+  </div>
+  <div id="results-lbow" class="inner-panel">
+    <div class="notice">Low Bartels of the Week &mdash; Optional $10/week. Pick Zach, Dan (Kurt), or Ben. Lowest gross wins (Ben gets 3 strokes off). All correct pickers split the pot.</div>
+    <div id="lbow-content"><div style="text-align:center;padding:20px;color:var(--text-light)">Loading...</div></div>
   </div><!-- end results-2026-panel -->
 
   <div id="results-2025-panel" class="inner-panel">
     <div class="inner-tabs" id="results-2025-outer-tabs">
       <button class="inner-tab active" onclick="showInnerTab('results-2025-scorecards',this)">Scorecards</button>
       <button class="inner-tab" onclick="showInnerTab('results-2025-skins',this);render2025Skins()">&#128176; Skins</button>
+      <button class="inner-tab" onclick="showInnerTab('results-2025-lbow',this);render2025LBOW()">&#127942; LBOW</button>
     </div>
     <div id="results-2025-scorecards" class="inner-panel active">
       <div class="inner-tabs" id="results-2025-tabs"></div>
@@ -264,6 +271,10 @@ footer strong{color:var(--gold)}
     </div>
     <div id="results-2025-skins" class="inner-panel">
       <div id="skins-2025-content"></div>
+    </div>
+    <div id="results-2025-lbow" class="inner-panel">
+      <div class="notice">2025 LBOW season summary &mdash; Ben received 2 strokes that year.</div>
+      <div id="lbow-2025-content"></div>
     </div>
   </div>
 </section>
@@ -346,6 +357,31 @@ footer strong{color:var(--gold)}
     </div>
     <div class="modal-body" style="padding:0">
       <div id="matchup-modal-body"></div>
+    </div>
+  </div>
+</div>
+
+<!-- LBOW MODAL -->
+<div class="modal-overlay" id="lbow-modal">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header"><h3>&#127942; Add LBOW Week</h3><button class="modal-close" onclick="closeModal('lbow-modal')">&times;</button></div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group"><label>Week</label><select id="lbow-week-sel"><option value="">Select week...</option></select></div>
+        <div class="form-group"><label>Winner</label><select id="lbow-winner-sel"><option value="">Select winner...</option></select></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Zach Score</label><input type="number" id="lbow-scores-zach" placeholder="Gross" min="25" max="70"></div>
+        <div class="form-group"><label>Dan (Kurt) Score</label><input type="number" id="lbow-scores-dan" placeholder="Gross" min="25" max="70"></div>
+        <div class="form-group"><label>Ben Score</label><input type="number" id="lbow-scores-ben" placeholder="Gross" min="25" max="70"></div>
+      </div>
+      <div style="font-size:0.75rem;color:var(--text-light);margin:-4px 0 12px">Ben gets 3 strokes &mdash; his net = gross - 3</div>
+      <div style="font-weight:600;font-size:0.82rem;margin-bottom:6px">Picks</div>
+      <div id="lbow-picks-container" style="margin-bottom:8px"><div class="lbow-placeholder" style="color:var(--text-light);font-size:0.82rem">No picks added yet.</div></div>
+      <button onclick="addLBOWPickRow()" style="background:none;border:1px dashed var(--border);padding:6px 14px;border-radius:3px;cursor:pointer;font-size:0.82rem;color:var(--text-light);margin-bottom:14px">+ Add Pick</button>
+      <br>
+      <button class="save-btn" onclick="saveLBOW()">Save LBOW Week</button>
+      <div id="lbow-save-status" style="margin-top:8px;font-size:0.82rem;color:var(--green-mid)"></div>
     </div>
   </div>
 </div>
@@ -449,6 +485,10 @@ var COURSE_HDCPS = {
   'Currie Golf Course':     [5,7,3,17,1,9,15,11,13],
 };
 
+var LBOW_2025_WEEKS = [{"week":1,"winner":"Dan","payout":25.0,"pot":50,"picks":[{"name":"Dan Bartels","bartels":"Dan"},{"name":"Josh Mack","bartels":"Dan"},{"name":"Zach Bartels","bartels":"Zach"},{"name":"Sam Harmeyer","bartels":"Zach"},{"name":"Matt Sklander","bartels":"Ben"}]},{"week":2,"winner":"Dan","payout":20.0,"pot":40,"picks":[{"name":"Dan Bartels","bartels":"Dan"},{"name":"Josh Mack","bartels":"Dan"},{"name":"Zach Bartels","bartels":"Zach"},{"name":"Alex Henry","bartels":"Zach"}]},{"week":3,"winner":"Dan","payout":16.0,"pot":80,"picks":[{"name":"Dan Bartels","bartels":"Dan"},{"name":"Sam Harmeyer","bartels":"Dan"},{"name":"Alex Henry","bartels":"Dan"},{"name":"Josh Mack","bartels":"Dan"},{"name":"Matt Sklander","bartels":"Dan"},{"name":"Zach Bartels","bartels":"Zach"},{"name":"Nick Kriesel","bartels":"Zach"},{"name":"Matt Phillips","bartels":"Ben"}]},{"week":6,"winner":"Dan","payout":20.0,"pot":40,"picks":[{"name":"Dan Bartels","bartels":"Dan"},{"name":"Matt Sklander","bartels":"Dan"},{"name":"Zach Bartels","bartels":"Zach"}]},{"week":7,"winner":"Dan","payout":20.0,"pot":40,"picks":[{"name":"Dan Bartels","bartels":"Dan"},{"name":"Josh Mack","bartels":"Dan"},{"name":"Zach Bartels","bartels":"Zach"},{"name":"Matt Sklander","bartels":"Zach"}]},{"week":8,"winner":"Zach","payout":35.0,"pot":70,"picks":[{"name":"Jack Balistreri","bartels":"Dan"},{"name":"Dan Bartels","bartels":"Dan"},{"name":"Josh Mack","bartels":"Dan"},{"name":"Matt Sklander","bartels":"Dan"},{"name":"Zach Bartels","bartels":"Zach"},{"name":"Sam Harmeyer","bartels":"Zach"}]},{"week":9,"winner":"Dan","payout":17.5,"pot":70,"picks":[{"name":"Dan Bartels","bartels":"Dan"},{"name":"Sam Harmeyer","bartels":"Dan"},{"name":"Josh Mack","bartels":"Dan"},{"name":"Mike Trepanier","bartels":"Dan"},{"name":"Zach Bartels","bartels":"Zach"},{"name":"Matt Sklander","bartels":"Zach"},{"name":"Matt Phillips","bartels":"Ben"}]},{"week":11,"winner":"Zach","payout":50.0,"pot":50,"picks":[{"name":"Dan Bartels","bartels":"Dan"},{"name":"Josh Mack","bartels":"Dan"},{"name":"Matt Sklander","bartels":"Dan"},{"name":"Zach Bartels","bartels":"Zach"}]},{"week":12,"winner":"Dan","payout":10.0,"pot":10,"picks":[{"name":"Dan Bartels","bartels":"Dan"}]},{"week":13,"winner":"Dan","payout":13.33,"pot":80,"picks":[{"name":"Jack Balistreri","bartels":"Dan"},{"name":"Dan Bartels","bartels":"Dan"},{"name":"Alex Henry","bartels":"Dan"},{"name":"Josh Mack","bartels":"Dan"},{"name":"Matt Sklander","bartels":"Dan"},{"name":"Kaden (sub)","bartels":"Dan"},{"name":"Zach Bartels","bartels":"Zach"},{"name":"Matt Phillips","bartels":"Ben"}]},{"week":14,"winner":"Zach","payout":15.0,"pot":60,"picks":[{"name":"Jack Balistreri","bartels":"Zach"},{"name":"Zach Bartels","bartels":"Zach"},{"name":"Sam Harmeyer","bartels":"Zach"},{"name":"Ryan (sub)","bartels":"Zach"},{"name":"Dan Bartels","bartels":"Dan"},{"name":"Josh Mack","bartels":"Dan"}]},{"week":15,"winner":"Dan","payout":16.67,"pot":50,"picks":[{"name":"Jack Balistreri","bartels":"Zach"},{"name":"Zach Bartels","bartels":"Zach"},{"name":"Dan Bartels","bartels":"Dan"},{"name":"Alex Henry","bartels":"Dan"},{"name":"Josh Mack","bartels":"Dan"}]}];
+
+var LBOW_2025 = {"benStrokes":2,"totalBuyin":1270.0,"totalProceeds":1260.01,"players":[{"name":"John Trepanier","buyin":30.0,"proceeds":130.0},{"name":"Dan Bartels","buyin":150.0,"proceeds":248.5},{"name":"Matt Phillips","buyin":60.0,"proceeds":150.0},{"name":"Zach Bartels","buyin":130.0,"proceeds":190.0},{"name":"Sam Harmeyer","buyin":70.0,"proceeds":123.5},{"name":"Josh Mack","buyin":130.0,"proceeds":168.5},{"name":"Ben Bartels","buyin":20.0,"proceeds":40.0},{"name":"Mike Trepanier","buyin":30.0,"proceeds":17.5},{"name":"Jack Mielke","buyin":20.0,"proceeds":0.0},{"name":"Shaun Diederich","buyin":20.0,"proceeds":0.0},{"name":"Grant (sub)","buyin":50.0,"proceeds":28.34},{"name":"Alex Henry","buyin":70.0,"proceeds":46.0},{"name":"Alex Hein","buyin":30.0,"proceeds":0.0},{"name":"CJ Malek","buyin":30.0,"proceeds":0.0},{"name":"Jack Balistreri","buyin":80.0,"proceeds":48.33},{"name":"Nick Kriesel","buyin":40.0,"proceeds":0.0},{"name":"Matt Sklander","buyin":110.0,"proceeds":69.34}]};
+
 var COURSE_PARS = {
   'Oakwood Golf Course':   [4,5,4,3,4,5,4,3,4],
   'Whitnall Golf Course':  [4,4,3,5,4,3,4,5,4],
@@ -458,6 +498,7 @@ var COURSE_PARS = {
 
 var SEED = {
   season2026:{
+    lbow:[],
     players:[
       {id:1,first:'Jack',last:'Balistreri',hdcp:15.8,skins:0},{id:2,first:'Ben',last:'Bartels',hdcp:20.4,skins:0},
       {id:3,first:'Dan',last:'Bartels',hdcp:11.3,skins:0},{id:4,first:'Zach',last:'Bartels',hdcp:13.2,skins:0},
@@ -563,6 +604,7 @@ async function loadDB() {
       // 2026 is live — only seed if missing
       if (!DB.season2026) DB.season2026 = JSON.parse(JSON.stringify(SEED.season2026));
       if (!DB.season2026.skins) DB.season2026.skins = [];
+      if (!DB.season2026.lbow) DB.season2026.lbow = [];
       // 2025 and 2024 are historical — always use hardcoded SEED, never JSONBin
       DB.season2025 = SEED.season2025;
       DB.season2024 = SEED.season2024;
@@ -819,6 +861,66 @@ function switchResultsSeason(yr, btn) {
     btn.classList.add('active');
   }
   if (yr === '2025') render2025Results();
+}
+
+function render2025LBOW() {
+  var el = document.getElementById('lbow-2025-content');
+  if (!el || el.innerHTML) return;
+  var s = LBOW_2025;
+
+  // Season summary table (from spreadsheet, includes scrambles)
+  var summaryRows = s.players.map(function(p, i) {
+    var net = p.proceeds - p.buyin;
+    var netCol = net >= 0 ? 'color:#2d7a2d' : 'color:#c0392b';
+    var netStr = (net >= 0 ? '+$' : '-$') + Math.abs(net).toFixed(2);
+    return '<tr><td style="text-align:center">'+rankBadge(i+1)+'</td>'
+      +'<td class="name">'+p.name+'</td>'
+      +'<td class="num">$'+p.buyin.toFixed(2)+'</td>'
+      +'<td class="pts-cell">$'+p.proceeds.toFixed(2)+'</td>'
+      +'<td class="num" style="font-weight:700;'+netCol+'">'+netStr+'</td></tr>';
+  }).join('');
+
+  // Weekly cards from parsed data
+  var weekCards = LBOW_2025_WEEKS.map(function(w) {
+    var sched = {date:''};
+    var pickRows = w.picks.slice().sort(function(a,b){return a.name.localeCompare(b.name);}).map(function(pick){
+      var won = pick.bartels === w.winner;
+      return '<tr style="'+(won?'font-weight:700':'')+'"><td class="name">'+pick.name+'</td>'
+        +'<td style="text-align:center">'+pick.bartels+(won?' &#9989;':'')+'</td>'
+        +'<td class="num">'+(won?'$'+w.payout.toFixed(2):'-')+'</td></tr>';
+    }).join('');
+    var bartelsDisplay = ['Zach','Dan','Ben'].map(function(b){
+      var won = b === w.winner;
+      return '<div style="padding:8px 14px;border-radius:4px;border:1px solid var(--border);text-align:center;flex:1;'
+        +(won?'background:var(--green-pale);border-color:var(--green-mid)':'')+';">'
+        +'<div style="font-weight:700;color:var(--green-deep)">'+b+(b==='Ben'?' (+2)':'')+'</div>'
+        +(won?'<div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--green-mid);margin-top:2px">WINNER</div>':'')
+        +'</div>';
+    }).join('');
+    return '<div class="card" style="margin-bottom:16px">'
+      +'<div class="card-header">&#127942; Week '+w.week+'</div>'
+      +'<div style="padding:14px">'
+      +'<div style="display:flex;gap:8px;margin-bottom:10px">'+bartelsDisplay+'</div>'
+      +'<div style="font-size:0.72rem;color:var(--text-light);margin-bottom:8px">'
+        +'$'+w.pot+' pot &middot; '+w.picks.length+' entries &middot; $'+w.payout.toFixed(2)+' per winner</div>'
+      +'<table style="width:100%"><thead><tr><th style="text-align:left">Picker</th>'
+        +'<th style="text-align:center">Pick</th><th class="num">Payout</th></tr></thead>'
+      +'<tbody>'+pickRows+'</tbody></table></div></div>';
+  }).join('');
+
+  el.innerHTML = '<div class="card"><div class="skin-pot">'
+    +'<div class="pot-amount">$'+s.totalBuyin.toFixed(2)+'</div>'
+    +'<div class="pot-label">2025 Total Wagered (LBOW + Scrambles) &middot; Ben got '+s.benStrokes+' strokes</div>'
+    +'</div></div>'
+    +'<div class="card" style="margin-bottom:20px"><div class="card-header">&#127942; 2025 Season Summary</div>'
+    +'<div class="notice" style="margin:0;border-radius:0;border-left:none;background:var(--cream-dark);font-size:0.72rem">Includes all LBOW + scramble wagers. Dan (Kurt) won 9 of 12 LBOW weeks.</div>'
+    +'<table><thead><tr><th>#</th><th>Player</th><th class="num">Buy In</th>'
+    +'<th class="num">Proceeds</th><th class="num">Net</th></tr></thead>'
+    +'<tbody>'+summaryRows+'</tbody></table>'
+    +'<div style="padding:8px 14px;font-size:0.72rem;color:var(--text-light)">&#8203;TJ, Kaden, Ryan participated as subs some weeks (no full season totals).</div>'
+    +'</div>'
+    +'<div style="font-size:0.78rem;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-light);margin-bottom:12px">Weekly Results</div>'
+    + weekCards;
 }
 
 function render2025Skins() {
@@ -1417,6 +1519,148 @@ function renderSkins() {
       +'<tbody>'+leaderRows+'</tbody></table></div>' : '')
     + weekCards;
 }
+// ── LBOW ──────────────────────────────
+function renderLBOW() {
+  var el = document.getElementById('lbow-content');
+  if (!el) return;
+  var entries = DB.season2026.lbow || [];
+  if (!entries.length) {
+    el.innerHTML = '<div class="empty-state">No LBOW entries yet. Add them via Admin.</div>';
+    return;
+  }
+
+  // Season totals per picker
+  var pickerTotals = {}; // name -> {spent, won}
+  entries.forEach(function(e) {
+    (e.picks || []).forEach(function(pick) {
+      if (!pickerTotals[pick.name]) pickerTotals[pick.name] = {spent:0, won:0};
+      pickerTotals[pick.name].spent += 10;
+      if (pick.bartels === e.winner) {
+        pickerTotals[pick.name].won += e.payout || 0;
+      }
+    });
+  });
+
+  var sorted = Object.keys(pickerTotals).sort(function(a,b){
+    return (pickerTotals[b].won - pickerTotals[b].spent) - (pickerTotals[a].won - pickerTotals[a].spent);
+  });
+
+  var leaderRows = sorted.map(function(name, i) {
+    var p = pickerTotals[name];
+    var net = p.won - p.spent;
+    var netCol = net >= 0 ? 'color:#2d7a2d' : 'color:#c0392b';
+    var netStr = (net >= 0 ? '+$' : '-$') + Math.abs(net).toFixed(2);
+    return '<tr><td style="text-align:center">'+rankBadge(i+1)+'</td>'
+      +'<td class="name">'+name+'</td>'
+      +'<td class="num">$'+p.spent.toFixed(2)+'</td>'
+      +'<td class="pts-cell">$'+p.won.toFixed(2)+'</td>'
+      +'<td class="num" style="font-weight:700;'+netCol+'">'+netStr+'</td></tr>';
+  }).join('');
+
+  var weekCards = entries.slice().sort(function(a,b){return b.week-a.week;}).map(function(e) {
+    var sched = SCHEDULE.find(function(s){return s.week===e.week;})||{};
+    var pot = (e.picks||[]).length * 10;
+    var winners = (e.picks||[]).filter(function(p){return p.bartels===e.winner;});
+    var payout = winners.length ? Math.round(pot/winners.length*100)/100 : 0;
+    var pickRows = (e.picks||[]).sort(function(a,b){return a.name.localeCompare(b.name);}).map(function(pick) {
+      var won = pick.bartels === e.winner;
+      return '<tr style="'+(won?'font-weight:700':'')+'"><td class="name">'+pick.name+'</td>'
+        +'<td style="text-align:center">'+pick.bartels+(won?' &#9989;':'')+'</td>'
+        +'<td class="num">'+(won?'$'+payout.toFixed(2):'-')+'</td></tr>';
+    }).join('');
+    var bartelsRow = '<div style="display:flex;gap:16px;margin-bottom:10px;flex-wrap:wrap">'
+      + ['Zach','Dan','Ben'].map(function(b){
+        var scores = e.scores||{};
+        var score = scores[b];
+        var net = b==='Ben' && score ? score-3 : score;
+        var won = b===e.winner;
+        return '<div style="padding:8px 14px;border-radius:4px;border:1px solid var(--border);text-align:center;'+(won?'background:var(--green-pale);border-color:var(--green-mid)':'')+';">'
+          +'<div style="font-weight:700;color:var(--green-deep)">'+b+(b==='Ben'?' (+3)':'')+'</div>'
+          +'<div style="font-size:1.1rem;font-weight:700;color:'+(won?'var(--green-mid)':'var(--text-dark)')+'">'+( score||'--')+(b==='Ben'&&score?' <small style="opacity:0.6">('+net+' net)</small>':'')+'</div>'
+          +(won?'<div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--green-mid)">WINNER</div>':'')
+          +'</div>';
+      }).join('')+'</div>';
+    return '<div class="card" style="margin-bottom:16px">'
+      +'<div class="card-header">&#127942; Week '+e.week+(sched.date?' &mdash; '+sched.date:'')+'</div>'
+      +'<div style="padding:14px">'
+      +bartelsRow
+      +'<div style="font-size:0.72rem;color:var(--text-light);margin-bottom:8px">$'+pot+' pot &middot; '+(e.picks||[]).length+' entries &middot; $'+payout.toFixed(2)+' per winner</div>'
+      +'<table style="width:100%"><thead><tr><th style="text-align:left">Picker</th><th style="text-align:center">Pick</th><th class="num">Payout</th></tr></thead>'
+      +'<tbody>'+pickRows+'</tbody></table>'
+      +'</div></div>';
+  }).join('');
+
+  var totalPot = entries.reduce(function(a,e){return a+(e.picks||[]).length*10;},0);
+  el.innerHTML = '<div class="card"><div class="skin-pot">'
+    +'<div class="pot-amount">$'+totalPot+'</div>'
+    +'<div class="pot-label">Total LBOW wagered &middot; '+entries.length+' week'+(entries.length!==1?'s':'')+' played</div>'
+    +'</div></div>'
+    +(leaderRows?'<div class="card" style="margin-bottom:20px"><div class="card-header">&#128176; Season Standings</div>'
+    +'<table><thead><tr><th>#</th><th>Player</th><th class="num">Spent</th><th class="num">Won</th><th class="num">Net</th></tr></thead>'
+    +'<tbody>'+leaderRows+'</tbody></table></div>':'')
+    +weekCards;
+}
+
+function openLBOWModal() {
+  var sel = '<option value="">Select week...</option>'
+    + SCHEDULE.filter(function(s){return s.type==='regular';}).map(function(s){
+        return '<option value="'+s.week+'">Week '+s.week+' &mdash; '+s.date+'</option>';
+      }).join('');
+  document.getElementById('lbow-week-sel').innerHTML = sel;
+  document.getElementById('lbow-winner-sel').innerHTML =
+    '<option value="">Select winner...</option>'
+    +'<option value="Zach">Zach Bartels</option>'
+    +'<option value="Dan">Dan (Kurt) Bartels</option>'
+    +'<option value="Ben">Ben Bartels</option>';
+  document.getElementById('lbow-scores-zach').value='';
+  document.getElementById('lbow-scores-dan').value='';
+  document.getElementById('lbow-scores-ben').value='';
+  document.getElementById('lbow-picks-container').innerHTML='<div style="color:var(--text-light);font-size:0.82rem">Add picks below...</div>';
+  document.getElementById('lbow-save-status').textContent='';
+  document.getElementById('lbow-modal').classList.add('open');
+}
+
+function addLBOWPickRow() {
+  var container = document.getElementById('lbow-picks-container');
+  if (container.querySelector('.lbow-placeholder')) container.innerHTML='';
+  var row = document.createElement('div');
+  row.className='lbow-pick-row';
+  row.style.cssText='display:flex;gap:8px;margin-bottom:6px;align-items:center';
+  row.innerHTML='<input type="text" placeholder="Picker name" style="flex:1;padding:5px 8px;border:1px solid var(--border);border-radius:3px;font-size:0.83rem">'
+    +'<select style="padding:5px 8px;border:1px solid var(--border);border-radius:3px;font-size:0.83rem">'
+    +'<option value="">Pick...</option><option value="Zach">Zach</option><option value="Dan">Dan (Kurt)</option><option value="Ben">Ben</option>'
+    +'</select>'
+    +'<button onclick="this.parentNode.remove()" style="background:none;border:none;color:#c0392b;cursor:pointer;font-size:1rem;padding:0 4px">&times;</button>';
+  container.appendChild(row);
+}
+
+async function saveLBOW() {
+  var week = parseInt(document.getElementById('lbow-week-sel').value);
+  var winner = document.getElementById('lbow-winner-sel').value;
+  var scores = {
+    Zach: parseInt(document.getElementById('lbow-scores-zach').value)||null,
+    Dan:  parseInt(document.getElementById('lbow-scores-dan').value)||null,
+    Ben:  parseInt(document.getElementById('lbow-scores-ben').value)||null,
+  };
+  if (!week || !winner) { document.getElementById('lbow-save-status').textContent='Select week and winner.'; return; }
+  var picks = [];
+  document.querySelectorAll('.lbow-pick-row').forEach(function(row) {
+    var name = row.querySelector('input').value.trim();
+    var bartels = row.querySelector('select').value;
+    if (name && bartels) picks.push({name:name, bartels:bartels});
+  });
+  var pot = picks.length * 10;
+  var winners = picks.filter(function(p){return p.bartels===winner;});
+  var payout = winners.length ? Math.round(pot/winners.length*100)/100 : 0;
+  var entry = {week:week, winner:winner, scores:scores, picks:picks, payout:payout};
+  if (!DB.season2026.lbow) DB.season2026.lbow=[];
+  var existing = DB.season2026.lbow.findIndex(function(e){return e.week===week;});
+  if (existing>=0) DB.season2026.lbow[existing]=entry; else DB.season2026.lbow.push(entry);
+  var ok = await saveDB();
+  document.getElementById('lbow-save-status').textContent = ok?'Saved!':'Error saving.';
+  if (ok) { renderLBOW(); setTimeout(function(){closeModal('lbow-modal');},1200); }
+}
+
 // ── HISTORY ───────────────────────────
 function renderHistory() {
   ['2025','2024'].forEach(function(yr){
