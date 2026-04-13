@@ -248,7 +248,7 @@ footer strong{color:var(--gold)}
         <div class="pot-label">Season Pot &middot; 16 players x $52</div>
       </div>
     </div>
-    <div class="notice">A skin is won by the lowest net score on a hole that no other player ties. Carry-over skins accumulate until won.</div>
+    <div class="notice">A skin is won by the lowest gross score on a hole. Two-way tie: higher handicap wins. Three-way or more: no skin awarded. No carry-overs.</div>
     <div id="skins-content"><div style="text-align:center;padding:20px;color:var(--text-light)">Loading...</div></div>
   </div>
   </div><!-- end results-2026-panel -->
@@ -1045,8 +1045,8 @@ function calcWeekSkins(weekData) {
   // Sort by handicap ascending (lowest first), split into tiers
   allPlayers.sort(function(a,b){return a.hdcp - b.hdcp;});
   var mid = Math.floor(allPlayers.length / 2);
-  var tier2 = allPlayers.slice(0, mid);   // low hdcp = Tier 2 (Flight 1)
-  var tier1 = allPlayers.slice(mid);      // high hdcp = Tier 1 (Flight 2)
+  var tier1 = allPlayers.slice(0, mid);   // low hdcp = Tier 1
+  var tier2 = allPlayers.slice(mid);      // high hdcp = Tier 2
 
   function skinsTier(players, pot) {
     var skins = {};
@@ -1077,8 +1077,8 @@ function calcWeekSkins(weekData) {
 
   return {
     tier1: tier1, tier2: tier2,
-    t1: skinsTier(tier1, 32),
-    t2: skinsTier(tier2, 32),
+    t1: skinsTier(tier1, 32),  // Tier 1 = low hdcp
+    t2: skinsTier(tier2, 32),  // Tier 2 = high hdcp
   };
 }
 
@@ -1402,8 +1402,8 @@ function renderSkins() {
     return '<div class="card" style="margin-bottom:16px">'
       +'<div class="card-header">'+cEmoji(sched.course)+' Week '+wr.weekNum+' &mdash; '+(sched.course||'').replace(' Golf Course','')+'</div>'
       +'<div style="padding:14px">'
-      +tierTable('Tier 2 — Low Handicap', w.t2, w.tier2)
-      +tierTable('Tier 1 — High Handicap', w.t1, w.tier1)
+      +tierTable('Tier 1 — Low Handicap', w.t1, w.tier1)
+      +tierTable('Tier 2 — High Handicap', w.t2, w.tier2)
       +'</div></div>';
   }).join('');
 
