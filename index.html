@@ -553,10 +553,12 @@ async function loadDB() {
       await saveDB();
     } else {
       DB = j.record;
+      // 2026 is live — only seed if missing
       if (!DB.season2026) DB.season2026 = JSON.parse(JSON.stringify(SEED.season2026));
-      if (!DB.season2025) DB.season2025 = {champion:'',players:[]};
-      if (!DB.season2024) DB.season2024 = {champion:'',players:[]};
       if (!DB.season2026.skins) DB.season2026.skins = [];
+      // 2025 and 2024 are historical — always use hardcoded SEED, never JSONBin
+      DB.season2025 = SEED.season2025;
+      DB.season2024 = SEED.season2024;
     }
   } catch(e) {
     DB = JSON.parse(JSON.stringify(SEED));
@@ -568,10 +570,12 @@ async function loadDB() {
 
 async function saveDB() {
   setSyncStatus('loading');
+  // Only save 2026 live data — historical seasons are hardcoded, never written to JSONBin
+  var toSave = {season2026: DB.season2026};
   var r = await fetch(BIN_URL, {
     method:'PUT',
     headers:{'Content-Type':'application/json','X-Master-Key':API_KEY},
-    body:JSON.stringify(DB)
+    body:JSON.stringify(toSave)
   });
   setSyncStatus(r.ok ? 'ok' : 'error');
   return r.ok;
@@ -1216,6 +1220,7 @@ function renderSkins() {
 function renderHistory() {
   ['2025','2024'].forEach(function(yr){
     var data=DB['season'+yr], el=document.getElementById('hist-'+yr+'-content');
+
     if(!el) return;
     if(!data||!data.players||!data.players.length){
       el.innerHTML=(yr==='2024'
