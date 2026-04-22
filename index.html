@@ -780,10 +780,29 @@ function renderHomeRecent() {
     ? '<div style="padding:6px 14px;font-size:0.72rem;color:var(--text-light);background:var(--cream-dark);border-bottom:1px solid var(--border)">'
       + completeMatchups+' of '+totalMatchups+' matchups complete</div>'
     : '';
+  var weatherHtml = inProgress
+    ? '<div id="recent-weather" style="margin:10px 14px 0;padding:10px 12px;background:var(--green-pale);border-radius:4px;font-size:0.78rem;color:var(--text-light)">Loading forecast...</div>'
+    : '';
   el.innerHTML='<div class="card"><div class="card-header">'+cEmoji(sc.course)+' '+(sc.course||'Week '+w.weekNum)+' &middot; '+(sc.date||'')+'</div>'
-    +progressNote
+    +progressNote+weatherHtml
     +'<table><thead><tr><th>Matchup</th><th class="num">Gross</th><th>Result</th><th class="num">Pts</th></tr></thead>'
     +'<tbody>'+rows+'</tbody></table></div>';
+  // Fetch weather for in-progress week
+  if (inProgress && sc.course && sc.date) {
+    setWeatherStatus('loading');
+    fetchWeather(sc.course, sc.date).then(function(wdata) {
+      var wel = document.getElementById('recent-weather');
+      if (!wel) return;
+      if (!wdata || wdata.type === 'future') {
+        setWeatherStatus('unavailable');
+        wel.textContent = 'Forecast available within 15 days of game day.';
+      } else {
+        setWeatherStatus('ok');
+        wel.innerHTML = '<div style="font-size:0.68rem;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--green-mid);margin-bottom:5px">Forecast at tee time</div>'
+          + renderWeatherBlock(wdata, false);
+      }
+    });
+  }
 }
 
 // ── HOME UP NEXT ──────────────────────
