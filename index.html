@@ -185,7 +185,7 @@ footer strong{color:var(--gold)}
       </div>
     </div>
     <div>
-      <div class="section-title">Recent Results</div>
+      <div class="section-title" id="home-recent-title">Recent Results</div>
       <div id="home-recent-results"><div class="card"><div style="text-align:center;padding:20px;color:var(--text-light)">Loading...</div></div></div>
       <div class="section-title" style="margin-top:20px">Up Next</div>
       <div id="home-up-next"><div class="card"><div style="text-align:center;padding:20px;color:var(--text-light)">Loading...</div></div></div>
@@ -752,8 +752,20 @@ function renderFullStandings(st) {
 // ── HOME RECENT ───────────────────────
 function renderHomeRecent() {
   var weeks=DB.season2026.weeks||[], el=document.getElementById('home-recent-results');
-  if (!weeks.length){el.innerHTML='<div class="card"><div class="empty-state">No results yet.</div></div>';return;}
+  var titleEl=document.getElementById('home-recent-title');
+  if (!weeks.length){
+    el.innerHTML='<div class="card"><div class="empty-state">No results yet.</div></div>';
+    if(titleEl) titleEl.textContent='Recent Results';
+    return;
+  }
   var w=weeks[weeks.length-1], sc=SCHEDULE.find(function(s){return s.week===w.weekNum;})||{};
+  // Check if this week is complete (all matchups have both players scored)
+  var totalMatchups = w.matchups ? w.matchups.length : 0;
+  var completeMatchups = (w.matchups||[]).filter(function(m){
+    return m.p1.total && m.p1.total > 0 && m.p2.total && m.p2.total > 0;
+  }).length;
+  var inProgress = totalMatchups > 0 && completeMatchups < totalMatchups;
+  if (titleEl) titleEl.textContent = inProgress ? 'Week '+w.weekNum+' In Progress' : 'Recent Results';
   var rows=(w.matchups||[]).map(function(m){
     var p1w=(m.p1.pts||0)>(m.p2.pts||0), p2w=(m.p2.pts||0)>(m.p1.pts||0);
     return '<tr>'
@@ -764,7 +776,12 @@ function renderHomeRecent() {
       +'<td class="num">'+(m.p2.total||'--')+'</td><td>'+resultTag(m.p2.result)+'</td><td class="pts-cell">'+m.p2.pts+'</td></tr>'
       +'<tr class="matchup-divider"><td colspan="4"></td></tr>';
   }).join('');
+  var progressNote = inProgress
+    ? '<div style="padding:6px 14px;font-size:0.72rem;color:var(--text-light);background:var(--cream-dark);border-bottom:1px solid var(--border)">'
+      + completeMatchups+' of '+totalMatchups+' matchups complete</div>'
+    : '';
   el.innerHTML='<div class="card"><div class="card-header">'+cEmoji(sc.course)+' '+(sc.course||'Week '+w.weekNum)+' &middot; '+(sc.date||'')+'</div>'
+    +progressNote
     +'<table><thead><tr><th>Matchup</th><th class="num">Gross</th><th>Result</th><th class="num">Pts</th></tr></thead>'
     +'<tbody>'+rows+'</tbody></table></div>';
 }
