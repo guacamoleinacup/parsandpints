@@ -1302,11 +1302,14 @@ function openPlayerModal(idx) {
   var p = standings[idx];
   if (!p) return;
 
-  // Find who they haven't played
+  // Find who they have actually played (both players must have scores)
   var played = new Set();
   (DB.season2026.weeks||[]).forEach(function(week){
     (week.matchups||[]).forEach(function(m){
       var pName = p.first+' '+p.last;
+      var p1HasScore = m.p1.total != null && m.p1.total > 0;
+      var p2HasScore = m.p2.total != null && m.p2.total > 0;
+      if (!p1HasScore || !p2HasScore) return; // incomplete matchup
       if (m.p1.name === pName) played.add(m.p2.name);
       if (m.p2.name === pName) played.add(m.p1.name);
     });
