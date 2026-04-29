@@ -165,6 +165,7 @@ footer strong{color:var(--gold)}
     <button onclick="openHistoryModal()">+ Add History</button>
         <button onclick="openLBOWModal()">&#127942; Add LBOW</button>
     <button onclick="reseedDB()" style="background:rgba(255,255,255,0.12);color:var(--gold);border:1px solid var(--gold)">&#8635; Re-seed Data</button>
+        <button onclick="clearManualSkins()" style="background:rgba(255,255,255,0.08);color:#f88;border:1px solid #f88">&#10005; Clear Manual Skins</button>
     <button onclick="adminLogout()" style="background:rgba(255,255,255,0.15);color:var(--cream);margin-left:auto">Lock</button>
   </div>
 </div>
@@ -600,6 +601,13 @@ async function saveDB() {
 }
 
 // ── RESEED ────────────────────────────
+async function clearManualSkins() {
+  if (!confirm('Clear all manually entered skins? Auto-calculated skins from hole scores are unaffected.')) return;
+  DB.season2026.skins = [];
+  var ok = await saveDB();
+  if (ok) { renderAll(); alert('Manual skins cleared.'); }
+}
+
 async function reseedDB() {
   if (!confirm('This will overwrite the bin with fresh seed data including all 2025 history. Continue?')) return;
   DB = JSON.parse(JSON.stringify(SEED));
