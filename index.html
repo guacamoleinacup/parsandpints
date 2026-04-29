@@ -165,7 +165,6 @@ footer strong{color:var(--gold)}
     <button onclick="openHistoryModal()">+ Add History</button>
         <button onclick="openLBOWModal()">&#127942; Add LBOW</button>
     <button onclick="reseedDB()" style="background:rgba(255,255,255,0.12);color:var(--gold);border:1px solid var(--gold)">&#8635; Re-seed Data</button>
-        <button onclick="clearManualSkins()" style="background:rgba(255,255,255,0.08);color:#f88;border:1px solid #f88">&#10005; Clear Manual Skins</button>
     <button onclick="adminLogout()" style="background:rgba(255,255,255,0.15);color:var(--cream);margin-left:auto">Lock</button>
   </div>
 </div>
@@ -204,7 +203,7 @@ footer strong{color:var(--gold)}
     <div class="notice">Points: 1 pt per hole won + 1 pt for match win = 10 pts available each week &middot; Weeks 5 &amp; 10 are scrambles (no matchup points, no skins) &middot; Weeks 16&ndash;18 are playoffs (top 8)</div>
     <div class="card">
       <table>
-        <thead><tr><th style="width:40px">#</th><th>Player</th><th class="num">Points</th><th class="num">W</th><th class="num">T</th><th class="num">L</th><th class="num">Handicap</th><th class="num">Avg Score</th><th class="num">Skins</th></tr></thead>
+        <thead><tr><th style="width:32px">#</th><th>Player</th><th class="num">Pts</th><th class="num">W-T-L</th><th class="num">Hdcp</th><th class="num">Avg</th><th class="num">Skins</th></tr></thead>
         <tbody id="full-standings-body"><tr><td colspan="9" style="text-align:center;padding:20px;color:var(--text-light)">Loading...</td></tr></tbody>
       </table>
     </div>
@@ -675,8 +674,27 @@ function computeStandings() {
       });
     });
   });
+  // Manual skins (legacy)
   (DB.season2026.skins||[]).forEach(function(s){if(map[s.winner])map[s.winner].skins++;});
-  return Object.values(map).sort(function(a,b){return b.pts-a.pts;});
+  // Auto-calculated skins from hole scores
+  (DB.season2026.weeks||[]).forEach(function(week){
+    var result = calcWeekSkins(week);
+    if (!result) return;
+    ['t1','t2'].forEach(function(tier){
+      Object.keys(result[tier].skins).forEach(function(name){
+        if (map[name]) map[name].skins += result[tier].skins[name];
+      });
+    });
+  });
+  return Object.values(map).sort(function(a,b){
+    if (b.pts !== a.pts) return b.pts - a.pts;                          // 1. Points
+    if (b.w !== a.w) return b.w - a.w;                                  // 2. Wins
+    var aHdcp = a.hdcp||0, bHdcp = b.hdcp||0;
+    if (bHdcp !== aHdcp) return bHdcp - aHdcp;                          // 3. Handicap (higher = better)
+    var aAvg = a.scores.length ? a.scores.reduce(function(x,y){return x+y;},0)/a.scores.length : 999;
+    var bAvg = b.scores.length ? b.scores.reduce(function(x,y){return x+y;},0)/b.scores.length : 999;
+    return aAvg - bAvg;                                                  // 4. Avg score (lower = better)
+  });
 }
 
 // ── RENDER ALL ────────────────────────
@@ -730,7 +748,7 @@ function renderFullStandings(st) {
       +'<td style="text-align:center">'+rankBadge(i+1)+'</td>'
       +'<td class="name" style="color:var(--green-mid)">'+name+'</td>'
       +'<td class="pts-cell">'+(p.pts||0)+'</td>'
-      +'<td class="num">'+p.w+'</td><td class="num">'+p.t+'</td><td class="num">'+p.l+'</td>'
+      +'<td class="num" style="white-space:nowrap;font-size:0.78rem">'+p.w+'-'+p.t+'-'+p.l+'</td>'
       +'<td class="num">'+(p.hdcp!=null?p.hdcp:'--')+'</td>'
       +'<td class="num">'+avg(p.scores)+'</td>'
       +'<td class="num">'+(p.skins||0)+'</td></tr>';
@@ -2224,14 +2242,34 @@ async function openMatchupModal(weekNum) {
       var teeTimes2 = ['5:12 pm','5:20 pm','5:28 pm','5:36 pm'];
       var teeLabel = '<div style="background:var(--green-deep);color:var(--gold);font-size:0.68rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;padding:6px 16px">Tee Time ' + (gi + 1) + ' &nbsp;&middot;&nbsp; ' + teeTimes2[gi] + '</div>';
       var st = computeStandings();
+      // Look up actual results for this week
+      var weekData = (DB.season2026.weeks||[]).find(function(w){return w.weekNum===weekNum;});
       var matchRows = group.map(function(pair) {
         var i0 = st.findIndex(function(s){ return s.first+' '+s.last === pair[0]; });
         var i1 = st.findIndex(function(s){ return s.first+' '+s.last === pair[1]; });
-        return '<div style="display:grid;grid-template-columns:1fr 28px 1fr;align-items:center;padding:11px 16px;border-bottom:1px solid #eee">'
-          + '<span style="font-weight:600;color:var(--green-mid);cursor:pointer" onclick="modalBackWeek='+weekNum+';openPlayerModal('+i0+')">'+pair[0]+'</span>'
+        // Find this specific matchup result
+        var result = null;
+        if (weekData) {
+          result = (weekData.matchups||[]).find(function(m){
+            return (m.p1.name===pair[0]&&m.p2.name===pair[1])||(m.p1.name===pair[1]&&m.p2.name===pair[0]);
+          });
+        }
+        var hasResult = result && result.p1.total && result.p2.total;
+        // Determine which is p1/p2 relative to pair order
+        var rp1 = result && result.p1.name===pair[0] ? result.p1 : result ? result.p2 : null;
+        var rp2 = result && result.p1.name===pair[1] ? result.p1 : result ? result.p2 : null;
+        var p1won = hasResult && (rp1.pts||0)>(rp2.pts||0);
+        var p2won = hasResult && (rp2.pts||0)>(rp1.pts||0);
+        var scoreStr = hasResult
+          ? '<div style="font-size:0.7rem;color:var(--text-light);text-align:center;margin-top:2px">'
+            +(rp1.result||rp2.result||'AS')+' &middot; '+(rp1.total)+' – '+(rp2.total)+'</div>'
+          : '';
+        return '<div style="padding:11px 16px;border-bottom:1px solid #eee">'
+          +'<div style="display:grid;grid-template-columns:1fr 28px 1fr;align-items:center">'
+          + '<span style="font-weight:600;color:'+(p1won?'var(--green-mid)':'var(--text-dark)')+';cursor:pointer" onclick="modalBackWeek='+weekNum+';openPlayerModal('+i0+')">'+pair[0]+'</span>'
           + '<span style="font-size:0.72rem;color:var(--text-light);text-align:center">vs</span>'
-          + '<span style="font-weight:600;color:var(--green-mid);cursor:pointer;text-align:right" onclick="modalBackWeek='+weekNum+';openPlayerModal('+i1+')">'+pair[1]+'</span>'
-          + '</div>';
+          + '<span style="font-weight:600;color:'+(p2won?'var(--green-mid)':'var(--text-dark)')+';cursor:pointer;text-align:right" onclick="modalBackWeek='+weekNum+';openPlayerModal('+i1+')">'+pair[1]+'</span>'
+          +'</div>'+scoreStr+'</div>';
       }).join('');
       return teeLabel + matchRows;
     }).join('');
