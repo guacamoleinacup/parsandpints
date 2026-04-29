@@ -1361,18 +1361,23 @@ function openPlayerModal(idx) {
   var p = standings[idx];
   if (!p) return;
 
-  // Find who they have actually played (both players must have scores)
-  var played = new Set();
+  // Build match result lookup: opponent -> {total, oppTotal, result, pts, won}
+  var matchResults = {};
+  var pName0 = p.first+' '+p.last;
   (DB.season2026.weeks||[]).forEach(function(week){
     (week.matchups||[]).forEach(function(m){
-      var pName = p.first+' '+p.last;
       var p1HasScore = m.p1.total != null && m.p1.total > 0;
       var p2HasScore = m.p2.total != null && m.p2.total > 0;
-      if (!p1HasScore || !p2HasScore) return; // incomplete matchup
-      if (m.p1.name === pName) played.add(m.p2.name);
-      if (m.p2.name === pName) played.add(m.p1.name);
+      if (!p1HasScore || !p2HasScore) return;
+      if (m.p1.name === pName0) {
+        matchResults[m.p2.name] = {myTotal:m.p1.total, oppTotal:m.p2.total, result:m.p1.result, pts:m.p1.pts, won:(m.p1.pts||0)>(m.p2.pts||0), lost:(m.p1.pts||0)<(m.p2.pts||0)};
+      }
+      if (m.p2.name === pName0) {
+        matchResults[m.p1.name] = {myTotal:m.p2.total, oppTotal:m.p1.total, result:m.p2.result, pts:m.p2.pts, won:(m.p2.pts||0)>(m.p1.pts||0), lost:(m.p2.pts||0)<(m.p1.pts||0)};
+      }
     });
   });
+  var played = new Set(Object.keys(matchResults));
 
   // Find scheduled opponents from WEEK_MATCHUPS
   var scheduledOpps = {};
@@ -1391,13 +1396,23 @@ function openPlayerModal(idx) {
     return scheduledOpps[a] - scheduledOpps[b];
   }).map(function(opp) {
     var wk = scheduledOpps[opp];
-    var done = played.has(opp);
+    var mr = matchResults[opp];
     var sched = SCHEDULE.find(function(s){return s.week===wk;})||{};
     var oppIdx = standings.findIndex(function(s){ return s.first+' '+s.last === opp; });
+    var statusCell;
+    if (mr) {
+      var tagClass = mr.won ? 'tag-win' : mr.lost ? 'tag-loss' : 'tag-as';
+      var resultStr = mr.result || 'AS';
+      var scoreStr = mr.myTotal+' – '+mr.oppTotal;
+      statusCell = '<span class="tag '+tagClass+'">'+resultStr+'</span>'
+        +'<span style="font-size:0.72rem;color:var(--text-light);margin-left:6px">'+scoreStr+'</span>';
+    } else {
+      statusCell = '<span class="tag tag-as">Upcoming</span>';
+    }
     return '<tr style="cursor:pointer" onclick="openPlayerModal('+oppIdx+')">'
-      +'<td class="num" style="color:var(--text-light)">'+(sched.date||'Wk '+wk)+'</td>'
+      +'<td class="num" style="color:var(--text-light);white-space:nowrap">'+(sched.date||'Wk '+wk)+'</td>'
       +'<td class="name">'+playerLink(opp)+'</td>'
-      +'<td style="text-align:center">'+(done?'<span class="tag tag-win">Done</span>':'<span class="tag tag-as">Upcoming</span>')+'</td>'
+      +'<td style="text-align:right;white-space:nowrap">'+statusCell+'</td>'
       +'</tr>';
   }).join('');
 
