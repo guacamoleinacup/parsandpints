@@ -163,7 +163,7 @@ footer strong{color:var(--gold)}
     <span class="admin-badge">&#10003; Admin Mode</span>
     <button onclick="openWeekModal()">+ Add / Edit Week</button>
     <button onclick="openHistoryModal()">+ Add History</button>
-        <button onclick="openLBOWModal()">&#127942; Add LBOW</button>
+        <button onclick="openLBOWModal()">&#127942; Add / Edit LBOW</button>
     <button onclick="reseedDB()" style="background:rgba(255,255,255,0.12);color:var(--gold);border:1px solid var(--gold)">&#8635; Re-seed Data</button>
     <button onclick="adminLogout()" style="background:rgba(255,255,255,0.15);color:var(--cream);margin-left:auto">Lock</button>
   </div>
@@ -344,7 +344,7 @@ footer strong{color:var(--gold)}
 <!-- LBOW MODAL -->
 <div class="modal-overlay" id="lbow-modal">
   <div class="modal" style="max-width:480px">
-    <div class="modal-header"><h3>&#127942; Add LBOW Week</h3><button class="modal-close" onclick="closeModal('lbow-modal')">&times;</button></div>
+    <div class="modal-header"><h3>&#127942; Add / Edit LBOW Week</h3><button class="modal-close" onclick="closeModal('lbow-modal')">&times;</button></div>
     <div class="modal-body">
       <div class="form-row">
         <div class="form-group"><label>Week</label><select id="lbow-week-sel"><option value="">Select week...</option></select></div>
@@ -360,7 +360,10 @@ footer strong{color:var(--gold)}
       <div id="lbow-picks-container" style="margin-bottom:8px"><div class="lbow-placeholder" style="color:var(--text-light);font-size:0.82rem">No picks added yet.</div></div>
       <button onclick="addLBOWPickRow()" style="background:none;border:1px dashed var(--border);padding:6px 14px;border-radius:3px;cursor:pointer;font-size:0.82rem;color:var(--text-light);margin-bottom:14px">+ Add Pick</button>
       <br>
-      <button class="save-btn" onclick="saveLBOW()">Save LBOW Week</button>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="save-btn" onclick="saveLBOW()">Save LBOW Week</button>
+        <button class="delete-btn" id="lbow-delete-btn" style="display:none" onclick="deleteLBOW()">Delete Week</button>
+      </div>
       <div id="lbow-save-status" style="margin-top:8px;font-size:0.82rem;color:var(--green-mid)"></div>
     </div>
   </div>
@@ -951,7 +954,7 @@ function render2025LBOW() {
     var pickRows = w.picks.slice().sort(function(a,b){return a.name.localeCompare(b.name);}).map(function(pick){
       var won = pick.bartels === w.winner;
       return '<tr style="'+(won?'font-weight:700':'')+'"><td class="name">'+pick.name+'</td>'
-        +'<td style="text-align:center">'+pick.bartels+(won?' &#9989;':'')+'</td>'
+        +'<td style="text-align:center">'+pick.bartels+(won?' &#9989;':' &#10060;')+'</td>'
         +'<td class="num">'+(won?'$'+w.payout.toFixed(2):'-')+'</td></tr>';
     }).join('');
     var bartelsDisplay = ['Zach','Dan','Ben'].map(function(b){
@@ -1880,7 +1883,7 @@ function renderLBOW() {
     var pickRows = (e.picks||[]).sort(function(a,b){return a.name.localeCompare(b.name);}).map(function(pick) {
       var won = pick.bartels === e.winner;
       return '<tr style="'+(won?'font-weight:700':'')+'"><td class="name">'+pick.name+'</td>'
-        +'<td style="text-align:center">'+pick.bartels+(won?' &#9989;':'')+'</td>'
+        +'<td style="text-align:center">'+pick.bartels+(won?' &#9989;':' &#10060;')+'</td>'
         +'<td class="num">'+(won?'$'+payout.toFixed(2):'-')+'</td></tr>';
     }).join('');
     var bartelsRow = '<div style="display:flex;gap:16px;margin-bottom:10px;flex-wrap:wrap">'
@@ -1919,7 +1922,8 @@ function renderLBOW() {
 function openLBOWModal() {
   var sel = '<option value="">Select week...</option>'
     + SCHEDULE.filter(function(s){return s.type==='regular';}).map(function(s){
-        return '<option value="'+s.week+'">Week '+s.week+' &mdash; '+s.date+'</option>';
+        var existing = (DB.season2026.lbow||[]).find(function(e){return e.week===s.week;});
+        return '<option value="'+s.week+'">Week '+s.week+' &mdash; '+s.date+(existing?' ✓':'')+'</option>';
       }).join('');
   document.getElementById('lbow-week-sel').innerHTML = sel;
   document.getElementById('lbow-week-sel').onchange = lbowWeekChange;
@@ -1931,44 +1935,79 @@ function openLBOWModal() {
   document.getElementById('lbow-scores-zach').value='';
   document.getElementById('lbow-scores-dan').value='';
   document.getElementById('lbow-scores-ben').value='';
-  document.getElementById('lbow-picks-container').innerHTML='<div style="color:var(--text-light);font-size:0.82rem">Add picks below...</div>';
+  document.getElementById('lbow-picks-container').innerHTML='<div class="lbow-placeholder" style="color:var(--text-light);font-size:0.82rem">Add picks below...</div>';
   document.getElementById('lbow-save-status').textContent='';
+  document.getElementById('lbow-delete-btn').style.display='none';
   document.getElementById('lbow-modal').classList.add('open');
 }
 
 function lbowWeekChange() {
   var wNum = parseInt(document.getElementById('lbow-week-sel').value);
   if (!wNum) return;
+
+  // Check for existing LBOW entry and pre-populate
+  var existing = (DB.season2026.lbow||[]).find(function(e){return e.week===wNum;});
+  var deleteBtn = document.getElementById('lbow-delete-btn');
+  if (deleteBtn) deleteBtn.style.display = existing ? 'block' : 'none';
+
+  if (existing) {
+    // Pre-fill from existing entry
+    document.getElementById('lbow-winner-sel').value = existing.winner || '';
+    document.getElementById('lbow-scores-zach').value = (existing.scores&&existing.scores.Zach)||'';
+    document.getElementById('lbow-scores-dan').value  = (existing.scores&&existing.scores.Dan)||'';
+    document.getElementById('lbow-scores-ben').value  = (existing.scores&&existing.scores.Ben)||'';
+    // Re-render picks
+    var container = document.getElementById('lbow-picks-container');
+    container.innerHTML = '';
+    (existing.picks||[]).forEach(function(pick) {
+      addLBOWPickRow();
+      var rows = container.querySelectorAll('.lbow-pick-row');
+      var row = rows[rows.length-1];
+      var nameEl = row.querySelector('.lbow-picker-name');
+      var subEl = row.querySelector('.lbow-picker-sub');
+      var bartelsSel = row.querySelector('select:last-of-type');
+      // Check if name is in PLAYERS list
+      var inRoster = PLAYERS.some(function(p){return p.first+' '+p.last===pick.name;});
+      if (inRoster) {
+        nameEl.value = pick.name;
+      } else {
+        nameEl.value = '__sub__';
+        subEl.style.display = 'block';
+        subEl.value = pick.name;
+      }
+      if (bartelsSel) bartelsSel.value = pick.bartels;
+    });
+    document.getElementById('lbow-save-status').textContent = 'Editing existing entry.';
+    return;
+  }
+
+  // No existing entry — auto-fill scores from matchup data
+  document.getElementById('lbow-picks-container').innerHTML='<div class="lbow-placeholder" style="color:var(--text-light);font-size:0.82rem">Add picks below...</div>';
+  document.getElementById('lbow-save-status').textContent='';
+
   var weekData = (DB.season2026.weeks||[]).find(function(w){return w.weekNum===wNum;});
   if (!weekData) return;
 
-  // Find Zach, Dan, Ben scores from matchup data
   var targets = {'Zach Bartels':'Zach', 'Dan Bartels':'Dan', 'Ben Bartels':'Ben'};
   var found = {};
   (weekData.matchups||[]).forEach(function(m) {
     ['p1','p2'].forEach(function(side) {
       var p = m[side];
-      if (targets[p.name] && p.total) {
-        found[targets[p.name]] = p.total;
-      }
+      if (targets[p.name] && p.total) found[targets[p.name]] = p.total;
     });
   });
 
-  if (found.Zach) { document.getElementById('lbow-scores-zach').value = found.Zach; }
-  if (found.Dan)  { document.getElementById('lbow-scores-dan').value  = found.Dan;  }
-  if (found.Ben)  { document.getElementById('lbow-scores-ben').value  = found.Ben;  }
+  if (found.Zach) document.getElementById('lbow-scores-zach').value = found.Zach;
+  if (found.Dan)  document.getElementById('lbow-scores-dan').value  = found.Dan;
+  if (found.Ben)  document.getElementById('lbow-scores-ben').value  = found.Ben;
 
-  // Auto-suggest winner based on scores (Ben -3 net)
   var scores = {
-    Zach: found.Zach || null,
-    Dan:  found.Dan  || null,
-    Ben:  found.Ben  != null ? found.Ben - 3 : null,
+    Zach: found.Zach||null, Dan: found.Dan||null,
+    Ben: found.Ben!=null ? found.Ben-3 : null,
   };
-  var best = null, bestScore = 999;
-  Object.keys(scores).forEach(function(name) {
-    if (scores[name] != null && scores[name] < bestScore) {
-      bestScore = scores[name]; best = name;
-    }
+  var best=null, bestScore=999;
+  Object.keys(scores).forEach(function(name){
+    if (scores[name]!=null && scores[name]<bestScore){bestScore=scores[name];best=name;}
   });
   if (best) document.getElementById('lbow-winner-sel').value = best;
 }
@@ -1997,6 +2036,15 @@ function addLBOWPickRow() {
     row.querySelector('.lbow-picker-sub').style.display = this.value==='__sub__' ? 'block' : 'none';
   };
   container.appendChild(row);
+}
+
+async function deleteLBOW() {
+  var week = parseInt(document.getElementById('lbow-week-sel').value);
+  if (!week || !confirm('Delete LBOW entry for Week '+week+'?')) return;
+  DB.season2026.lbow = (DB.season2026.lbow||[]).filter(function(e){return e.week!==week;});
+  var ok = await saveDB();
+  document.getElementById('lbow-save-status').textContent = ok ? 'Deleted.' : 'Error.';
+  if (ok) { renderLBOW(); setTimeout(function(){closeModal('lbow-modal');},1000); }
 }
 
 async function saveLBOW() {
