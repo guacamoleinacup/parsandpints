@@ -162,7 +162,6 @@ footer strong{color:var(--gold)}
   <div id="admin-unlocked-ui" style="display:none;align-items:center;gap:10px;flex-wrap:wrap;width:100%">
     <span class="admin-badge">&#10003; Admin Mode</span>
     <button onclick="openWeekModal()">+ Add / Edit Week</button>
-    <button onclick="openSkinsModal()">+ Add Skins</button>
     <button onclick="openHistoryModal()">+ Add History</button>
         <button onclick="openLBOWModal()">&#127942; Add LBOW</button>
     <button onclick="reseedDB()" style="background:rgba(255,255,255,0.12);color:var(--gold);border:1px solid var(--gold)">&#8635; Re-seed Data</button>
@@ -235,7 +234,7 @@ footer strong{color:var(--gold)}
 
   <div id="results-2026-panel" class="inner-panel active">
     <div class="inner-tabs" id="results-outer-tabs">
-      <button class="inner-tab active" onclick="showInnerTab('results-scorecards',this)">Scorecards</button>
+      <button class="inner-tab active" onclick="showInnerTab('results-scorecards',this);reactivateWeekTabs()">Scorecards</button>
       <button class="inner-tab" onclick="showInnerTab('results-skins',this)">&#128176; Skins</button>
       <button class="inner-tab" onclick="showInnerTab('results-lbow',this);renderLBOW()">&#127942; LBOW</button>
     </div>
@@ -297,32 +296,13 @@ footer strong{color:var(--gold)}
         <div class="form-group"><label>Week #</label><select id="modal-week-num" onchange="weekModalWeekChange()"><option value="">Select week...</option></select></div>
         <div class="form-group"><label>Course</label><input type="text" id="modal-course" readonly style="background:#f9f9f9"></div>
       </div>
+      <div class="notice" style="margin-bottom:12px;font-size:0.75rem">Tip: Fill in all matchups then click <strong>Save Results</strong> once. Skins auto-calculate from hole scores.</div>
       <div id="modal-matchups-container"></div>
       <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap">
         <button class="save-btn" onclick="saveWeekResults()">Save Results</button>
         <button class="delete-btn" id="modal-delete-btn" style="display:none" onclick="deleteWeekResults()">Delete Week</button>
       </div>
       <div id="modal-save-status" style="margin-top:8px;font-size:0.82rem;color:var(--green-mid)"></div>
-    </div>
-  </div>
-</div>
-
-<!-- SKINS MODAL -->
-<div class="modal-overlay" id="skins-modal">
-  <div class="modal">
-    <div class="modal-header"><h3>Add Skins Result</h3><button class="modal-close" onclick="closeModal('skins-modal')">&times;</button></div>
-    <div class="modal-body">
-      <div class="form-row">
-        <div class="form-group"><label>Week #</label><select id="skins-week-num"><option value="">Select week...</option></select></div>
-        <div class="form-group"><label>Winner</label><select id="skins-winner"><option value="">Select player...</option></select></div>
-      </div>
-      <div class="form-row">
-        <div class="form-group"><label>Hole Won</label><input type="number" id="skins-hole" min="1" max="9" placeholder="1-9"></div>
-        <div class="form-group"><label>Amount ($)</label><input type="number" id="skins-amount" placeholder="e.g. 52"></div>
-      </div>
-      <div class="form-group" style="margin-bottom:12px"><label>Notes</label><input type="text" id="skins-notes" placeholder="e.g. Carry-over from Week 2"></div>
-      <button class="save-btn" onclick="saveSkin()">Save Skin</button>
-      <div id="skins-save-status" style="margin-top:8px;font-size:0.82rem;color:var(--green-mid)"></div>
     </div>
   </div>
 </div>
@@ -768,13 +748,31 @@ function renderHomeRecent() {
   if (titleEl) titleEl.textContent = inProgress ? 'Week '+w.weekNum+' In Progress' : 'Recent Results';
   var rows=(w.matchups||[]).map(function(m){
     var p1w=(m.p1.pts||0)>(m.p2.pts||0), p2w=(m.p2.pts||0)>(m.p1.pts||0);
+    var both = m.p1.total && m.p2.total;
+    // Single clean row per matchup: P1 vs P2 | scores | result | pts
+    var p1name = '<span'+(p1w?' style="color:var(--green-mid);font-weight:700"':'')+'>'+m.p1.name+'</span>';
+    var p2name = '<span'+(p2w?' style="color:var(--green-mid);font-weight:700"':'')+'>'+m.p2.name+'</span>';
+    var scores = both
+      ? '<span'+(p1w?' style="font-weight:700;color:var(--green-mid)"':'')+'>'+m.p1.total+'</span>'
+        +' <span style="color:var(--text-light);font-size:0.72rem">–</span> '
+        +'<span'+(p2w?' style="font-weight:700;color:var(--green-mid)"':'')+'>'+m.p2.total+'</span>'
+      : (m.p1.total||m.p2.total)
+        ? (m.p1.total||'--')+' – '+(m.p2.total||'--')
+        : '<span style="color:var(--text-light)">pending</span>';
+    var result = m.p1.result || m.p2.result
+      ? resultTag(m.p1.result||m.p2.result)
+      : '';
+    var pts = both
+      ? '<span'+(p1w?' style="color:var(--green-mid)"':'')+'>'+m.p1.pts+'</span>'
+        +' / '
+        +'<span'+(p2w?' style="color:var(--green-mid)"':'')+'>'+m.p2.pts+'</span>'
+      : '';
     return '<tr>'
-      +'<td class="name"'+(p1w?' style="color:var(--green-mid)"':'')+'>'+m.p1.name+' <small style="color:var(--text-light)">('+m.p1.hdcp+')</small></td>'
-      +'<td class="num">'+(m.p1.total||'--')+'</td><td>'+resultTag(m.p1.result)+'</td><td class="pts-cell">'+m.p1.pts+'</td></tr>'
-      +'<tr style="background:var(--cream-dark)">'
-      +'<td class="name" style="padding-left:22px'+(p2w?';color:var(--green-mid)':'')+'">vs '+m.p2.name+' <small style="color:var(--text-light)">('+m.p2.hdcp+')</small></td>'
-      +'<td class="num">'+(m.p2.total||'--')+'</td><td>'+resultTag(m.p2.result)+'</td><td class="pts-cell">'+m.p2.pts+'</td></tr>'
-      +'<tr class="matchup-divider"><td colspan="4"></td></tr>';
+      +'<td class="name" style="font-size:0.82rem">'+p1name+' <span style="color:var(--text-light);font-size:0.72rem">vs</span> '+p2name+'</td>'
+      +'<td class="num" style="white-space:nowrap;font-size:0.82rem">'+scores+'</td>'
+      +'<td style="text-align:center">'+result+'</td>'
+      +'<td class="num" style="white-space:nowrap;font-size:0.82rem">'+pts+'</td>'
+      +'</tr>';
   }).join('');
   var progressNote = inProgress
     ? '<div style="padding:6px 14px;font-size:0.72rem;color:var(--text-light);background:var(--cream-dark);border-bottom:1px solid var(--border)">'
@@ -785,7 +783,7 @@ function renderHomeRecent() {
     : '';
   el.innerHTML='<div class="card"><div class="card-header">'+cEmoji(sc.course)+' '+(sc.course||'Week '+w.weekNum)+' &middot; '+(sc.date||'')+'</div>'
     +progressNote+weatherHtml
-    +'<table><thead><tr><th>Matchup</th><th class="num">Gross</th><th>Result</th><th class="num">Pts</th></tr></thead>'
+    +'<table><thead><tr><th>Matchup</th><th class="num">Score</th><th style="text-align:center">Result</th><th class="num">Pts</th></tr></thead>'
     +'<tbody>'+rows+'</tbody></table></div>';
   // Fetch weather for in-progress week
   if (inProgress && sc.course && sc.date) {
@@ -876,6 +874,22 @@ function renderSchedule() {
 }
 
 // ── RESULTS SEASON SWITCHER ──────────
+function reactivateWeekTabs() {
+  // Re-activate the first week tab if none are active inside results-scorecards
+  var container = document.getElementById('results-panels');
+  if (!container) return;
+  var panels = container.querySelectorAll('.inner-panel');
+  var anyActive = Array.prototype.some.call(panels, function(p){ return p.classList.contains('active'); });
+  if (!anyActive && panels.length > 0) {
+    panels[0].classList.add('active');
+    var tabs = document.getElementById('results-tabs');
+    if (tabs) {
+      var btns = tabs.querySelectorAll('.inner-tab');
+      if (btns.length > 0) btns[0].classList.add('active');
+    }
+  }
+}
+
 function switchResultsSeason(yr, btn) {
   ['2026','2025'].forEach(function(y) {
     var p = document.getElementById('results-'+y+'-panel');
