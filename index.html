@@ -1925,10 +1925,14 @@ function autoCalcWinners(mi) {
   // Calculate suggested points
   var p1wins = winners.filter(function(w){return w==='p1';}).length;
   var p2wins = winners.filter(function(w){return w==='p2';}).length;
-  var p1pts = p1wins + (p1wins > p2wins ? 1 : 0);
-  var p2pts = p2wins + (p2wins > p1wins ? 1 : 0);
-  if (p1wins === p2wins) { p1pts = p2pts = 5; } // AS
-  
+  var ties   = winners.filter(function(w){return w==='tie';}).length;
+  // Each hole won = 1pt, each tie = 0.5pt, match win = 1pt bonus
+  var p1holePts = p1wins + (ties * 0.5);
+  var p2holePts = p2wins + (ties * 0.5);
+  var p1pts = p1holePts + (p1wins > p2wins ? 1 : 0);
+  var p2pts = p2holePts + (p2wins > p1wins ? 1 : 0);
+  if (p1wins === p2wins) { p1pts = p2pts = p1holePts + 0.5; } // AS — split match pt too
+
   var ptsEl1 = document.getElementById('pts-'+mi+'-p1');
   var ptsEl2 = document.getElementById('pts-'+mi+'-p2');
   if (ptsEl1 && p1pts > 0) ptsEl1.value = p1pts;
