@@ -1370,10 +1370,14 @@ function openPlayerModal(idx) {
       var p2HasScore = m.p2.total != null && m.p2.total > 0;
       if (!p1HasScore || !p2HasScore) return;
       if (m.p1.name === pName0) {
-        matchResults[m.p2.name] = {myTotal:m.p1.total, oppTotal:m.p2.total, result:m.p1.result, pts:m.p1.pts, won:(m.p1.pts||0)>(m.p2.pts||0), lost:(m.p1.pts||0)<(m.p2.pts||0)};
+        var won1 = (m.p1.pts||0)>(m.p2.pts||0), lost1 = (m.p1.pts||0)<(m.p2.pts||0);
+        var result1 = won1 ? (m.p1.result||'WIN') : lost1 ? (m.p2.result||'LOSS').replace('UP','DN') : 'AS';
+        matchResults[m.p2.name] = {myTotal:m.p1.total, oppTotal:m.p2.total, result:result1, pts:m.p1.pts, won:won1, lost:lost1};
       }
       if (m.p2.name === pName0) {
-        matchResults[m.p1.name] = {myTotal:m.p2.total, oppTotal:m.p1.total, result:m.p2.result, pts:m.p2.pts, won:(m.p2.pts||0)>(m.p1.pts||0), lost:(m.p2.pts||0)<(m.p1.pts||0)};
+        var won2 = (m.p2.pts||0)>(m.p1.pts||0), lost2 = (m.p2.pts||0)<(m.p1.pts||0);
+        var result2 = won2 ? (m.p2.result||'WIN') : lost2 ? (m.p1.result||'LOSS').replace('UP','DN') : 'AS';
+        matchResults[m.p1.name] = {myTotal:m.p2.total, oppTotal:m.p1.total, result:result2, pts:m.p2.pts, won:won2, lost:lost2};
       }
     });
   });
