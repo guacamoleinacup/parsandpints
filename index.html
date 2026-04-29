@@ -1274,7 +1274,168 @@ function switchStandingsSeason(yr, btn) {
 }
 
 // ── PLAYER MODAL ──────────────────────
+function toggleHistStats(btn) {
+  var id = btn.getAttribute('data-target');
+  var el = document.getElementById(id);
+  var arr = btn.querySelector('.hist-arrow');
+  if (!el) return;
+  var open = el.style.display !== 'none';
+  el.style.display = open ? 'none' : 'block';
+  if (arr) arr.innerHTML = open ? '&#9658;' : '&#9660;';
+}
+
+function build2026Stats(p, playerName) {
+  // Live 2026 season stats from computeStandings data
+  if (!p.scores || p.scores.length === 0) {
+    return '<div style="padding:14px;border-bottom:1px solid var(--border)">'
+      +'<div style="font-size:0.7rem;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-light);margin-bottom:8px">2026 Stats</div>'
+      +'<div style="font-size:0.82rem;color:var(--text-light);font-style:italic">No rounds played yet.</div>'
+      +'</div>';
+  }
+  var roundsPlayed = p.scores.length;
+  var overallAvg = (p.scores.reduce(function(a,b){return a+b;},0)/roundsPlayed).toFixed(1);
+  var bestRound = Math.min.apply(null, p.scores);
+
+  // Course breakdown from DB weeks
+  var courseMap = {};
+  (DB.season2026.weeks||[]).forEach(function(week){
+    var sched = SCHEDULE.find(function(s){return s.week===week.weekNum;})||{};
+    var course = (sched.course||'').replace(' Golf Course','');
+    (week.matchups||[]).forEach(function(m){
+      ['p1','p2'].forEach(function(side){
+        if (m[side].name===playerName && m[side].total) {
+          if (!courseMap[course]) courseMap[course]=[];
+          courseMap[course].push(m[side].total);
+        }
+      });
+    });
+  });
+
+  var courseRows = Object.keys(courseMap).sort().map(function(c){
+    var scores = courseMap[c];
+    var cavg = (scores.reduce(function(a,b){return a+b;},0)/scores.length).toFixed(1);
+    var col = cavg<=40?'#2d7a2d':cavg<=45?'#c9a84c':cavg<=50?'#e07800':'#c0392b';
+    return '<div style="display:flex;align-items:center;padding:5px 0;border-bottom:1px solid #f0f0f0;font-size:0.8rem">'
+      +'<span style="width:90px;color:var(--text-mid)">'+c+'</span>'
+      +'<span style="font-weight:700;color:'+col+';width:36px">'+cavg+'</span>'
+      +'<span style="color:var(--text-light);font-size:0.72rem">'+scores.length+' rd'+(scores.length!==1?'s':'')+' &middot; best '+bestRound+'</span>'
+      +'</div>';
+  }).join('');
+
+  var trend = p.scores.map(function(score, i) {
+    var col = score<=40?'#2d7a2d':score<=45?'#c9a84c':score<=50?'#e07800':'#c0392b';
+    return '<div style="display:flex;flex-direction:column;align-items:center;gap:2px">'
+      +'<span style="font-size:0.65rem;font-weight:700;color:'+col+'">'+score+'</span>'
+      +'<span style="font-size:0.55rem;color:var(--text-light)">R'+(i+1)+'</span>'
+      +'</div>';
+  }).join('');
+
+  return '<div style="padding:14px;border-bottom:1px solid var(--border)">'
+    +'<div style="font-size:0.7rem;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-light);margin-bottom:10px">2026 Stats</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">'
+    +'<div style="text-align:center;background:var(--cream-dark);border-radius:4px;padding:8px"><div style="font-family:serif;font-size:1.2rem;font-weight:700;color:var(--green-deep)">'+overallAvg+'</div><div style="font-size:0.62rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-light)">Avg Score</div></div>'
+    +'<div style="text-align:center;background:var(--cream-dark);border-radius:4px;padding:8px"><div style="font-family:serif;font-size:1.2rem;font-weight:700;color:#2d7a2d">'+bestRound+'</div><div style="font-size:0.62rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-light)">Best Round</div></div>'
+    +'<div style="text-align:center;background:var(--cream-dark);border-radius:4px;padding:8px"><div style="font-family:serif;font-size:1.2rem;font-weight:700;color:var(--green-deep)">'+roundsPlayed+'</div><div style="font-size:0.62rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-light)">Rounds</div></div>'
+    +'</div>'
+    +(courseRows?'<div style="margin-bottom:10px"><div style="font-size:0.7rem;font-weight:600;color:var(--text-light);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.08em">By Course</div>'+courseRows+'</div>':'')
+    +'<div><div style="font-size:0.7rem;font-weight:600;color:var(--text-light);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.08em">Score Trend</div>'
+    +'<div style="display:flex;gap:6px;flex-wrap:wrap">'+trend+'</div></div>'
+    +'</div>';
+}
+
+function buildHistoryStats(playerName) {
+  var s25 = STATS_2025[playerName], s24 = STATS_2024[playerName];
+  if (!s25 && !s24) return '';
+  function collapsible(year, html) {
+    var id = 'hist-stats-'+year+'-'+playerName.replace(/ /g,'');
+    return '<div style="border-bottom:1px solid var(--border)">'
+      +'<div onclick="toggleHistStats(this)" data-target="'+id+'" style="padding:10px 14px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;font-size:0.7rem;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-light)">'
+      +year+' Stats <span id="arr-'+id+'">▸</span></div>'
+      +'<div id="'+id+'" style="display:none">'+html+'</div>'
+      +'</div>';
+  }
+  var out = '';
+  if (s25) out += collapsible('2025', build2025StatsHtml(playerName, s25));
+  if (s24) out += collapsible('2024', build2024StatsHtml(playerName, s24));
+  return out;
+}
+
+function build2025StatsHtml(playerName, s) {
+  var playoffCount = (s.playoffRounds||[]).length;
+  var roundsLabel = playoffCount ? s.roundsPlayed+' + '+playoffCount+'PO' : s.roundsPlayed+'';
+  var courseRows = Object.keys(s.courseAvgs).sort().map(function(c){
+    var ca=s.courseAvgs[c], col=ca.avg<=41?'#2d7a2d':ca.avg<=45?'#c9a84c':ca.avg<=50?'#e07800':'#c0392b';
+    return '<div style="display:flex;align-items:center;padding:5px 0;border-bottom:1px solid #f0f0f0;font-size:0.8rem">'
+      +'<span style="width:90px;color:var(--text-mid)">'+c+'</span>'
+      +'<span style="font-weight:700;color:'+col+';width:36px">'+ca.avg+'</span>'
+      +'<span style="color:var(--text-light);font-size:0.72rem">'+ca.rounds+' rds &middot; best '+ca.best+'</span></div>';
+  }).join('');
+  var parRows = [
+    {label:'Par 3',avg:s.par3Avg,vp:s.par3VsPar},{label:'Par 4',avg:s.par4Avg,vp:s.par4VsPar},{label:'Par 5',avg:s.par5Avg,vp:s.par5VsPar}
+  ].filter(function(r){return r.avg;}).map(function(r){
+    var col=r.vp<=0.5?'#2d7a2d':r.vp<=1.0?'#c9a84c':r.vp<=1.5?'#e07800':'#c0392b';
+    return '<div style="display:flex;align-items:center;padding:5px 0;border-bottom:1px solid #f0f0f0;font-size:0.8rem">'
+      +'<span style="width:50px;color:var(--text-mid)">'+r.label+'</span>'
+      +'<span style="font-weight:700;color:'+col+';width:36px">'+r.avg+'</span>'
+      +'<span style="font-size:0.72rem;color:'+col+'">'+(r.vp>=0?'+':'')+r.vp+' vs par</span></div>';
+  }).join('');
+  var allRounds = s.rounds.map(function(r){return {total:r.total,label:'W'+r.week};});
+  (s.playoffRounds||[]).forEach(function(r){allRounds.push({total:r.total,label:r.round,playoff:true});});
+  var trend = allRounds.map(function(r){
+    var col=r.total<=40?'#2d7a2d':r.total<=45?'#c9a84c':r.total<=50?'#e07800':'#c0392b';
+    var border=r.playoff?'outline:2px solid var(--gold);border-radius:3px;':'';
+    return '<div style="display:flex;flex-direction:column;align-items:center;gap:2px;'+border+'">'
+      +'<span style="font-size:0.65rem;font-weight:700;color:'+col+'">'+r.total+'</span>'
+      +'<span style="font-size:0.55rem;color:var(--text-light)">'+r.label+'</span></div>';
+  }).join('');
+  return '<div style="padding:10px 14px">'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">'
+    +'<div style="text-align:center;background:var(--cream-dark);border-radius:4px;padding:6px"><div style="font-family:serif;font-size:1.1rem;font-weight:700;color:var(--green-deep)">'+s.regularAvg+'</div><div style="font-size:0.6rem;text-transform:uppercase;color:var(--text-light)">Reg Avg</div></div>'
+    +'<div style="text-align:center;background:var(--cream-dark);border-radius:4px;padding:6px"><div style="font-family:serif;font-size:1.1rem;font-weight:700;color:#2d7a2d">'+s.bestRound+'</div><div style="font-size:0.6rem;text-transform:uppercase;color:var(--text-light)">Best</div></div>'
+    +'<div style="text-align:center;background:var(--cream-dark);border-radius:4px;padding:6px"><div style="font-family:serif;font-size:1.1rem;font-weight:700;color:var(--green-deep)">'+roundsLabel+'</div><div style="font-size:0.6rem;text-transform:uppercase;color:var(--text-light)">Rounds</div></div>'
+    +'</div>'
+    +'<div style="margin-bottom:8px">'+courseRows+'</div>'
+    +'<div style="margin-bottom:8px">'+parRows+'</div>'
+    +'<div style="display:flex;gap:6px;flex-wrap:wrap">'+trend+'</div>'
+    +'</div>';
+}
+
+function build2024StatsHtml(playerName, s) {
+  var courseRows = Object.keys(s.courseAvgs).sort().map(function(c){
+    var ca=s.courseAvgs[c], col=ca.avg<=41?'#2d7a2d':ca.avg<=45?'#c9a84c':ca.avg<=50?'#e07800':'#c0392b';
+    return '<div style="display:flex;align-items:center;padding:5px 0;border-bottom:1px solid #f0f0f0;font-size:0.8rem">'
+      +'<span style="width:90px;color:var(--text-mid)">'+c+'</span>'
+      +'<span style="font-weight:700;color:'+col+';width:36px">'+ca.avg+'</span>'
+      +'<span style="color:var(--text-light);font-size:0.72rem">'+ca.rounds+' rds &middot; best '+ca.best+'</span></div>';
+  }).join('');
+  var trend = s.rounds.map(function(r){
+    var col=r.total<=40?'#2d7a2d':r.total<=45?'#c9a84c':r.total<=50?'#e07800':'#c0392b';
+    return '<div style="display:flex;flex-direction:column;align-items:center;gap:2px">'
+      +'<span style="font-size:0.65rem;font-weight:700;color:'+col+'">'+r.total+'</span>'
+      +'<span style="font-size:0.55rem;color:var(--text-light)">W'+r.week+'</span></div>';
+  }).join('');
+  return '<div style="padding:10px 14px">'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">'
+    +'<div style="text-align:center;background:var(--cream-dark);border-radius:4px;padding:6px"><div style="font-family:serif;font-size:1.1rem;font-weight:700;color:var(--green-deep)">'+s.overallAvg+'</div><div style="font-size:0.6rem;text-transform:uppercase;color:var(--text-light)">Avg</div></div>'
+    +'<div style="text-align:center;background:var(--cream-dark);border-radius:4px;padding:6px"><div style="font-family:serif;font-size:1.1rem;font-weight:700;color:#2d7a2d">'+s.bestRound+'</div><div style="font-size:0.6rem;text-transform:uppercase;color:var(--text-light)">Best</div></div>'
+    +'<div style="text-align:center;background:var(--cream-dark);border-radius:4px;padding:6px"><div style="font-family:serif;font-size:1.1rem;font-weight:700;color:var(--green-deep)">'+s.roundsPlayed+'</div><div style="font-size:0.6rem;text-transform:uppercase;color:var(--text-light)">Rounds</div></div>'
+    +'</div>'
+    +'<div style="margin-bottom:8px">'+courseRows+'</div>'
+    +'<div style="display:flex;gap:6px;flex-wrap:wrap">'+trend+'</div>'
+    +'</div>';
+}
+
 function build2025Stats(playerName) {
+  // Legacy - now handled by buildHistoryStats
+  return '';
+}
+
+function build2024Stats(playerName) {
+  // Legacy - now handled by buildHistoryStats
+  return '';
+}
+
+function build2025Stats_OLD(playerName) {
   var s = STATS_2025[playerName];
   if (!s) return '<div style="padding:14px;border-bottom:1px solid var(--border);font-size:0.78rem;color:var(--text-light);font-style:italic">No 2025 stats available.</div>';
   
@@ -1471,8 +1632,8 @@ function openPlayerModal(idx) {
     +'<table style="width:100%"><thead><tr><th style="text-align:left;font-size:0.68rem">Date</th><th style="text-align:left;font-size:0.68rem">Opponent</th><th style="text-align:center;font-size:0.68rem">Status</th></tr></thead>'
     +'<tbody>'+scheduleRows+'</tbody></table>'
     +'</div>'
-    + build2025Stats(playerName)
-    + build2024Stats(playerName);
+    + build2026Stats(p, playerName)
+    + buildHistoryStats(playerName);
 
   var fromModal = document.getElementById('matchup-modal').classList.contains('open');
   document.getElementById('matchup-modal-title').innerHTML = modalTitle;
