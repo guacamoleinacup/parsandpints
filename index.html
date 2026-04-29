@@ -1285,7 +1285,6 @@ function toggleHistStats(btn) {
 }
 
 function build2026Stats(p, playerName) {
-  // Live 2026 season stats from computeStandings data
   if (!p.scores || p.scores.length === 0) {
     return '<div style="padding:14px;border-bottom:1px solid var(--border)">'
       +'<div style="font-size:0.7rem;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-light);margin-bottom:8px">2026 Stats</div>'
@@ -1296,37 +1295,63 @@ function build2026Stats(p, playerName) {
   var overallAvg = (p.scores.reduce(function(a,b){return a+b;},0)/roundsPlayed).toFixed(1);
   var bestRound = Math.min.apply(null, p.scores);
 
-  // Course breakdown from DB weeks
+  // Build course map + par breakdown from hole scores
   var courseMap = {};
+  var par3s=[], par4s=[], par5s=[];
+  var trendRounds = [];
   (DB.season2026.weeks||[]).forEach(function(week){
     var sched = SCHEDULE.find(function(s){return s.week===week.weekNum;})||{};
     var course = (sched.course||'').replace(' Golf Course','');
+    var pars = COURSE_PARS[sched.course]||[];
     (week.matchups||[]).forEach(function(m){
       ['p1','p2'].forEach(function(side){
-        if (m[side].name===playerName && m[side].total) {
-          if (!courseMap[course]) courseMap[course]=[];
-          courseMap[course].push(m[side].total);
+        var pl = m[side];
+        if (pl.name!==playerName || !pl.total) return;
+        if (!courseMap[course]) courseMap[course]=[];
+        courseMap[course].push(pl.total);
+        trendRounds.push({total:pl.total, week:week.weekNum, course:course});
+        if (pl.scores) {
+          pl.scores.forEach(function(score,hi){
+            if (score==null||!pars[hi]) return;
+            if (pars[hi]===3) par3s.push(score);
+            else if (pars[hi]===4) par4s.push(score);
+            else if (pars[hi]===5) par5s.push(score);
+          });
         }
       });
     });
   });
 
+  function avg(lst){ return lst.length ? (lst.reduce(function(a,b){return a+b;},0)/lst.length).toFixed(2) : null; }
+  function vsp(lst,par){ return lst.length ? (lst.reduce(function(a,b){return a+b;},0)/lst.length - par).toFixed(2) : null; }
+
   var courseRows = Object.keys(courseMap).sort().map(function(c){
-    var scores = courseMap[c];
-    var cavg = (scores.reduce(function(a,b){return a+b;},0)/scores.length).toFixed(1);
-    var col = cavg<=40?'#2d7a2d':cavg<=45?'#c9a84c':cavg<=50?'#e07800':'#c0392b';
+    var scores=courseMap[c], cavg=(scores.reduce(function(a,b){return a+b;},0)/scores.length).toFixed(1);
+    var col=cavg<=40?'#2d7a2d':cavg<=45?'#c9a84c':cavg<=50?'#e07800':'#c0392b';
     return '<div style="display:flex;align-items:center;padding:5px 0;border-bottom:1px solid #f0f0f0;font-size:0.8rem">'
       +'<span style="width:90px;color:var(--text-mid)">'+c+'</span>'
       +'<span style="font-weight:700;color:'+col+';width:36px">'+cavg+'</span>'
-      +'<span style="color:var(--text-light);font-size:0.72rem">'+scores.length+' rd'+(scores.length!==1?'s':'')+' &middot; best '+bestRound+'</span>'
+      +'<span style="color:var(--text-light);font-size:0.72rem">'+scores.length+' rd'+(scores.length!==1?'s':'')+' &middot; best '+Math.min.apply(null,scores)+'</span>'
       +'</div>';
   }).join('');
 
-  var trend = p.scores.map(function(score, i) {
-    var col = score<=40?'#2d7a2d':score<=45?'#c9a84c':score<=50?'#e07800':'#c0392b';
+  var parData = [{label:'Par 3',scores:par3s,par:3},{label:'Par 4',scores:par4s,par:4},{label:'Par 5',scores:par5s,par:5}];
+  var parRows = parData.filter(function(r){return r.scores.length>0;}).map(function(r){
+    var a=avg(r.scores), vp=parseFloat(vsp(r.scores,r.par));
+    var col=vp<=0.5?'#2d7a2d':vp<=1.0?'#c9a84c':vp<=1.5?'#e07800':'#c0392b';
+    return '<div style="display:flex;align-items:center;padding:5px 0;border-bottom:1px solid #f0f0f0;font-size:0.8rem">'
+      +'<span style="width:50px;color:var(--text-mid)">'+r.label+'</span>'
+      +'<span style="font-weight:700;color:'+col+';width:36px">'+a+'</span>'
+      +'<span style="font-size:0.72rem;color:'+col+'">'+(vp>=0?'+':'')+vp.toFixed(2)+' vs par</span>'
+      +'</div>';
+  }).join('');
+
+  trendRounds.sort(function(a,b){return a.week-b.week;});
+  var trend = trendRounds.map(function(r){
+    var col=r.total<=40?'#2d7a2d':r.total<=45?'#c9a84c':r.total<=50?'#e07800':'#c0392b';
     return '<div style="display:flex;flex-direction:column;align-items:center;gap:2px">'
-      +'<span style="font-size:0.65rem;font-weight:700;color:'+col+'">'+score+'</span>'
-      +'<span style="font-size:0.55rem;color:var(--text-light)">R'+(i+1)+'</span>'
+      +'<span style="font-size:0.65rem;font-weight:700;color:'+col+'">'+r.total+'</span>'
+      +'<span style="font-size:0.55rem;color:var(--text-light)">W'+r.week+'</span>'
       +'</div>';
   }).join('');
 
@@ -1338,6 +1363,7 @@ function build2026Stats(p, playerName) {
     +'<div style="text-align:center;background:var(--cream-dark);border-radius:4px;padding:8px"><div style="font-family:serif;font-size:1.2rem;font-weight:700;color:var(--green-deep)">'+roundsPlayed+'</div><div style="font-size:0.62rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-light)">Rounds</div></div>'
     +'</div>'
     +(courseRows?'<div style="margin-bottom:10px"><div style="font-size:0.7rem;font-weight:600;color:var(--text-light);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.08em">By Course</div>'+courseRows+'</div>':'')
+    +(parRows?'<div style="margin-bottom:10px"><div style="font-size:0.7rem;font-weight:600;color:var(--text-light);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.08em">Par Breakdown</div>'+parRows+'</div>':'')
     +'<div><div style="font-size:0.7rem;font-weight:600;color:var(--text-light);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.08em">Score Trend</div>'
     +'<div style="display:flex;gap:6px;flex-wrap:wrap">'+trend+'</div></div>'
     +'</div>';
@@ -1950,14 +1976,26 @@ function lbowWeekChange() {
 function addLBOWPickRow() {
   var container = document.getElementById('lbow-picks-container');
   if (container.querySelector('.lbow-placeholder')) container.innerHTML='';
+  var playerOpts = PLAYERS.map(function(p){
+    return '<option value="'+p.first+' '+p.last+'">'+p.first+' '+p.last+'</option>';
+  }).join('');
   var row = document.createElement('div');
   row.className='lbow-pick-row';
-  row.style.cssText='display:flex;gap:8px;margin-bottom:6px;align-items:center';
-  row.innerHTML='<input type="text" placeholder="Picker name" style="flex:1;padding:5px 8px;border:1px solid var(--border);border-radius:3px;font-size:0.83rem">'
+  row.style.cssText='display:flex;gap:8px;margin-bottom:6px;align-items:center;flex-wrap:wrap';
+  row.innerHTML='<select class="lbow-picker-name" style="flex:1;min-width:140px;padding:5px 8px;border:1px solid var(--border);border-radius:3px;font-size:0.83rem">'
+    +'<option value="">Select picker...</option>'
+    +playerOpts
+    +'<option value="__sub__">Other (sub)...</option>'
+    +'</select>'
+    +'<input type="text" class="lbow-picker-sub" placeholder="Sub name" style="display:none;flex:1;min-width:100px;padding:5px 8px;border:1px solid var(--border);border-radius:3px;font-size:0.83rem">'
     +'<select style="padding:5px 8px;border:1px solid var(--border);border-radius:3px;font-size:0.83rem">'
     +'<option value="">Pick...</option><option value="Zach">Zach</option><option value="Dan">Dan (Kurt)</option><option value="Ben">Ben</option>'
     +'</select>'
     +'<button onclick="this.parentNode.remove()" style="background:none;border:none;color:#c0392b;cursor:pointer;font-size:1rem;padding:0 4px">&times;</button>';
+  // Show sub input when "Other" selected
+  row.querySelector('.lbow-picker-name').onchange = function() {
+    row.querySelector('.lbow-picker-sub').style.display = this.value==='__sub__' ? 'block' : 'none';
+  };
   container.appendChild(row);
 }
 
@@ -1972,8 +2010,12 @@ async function saveLBOW() {
   if (!week || !winner) { document.getElementById('lbow-save-status').textContent='Select week and winner.'; return; }
   var picks = [];
   document.querySelectorAll('.lbow-pick-row').forEach(function(row) {
-    var name = row.querySelector('input').value.trim();
-    var bartels = row.querySelector('select').value;
+    var nameEl = row.querySelector('.lbow-picker-name');
+    var subEl = row.querySelector('.lbow-picker-sub');
+    var name = nameEl && nameEl.value === '__sub__'
+      ? (subEl ? subEl.value.trim() : '')
+      : (nameEl ? nameEl.value : '');
+    var bartels = row.querySelector('select:last-of-type') ? row.querySelector('select:last-of-type').value : '';
     if (name && bartels) picks.push({name:name, bartels:bartels});
   });
   var pot = picks.length * 10;
