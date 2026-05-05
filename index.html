@@ -2536,8 +2536,13 @@ async function openMatchupModal(weekNum) {
           ? '<div style="font-size:0.7rem;color:var(--text-light);text-align:center;margin-top:2px">'
             +(rp1.result||rp2.result||'AS')+' &middot; '+(rp1.total)+' – '+(rp2.total)+'</div>'
           : '';
-        var h0 = st[i0] && st[i0].hdcp!=null ? ' <small style="color:var(--text-light);font-weight:400">('+st[i0].hdcp+')</small>' : '';
-        var h1 = st[i1] && st[i1].hdcp!=null ? ' <small style="color:var(--text-light);font-weight:400">('+st[i1].hdcp+')</small>' : '';
+        // Use saved week handicap if available, else fall back to current standings
+        var savedHdcp0 = result ? (result.p1.name===pair[0] ? result.p1.hdcp : result.p2.hdcp) : null;
+        var savedHdcp1 = result ? (result.p1.name===pair[1] ? result.p1.hdcp : result.p2.hdcp) : null;
+        var h0disp = savedHdcp0!=null ? savedHdcp0 : (st[i0] && st[i0].hdcp!=null ? st[i0].hdcp : null);
+        var h1disp = savedHdcp1!=null ? savedHdcp1 : (st[i1] && st[i1].hdcp!=null ? st[i1].hdcp : null);
+        var h0 = h0disp!=null ? ' <small style="color:var(--text-light);font-weight:400">('+h0disp+')</small>' : '';
+        var h1 = h1disp!=null ? ' <small style="color:var(--text-light);font-weight:400">('+h1disp+')</small>' : '';
         return '<div style="padding:11px 16px;border-bottom:1px solid #eee">'
           +'<div style="display:grid;grid-template-columns:1fr 28px 1fr;align-items:center">'
           + '<span style="font-weight:600;color:'+(p1won?'var(--green-mid)':'var(--text-dark)')+';cursor:pointer" onclick="modalBackWeek='+weekNum+';openPlayerModal('+i0+')">'+pair[0]+h0+'</span>'
