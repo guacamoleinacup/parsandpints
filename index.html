@@ -779,8 +779,10 @@ function renderHomeRecent() {
     var p1w=(m.p1.pts||0)>(m.p2.pts||0), p2w=(m.p2.pts||0)>(m.p1.pts||0);
     var both = m.p1.total && m.p2.total;
     // Single clean row per matchup: P1 vs P2 | scores | result | pts
-    var p1name = playerLink(m.p1.name, p1w?'':'color:var(--text-dark)');
-    var p2name = playerLink(m.p2.name, p2w?'':'color:var(--text-dark)');
+    var p1hdcp = m.p1.hdcp!=null ? ' <small style="color:var(--text-light);font-weight:400">('+m.p1.hdcp+')</small>' : '';
+    var p2hdcp = m.p2.hdcp!=null ? ' <small style="color:var(--text-light);font-weight:400">('+m.p2.hdcp+')</small>' : '';
+    var p1name = playerLink(m.p1.name, p1w?'':'color:var(--text-dark)') + p1hdcp;
+    var p2name = playerLink(m.p2.name, p2w?'':'color:var(--text-dark)') + p2hdcp;
     var scores = both
       ? '<span'+(p1w?' style="font-weight:700;color:var(--green-mid)"':'')+'>'+m.p1.total+'</span>'
         +' <span style="color:var(--text-light);font-size:0.72rem">–</span> '
@@ -850,10 +852,12 @@ async function renderHomeUpNext() {
     pairs += group.map(function(pair) {
       var idx0 = standings.findIndex(function(s){ return s.first+' '+s.last === pair[0]; });
       var idx1 = standings.findIndex(function(s){ return s.first+' '+s.last === pair[1]; });
+      var hdcp0 = idx0>=0 && standings[idx0].hdcp!=null ? '<small style="color:var(--text-light);font-weight:400"> ('+standings[idx0].hdcp+')</small>' : '';
+      var hdcp1 = idx1>=0 && standings[idx1].hdcp!=null ? '<small style="color:var(--text-light);font-weight:400"> ('+standings[idx1].hdcp+')</small>' : '';
       return '<div style="display:grid;grid-template-columns:1fr 28px 1fr;align-items:center;padding:5px 0;border-bottom:1px solid #eee;font-size:0.84rem">'
-        +'<span style="color:var(--green-mid);cursor:pointer;font-weight:600" onclick="openPlayerModal('+idx0+')">'+pair[0]+'</span>'
+        +'<span style="color:var(--green-mid);cursor:pointer;font-weight:600" onclick="openPlayerModal('+idx0+')">'+pair[0]+hdcp0+'</span>'
         +'<span style="color:var(--text-light);font-size:0.73rem;text-align:center">vs</span>'
-        +'<span style="color:var(--green-mid);cursor:pointer;font-weight:600;text-align:right" onclick="openPlayerModal('+idx1+')">'+pair[1]+'</span>'
+        +'<span style="color:var(--green-mid);cursor:pointer;font-weight:600;text-align:right" onclick="openPlayerModal('+idx1+')">'+pair[1]+hdcp1+'</span>'
         +'</div>';
     }).join('');
   }
