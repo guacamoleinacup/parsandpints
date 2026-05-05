@@ -2188,6 +2188,13 @@ function weekModalWeekChange() {
     return '<div class="matchup-section"><h4>Matchup '+(mi+1)+': '+(m.p1.name||'A')+' vs '+(m.p2.name||'B')+'</h4>'
       +block(m.p1,'p1')+'<div style="text-align:center;color:var(--text-light);font-size:0.8rem;margin:4px 0">-- vs --</div>'+block(m.p2,'p2')+'</div>';
   }).join('');
+  triggerMatchupCalcs();
+}
+
+function triggerMatchupCalcs() {
+  setTimeout(function(){
+    for (var i=0;i<8;i++) { autoCalcWinners(i); }
+  }, 50);
 }
 
 function autoCalcTotal(mi, side) {
@@ -2241,23 +2248,24 @@ function autoCalcWinners(mi) {
     if (popEl2) popEl2.style.display = (pops.side==='p2' && popHoles.indexOf(h)>=0) ? 'block' : 'none';
   }
 
-  // Calculate suggested points
+  // Only calculate points/result if scores are actually entered
+  var hasScores = m.p1.scores.some(function(s){return s!=null;}) && m.p2.scores.some(function(s){return s!=null;});
+  if (!hasScores) return;
+
   var p1wins = winners.filter(function(w){return w==='p1';}).length;
   var p2wins = winners.filter(function(w){return w==='p2';}).length;
   var ties   = winners.filter(function(w){return w==='tie';}).length;
-  // Each hole won = 1pt, each tie = 0.5pt, match win = 1pt bonus
   var p1holePts = p1wins + (ties * 0.5);
   var p2holePts = p2wins + (ties * 0.5);
   var p1pts = p1holePts + (p1wins > p2wins ? 1 : 0);
   var p2pts = p2holePts + (p2wins > p1wins ? 1 : 0);
-  if (p1wins === p2wins) { p1pts = p2pts = p1holePts + 0.5; } // AS — split match pt too
+  if (p1wins === p2wins) { p1pts = p2pts = p1holePts + 0.5; }
 
   var ptsEl1 = document.getElementById('pts-'+mi+'-p1');
   var ptsEl2 = document.getElementById('pts-'+mi+'-p2');
-  if (ptsEl1 && p1pts > 0) ptsEl1.value = p1pts;
-  if (ptsEl2 && p2pts > 0) ptsEl2.value = p2pts;
+  if (ptsEl1) ptsEl1.value = p1pts;
+  if (ptsEl2) ptsEl2.value = p2pts;
 
-  // Suggest result
   var diff = Math.abs(p1wins - p2wins);
   var leader = p1wins > p2wins ? 'p1' : p2wins > p1wins ? 'p2' : null;
   var resultStr = leader ? diff+'UP' : 'AS';
