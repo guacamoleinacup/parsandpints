@@ -1134,14 +1134,16 @@ function renderResults() {
       var pops2026 = calcPops(m.p1.hdcp, m.p2.hdcp);
       var popHoles2026 = getPopHoles(pops2026.count, holeHdcps2026);
       function makeRow(p,opp,side){
-        var sc2=p.scores?p.scores.map(function(score,hi){
-          var win = winners[hi] === side;
-          var lose = winners[hi] && winners[hi] !== side && winners[hi] !== 'tie';
+        var sc2=par.map(function(par_unused,hi){
+          var score = p.scores ? p.scores[hi] : null;
+          var win = score!=null && winners[hi] === side;
+          var lose = score!=null && winners[hi] && winners[hi] !== side && winners[hi] !== 'tie';
           var hasPop = pops2026.side === side && popHoles2026.indexOf(hi) >= 0;
           var style = win ? 'background:#d4edda;font-weight:700' : lose ? 'background:#fde8e8' : '';
           var popDot = hasPop ? '<sup style="color:var(--gold);font-size:9px;font-weight:900">&#9679;</sup>' : '';
-          return '<td style="'+style+'">'+(score!=null?score:'-')+popDot+'</td>';
-        }).join(''):par.map(function(){return '<td style="color:#ccc">--</td>';}).join('');
+          var display = score!=null ? score : '<span style="color:#ccc">--</span>';
+          return '<td style="'+style+'">'+display+popDot+'</td>';
+        }).join('');
         var hl=(p.pts||0)>(opp.pts||0)?' style="color:var(--green-mid)"':'';
         return '<tr><td style="text-align:left" class="name"'+hl+'>'+playerLink(p.name)+' <small style="opacity:0.55">('+p.hdcp+')</small></td>'
           +sc2+'<td style="font-weight:700">'+(p.total!=null?p.total:'--')+'</td>'
