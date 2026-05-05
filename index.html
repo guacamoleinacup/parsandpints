@@ -885,7 +885,14 @@ async function renderHomeUpNext() {
 // ── SCHEDULE ──────────────────────────
 function renderSchedule() {
   var played={};
-  if (DB) (DB.season2026.weeks||[]).forEach(function(w){played[w.weekNum]=true;});
+  if (DB) (DB.season2026.weeks||[]).forEach(function(w){
+    // Only mark done if ALL matchups have both players scored
+    var matchups = w.matchups || [];
+    var complete = matchups.length > 0 && matchups.every(function(m){
+      return m.p1.total && m.p1.total > 0 && m.p2.total && m.p2.total > 0;
+    });
+    if (complete) played[w.weekNum] = true;
+  });
   var nextSet=false;
   document.getElementById('schedule-grid').innerHTML=SCHEDULE.map(function(w){
     var done=!!played[w.week], isNext=!done&&!nextSet;
@@ -2529,11 +2536,13 @@ async function openMatchupModal(weekNum) {
           ? '<div style="font-size:0.7rem;color:var(--text-light);text-align:center;margin-top:2px">'
             +(rp1.result||rp2.result||'AS')+' &middot; '+(rp1.total)+' – '+(rp2.total)+'</div>'
           : '';
+        var h0 = st[i0] && st[i0].hdcp!=null ? ' <small style="color:var(--text-light);font-weight:400">('+st[i0].hdcp+')</small>' : '';
+        var h1 = st[i1] && st[i1].hdcp!=null ? ' <small style="color:var(--text-light);font-weight:400">('+st[i1].hdcp+')</small>' : '';
         return '<div style="padding:11px 16px;border-bottom:1px solid #eee">'
           +'<div style="display:grid;grid-template-columns:1fr 28px 1fr;align-items:center">'
-          + '<span style="font-weight:600;color:'+(p1won?'var(--green-mid)':'var(--text-dark)')+';cursor:pointer" onclick="modalBackWeek='+weekNum+';openPlayerModal('+i0+')">'+pair[0]+'</span>'
+          + '<span style="font-weight:600;color:'+(p1won?'var(--green-mid)':'var(--text-dark)')+';cursor:pointer" onclick="modalBackWeek='+weekNum+';openPlayerModal('+i0+')">'+pair[0]+h0+'</span>'
           + '<span style="font-size:0.72rem;color:var(--text-light);text-align:center">vs</span>'
-          + '<span style="font-weight:600;color:'+(p2won?'var(--green-mid)':'var(--text-dark)')+';cursor:pointer;text-align:right" onclick="modalBackWeek='+weekNum+';openPlayerModal('+i1+')">'+pair[1]+'</span>'
+          + '<span style="font-weight:600;color:'+(p2won?'var(--green-mid)':'var(--text-dark)')+';cursor:pointer;text-align:right" onclick="modalBackWeek='+weekNum+';openPlayerModal('+i1+')">'+pair[1]+h1+'</span>'
           +'</div>'+scoreStr+'</div>';
       }).join('');
       return teeLabel + matchRows;
