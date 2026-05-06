@@ -671,10 +671,10 @@ function computeStandings() {
         var k=p.name; if (!map[k]) return;
         map[k].pts+=(p.pts||0);
         if (p.total) map[k].scores.push(p.total);
-        // Determine W/T/L: use result string if available (handles WIN/DQ cases), fall back to pts
+        // Determine W/T/L: DQ opponent = win; own DQ handled by skip above
         var oppDQ = opp.result==='DQ';
-        var isWin = oppDQ || (p.pts||0)>(opp.pts||0) || p.result==='WIN';
-        var isLoss = !oppDQ && ((p.pts||0)<(opp.pts||0));
+        var isWin = oppDQ || (p.result==='WIN') || (p.pts||0)>(opp.pts||0);
+        var isLoss = !oppDQ && p.result!=='WIN' && ((p.pts||0)<(opp.pts||0) || opp.result==='WIN');
         if (isWin) map[k].w++;
         else if (isLoss) map[k].l++;
         else map[k].t++;
@@ -787,17 +787,24 @@ function renderHomeRecent() {
     var p2hdcp = m.p2.hdcp!=null ? ' <small style="color:var(--text-light);font-weight:400">('+m.p2.hdcp+')</small>' : '';
     var p1name = playerLink(m.p1.name, p1w?'':'color:var(--text-dark)') + p1hdcp;
     var p2name = playerLink(m.p2.name, p2w?'':'color:var(--text-dark)') + p2hdcp;
+    var p1dq = m.p1.result==='DQ', p2dq = m.p2.result==='DQ';
     var scores = both
       ? '<span'+(p1w?' style="font-weight:700;color:var(--green-mid)"':'')+'>'+m.p1.total+'</span>'
         +' <span style="color:var(--text-light);font-size:0.72rem">–</span> '
         +'<span'+(p2w?' style="font-weight:700;color:var(--green-mid)"':'')+'>'+m.p2.total+'</span>'
+      : (p1dq||p2dq)
+        ? (p1dq?'DQ':m.p1.total||'--')+' – '+(p2dq?'DQ':m.p2.total||'--')
       : (m.p1.total||m.p2.total)
         ? (m.p1.total||'--')+' – '+(m.p2.total||'--')
         : '<span style="color:var(--text-light)">pending</span>';
-    var result = m.p1.result || m.p2.result
-      ? resultTag(m.p1.result||m.p2.result)
-      : '';
-    var pts = both
+    var result = '';
+    if (p1dq || p2dq) {
+      result = resultTag('DQ');
+    } else if (m.p1.result || m.p2.result) {
+      result = resultTag(p1w ? m.p1.result : m.p2.result);
+    }
+    var hasPts = both || p1dq || p2dq;
+    var pts = hasPts
       ? '<span'+(p1w?' style="color:var(--green-mid)"':'')+'>'+m.p1.pts+'</span>'
         +' / '
         +'<span'+(p2w?' style="color:var(--green-mid)"':'')+'>'+m.p2.pts+'</span>'
@@ -1643,7 +1650,7 @@ function openPlayerModal(idx) {
     if (mr) {
       var tagClass = mr.won ? 'tag-win' : mr.lost ? 'tag-loss' : 'tag-as';
       var resultStr = mr.result || 'AS';
-      var scoreStr = mr.myTotal+' – '+mr.oppTotal;
+      var scoreStr = (mr.myTotal||'DQ')+' – '+(mr.oppTotal||'DQ');
       statusCell = '<span class="tag '+tagClass+'">'+resultStr+'</span>'
         +'<span style="font-size:0.72rem;color:var(--text-light);margin-left:6px">'+scoreStr+'</span>';
     } else {
@@ -2545,7 +2552,7 @@ async function openMatchupModal(weekNum) {
         var p2won = hasResult && (rp2.pts||0)>(rp1.pts||0);
         var scoreStr = hasResult
           ? '<div style="font-size:0.7rem;color:var(--text-light);text-align:center;margin-top:2px">'
-            +(rp1.result||rp2.result||'AS')+' &middot; '+(rp1.total)+' – '+(rp2.total)+'</div>'
+            +(rp1.result||rp2.result||'AS')+' &middot; '+(rp1.total||'DQ')+' – '+(rp2.total||'DQ')+'</div>'
           : '';
         // Use saved week handicap if available, else fall back to current standings
         var savedHdcp0 = result ? (result.p1.name===pair[0] ? result.p1.hdcp : result.p2.hdcp) : null;
