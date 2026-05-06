@@ -670,7 +670,7 @@ function computeStandings() {
         if (!p) return;
         var k=p.name; if (!map[k]) return;
         if (p.result==='DQ') { map[k].l++; return; }
-        var k=p.name; if (!map[k]) return;
+        map[k].pts+=(p.pts||0);
         if (p.total) map[k].scores.push(p.total);
         // Determine W/T/L: DQ opponent = win; own DQ handled by skip above
         var oppDQ = opp.result==='DQ';
