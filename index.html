@@ -667,9 +667,10 @@ function computeStandings() {
     (week.matchups||[]).forEach(function(m) {
       ['p1','p2'].forEach(function(side) {
         var p=m[side], opp=m[side==='p1'?'p2':'p1'];
-        if (!p||p.result==='DQ') return;
+        if (!p) return;
         var k=p.name; if (!map[k]) return;
-        map[k].pts+=(p.pts||0);
+        if (p.result==='DQ') { map[k].l++; return; }
+        var k=p.name; if (!map[k]) return;
         if (p.total) map[k].scores.push(p.total);
         // Determine W/T/L: DQ opponent = win; own DQ handled by skip above
         var oppDQ = opp.result==='DQ';
@@ -1611,16 +1612,18 @@ function openPlayerModal(idx) {
       if (!p1HasScore || !p2HasScore) return;
       if (m.p1.name === pName0) {
         var oppDQ1 = m.p2.result==='DQ', oppDQ2 = m.p1.result==='DQ';
-        var won1 = oppDQ1 || (m.p1.pts||0)>(m.p2.pts||0) || m.p1.result==='WIN';
-        var lost1 = !oppDQ1 && ((m.p1.pts||0)<(m.p2.pts||0));
-        var result1 = won1 ? (m.p1.result==='WIN'||oppDQ1 ? 'WIN' : m.p1.result||'WIN') : lost1 ? (m.p2.result||'LOSS').replace('UP','DN') : 'AS';
-        matchResults[m.p2.name] = {myTotal:m.p1.total, oppTotal:m.p2.total, result:result1, pts:m.p1.pts, won:won1, lost:lost1};
+        var selfDQ1 = m.p1.result==='DQ';
+        var won1 = !selfDQ1 && (oppDQ1 || (m.p1.pts||0)>(m.p2.pts||0) || m.p1.result==='WIN');
+        var lost1 = selfDQ1 || (!oppDQ1 && ((m.p1.pts||0)<(m.p2.pts||0)));
+        var result1 = selfDQ1 ? 'DQ' : won1 ? (m.p1.result==='WIN'||oppDQ1 ? 'WIN' : m.p1.result||'WIN') : lost1 ? (m.p2.result||'LOSS').replace('UP','DN') : 'AS';
+        matchResults[m.p2.name] = {myTotal:m.p1.total, oppTotal:m.p2.total, result:result1, pts:m.p1.pts, won:won1, lost:lost1, dq:selfDQ1};
       }
       if (m.p2.name === pName0) {
-        var won2 = oppDQ2 || (m.p2.pts||0)>(m.p1.pts||0) || m.p2.result==='WIN';
-        var lost2 = !oppDQ2 && ((m.p2.pts||0)<(m.p1.pts||0));
-        var result2 = won2 ? (m.p2.result==='WIN'||oppDQ2 ? 'WIN' : m.p2.result||'WIN') : lost2 ? (m.p1.result||'LOSS').replace('UP','DN') : 'AS';
-        matchResults[m.p1.name] = {myTotal:m.p2.total, oppTotal:m.p1.total, result:result2, pts:m.p2.pts, won:won2, lost:lost2};
+        var selfDQ2 = m.p2.result==='DQ';
+        var won2 = !selfDQ2 && (oppDQ2 || (m.p2.pts||0)>(m.p1.pts||0) || m.p2.result==='WIN');
+        var lost2 = selfDQ2 || (!oppDQ2 && ((m.p2.pts||0)<(m.p1.pts||0)));
+        var result2 = selfDQ2 ? 'DQ' : won2 ? (m.p2.result==='WIN'||oppDQ2 ? 'WIN' : m.p2.result||'WIN') : lost2 ? (m.p1.result||'LOSS').replace('UP','DN') : 'AS';
+        matchResults[m.p1.name] = {myTotal:m.p2.total, oppTotal:m.p1.total, result:result2, pts:m.p2.pts, won:won2, lost:lost2, dq:selfDQ2};
       }
     });
   });
@@ -1648,7 +1651,7 @@ function openPlayerModal(idx) {
     var oppIdx = standings.findIndex(function(s){ return s.first+' '+s.last === opp; });
     var statusCell;
     if (mr) {
-      var tagClass = mr.won ? 'tag-win' : mr.lost ? 'tag-loss' : 'tag-as';
+      var tagClass = mr.dq ? 'tag-dq' : mr.won ? 'tag-win' : mr.lost ? 'tag-loss' : 'tag-as';
       var resultStr = mr.result || 'AS';
       var scoreStr = (mr.myTotal||'DQ')+' – '+(mr.oppTotal||'DQ');
       statusCell = '<span class="tag '+tagClass+'">'+resultStr+'</span>'
