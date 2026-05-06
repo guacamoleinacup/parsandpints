@@ -671,9 +671,13 @@ function computeStandings() {
         var k=p.name; if (!map[k]) return;
         map[k].pts+=(p.pts||0);
         if (p.total) map[k].scores.push(p.total);
-        if ((p.pts||0)>(opp.pts||0)) map[k].w++;
-        else if ((p.pts||0)===(opp.pts||0)) map[k].t++;
-        else map[k].l++;
+        // Determine W/T/L: use result string if available (handles WIN/DQ cases), fall back to pts
+        var oppDQ = opp.result==='DQ';
+        var isWin = oppDQ || (p.pts||0)>(opp.pts||0) || p.result==='WIN';
+        var isLoss = !oppDQ && ((p.pts||0)<(opp.pts||0));
+        if (isWin) map[k].w++;
+        else if (isLoss) map[k].l++;
+        else map[k].t++;
       });
     });
   });
@@ -1595,17 +1599,20 @@ function openPlayerModal(idx) {
   var pName0 = p.first+' '+p.last;
   (DB.season2026.weeks||[]).forEach(function(week){
     (week.matchups||[]).forEach(function(m){
-      var p1HasScore = m.p1.total != null && m.p1.total > 0;
-      var p2HasScore = m.p2.total != null && m.p2.total > 0;
+      var p1HasScore = (m.p1.total != null && m.p1.total > 0) || m.p1.result === 'DQ';
+      var p2HasScore = (m.p2.total != null && m.p2.total > 0) || m.p2.result === 'DQ';
       if (!p1HasScore || !p2HasScore) return;
       if (m.p1.name === pName0) {
-        var won1 = (m.p1.pts||0)>(m.p2.pts||0), lost1 = (m.p1.pts||0)<(m.p2.pts||0);
-        var result1 = won1 ? (m.p1.result||'WIN') : lost1 ? (m.p2.result||'LOSS').replace('UP','DN') : 'AS';
+        var oppDQ1 = m.p2.result==='DQ', oppDQ2 = m.p1.result==='DQ';
+        var won1 = oppDQ1 || (m.p1.pts||0)>(m.p2.pts||0) || m.p1.result==='WIN';
+        var lost1 = !oppDQ1 && ((m.p1.pts||0)<(m.p2.pts||0));
+        var result1 = won1 ? (m.p1.result==='WIN'||oppDQ1 ? 'WIN' : m.p1.result||'WIN') : lost1 ? (m.p2.result||'LOSS').replace('UP','DN') : 'AS';
         matchResults[m.p2.name] = {myTotal:m.p1.total, oppTotal:m.p2.total, result:result1, pts:m.p1.pts, won:won1, lost:lost1};
       }
       if (m.p2.name === pName0) {
-        var won2 = (m.p2.pts||0)>(m.p1.pts||0), lost2 = (m.p2.pts||0)<(m.p1.pts||0);
-        var result2 = won2 ? (m.p2.result||'WIN') : lost2 ? (m.p1.result||'LOSS').replace('UP','DN') : 'AS';
+        var won2 = oppDQ2 || (m.p2.pts||0)>(m.p1.pts||0) || m.p2.result==='WIN';
+        var lost2 = !oppDQ2 && ((m.p2.pts||0)<(m.p1.pts||0));
+        var result2 = won2 ? (m.p2.result==='WIN'||oppDQ2 ? 'WIN' : m.p2.result||'WIN') : lost2 ? (m.p1.result||'LOSS').replace('UP','DN') : 'AS';
         matchResults[m.p1.name] = {myTotal:m.p2.total, oppTotal:m.p1.total, result:result2, pts:m.p2.pts, won:won2, lost:lost2};
       }
     });
@@ -2310,7 +2317,11 @@ async function saveWeekResults(){
         pts:parseFloat((document.getElementById('pts-'+idx+'-'+side)||{}).value)||0
       };
     }
-    matchups.push({p1:getPlayer(mi,'p1'),p2:getPlayer(mi,'p2')});
+    var m = {p1:getPlayer(mi,'p1'),p2:getPlayer(mi,'p2')};
+    // Auto-assign pts for WIN/DQ matchups where pts weren't entered
+    if (m.p1.result==='DQ' && m.p2.result==='WIN' && !m.p2.pts) { m.p2.pts=7.5; m.p1.pts=0; }
+    if (m.p2.result==='DQ' && m.p1.result==='WIN' && !m.p1.pts) { m.p1.pts=7.5; m.p2.pts=0; }
+    matchups.push(m);
   }
   if(!DB.season2026.weeks)DB.season2026.weeks=[];
   var idx2=DB.season2026.weeks.findIndex(function(w){return w.weekNum===wNum;});
