@@ -1655,7 +1655,7 @@ function openPlayerModal(idx) {
       var resultStr = mr.result || 'AS';
       var scoreStr = (mr.myTotal||'DQ')+' – '+(mr.oppTotal||'DQ');
       var scoreStr = (mr.myTotal||'DQ')+' – '+(mr.oppTotal||'DQ');
-      var ptsStr = mr.dq ? '0 pts' : (mr.pts||0)+' pts';
+      var ptsStr = (mr.pts||0)+' pts';
       statusCell = '<span class="tag '+tagClass+'">'+resultStr+'</span>'
         +'<span style="font-size:0.72rem;color:var(--text-light);margin-left:6px">'+scoreStr+'</span>'
         +'<span style="font-size:0.72rem;color:var(--text-light);margin-left:4px">&middot; '+ptsStr+'</span>';
