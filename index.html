@@ -800,9 +800,18 @@ function renderHomeRecent() {
         : '<span style="color:var(--text-light)">pending</span>';
     var result = '';
     if (p1dq || p2dq) {
-      result = resultTag('DQ');
+      var winner = p2dq ? m.p1.name : m.p2.name;
+      var winnerLast = winner.split(' ').pop();
+      result = '<span style="font-size:0.7rem;color:var(--text-light);margin-right:4px">'+winnerLast+'</span>'+resultTag('WIN');
     } else if (m.p1.result || m.p2.result) {
-      result = resultTag(p1w ? m.p1.result : m.p2.result);
+      var winnerName = p1w ? m.p1.name : m.p2.name;
+      var winnerLast = winnerName.split(' ').pop();
+      var resultStr = p1w ? m.p1.result : m.p2.result;
+      if (resultStr === 'AS' || (!p1w && !p2w)) {
+        result = resultTag('AS');
+      } else {
+        result = '<span style="font-size:0.7rem;color:var(--text-light);margin-right:4px">'+winnerLast+'</span>'+resultTag(resultStr);
+      }
     }
     var hasPts = both || p1dq || p2dq;
     var pts = hasPts
