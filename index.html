@@ -1099,9 +1099,9 @@ function render2025Results() {
         var sc = p.scores ? p.scores.map(function(score,hi){
           var win = winners[hi] === side;
           var lose = winners[hi] && winners[hi] !== side && winners[hi] !== 'tie';
-          var hasPop = popsP1.side === side && popHoles.indexOf(hi) >= 0;
+          var popCount25 = popsP1.side === side ? (getPopStrokes(popsP1.count, holeHdcps2025)[hi]||0) : 0;
           var style = win ? 'background:#d4edda;font-weight:700' : lose ? 'background:#fde8e8' : '';
-          var popDot = hasPop ? '<sup style="color:var(--gold);font-size:9px;font-weight:900">&#9679;</sup>' : '';
+          var popDot = popCount25 > 0 ? '<sup style="color:var(--gold);font-size:9px;font-weight:900">'+(popCount25>1?popCount25+'':'')+'&#9679;</sup>' : '';
           return '<td style="'+style+'">'+(score||'-')+popDot+'</td>';
         }).join('') : par.map(function(){return '<td style="color:#ccc">--</td>';}).join('');
         var hl = (p.pts||0) > (opp.pts||0) ? ' style="color:var(--green-mid)"' : '';
@@ -1161,9 +1161,9 @@ function renderResults() {
           var score = p.scores ? p.scores[hi] : null;
           var win = score!=null && winners[hi] === side;
           var lose = score!=null && winners[hi] && winners[hi] !== side && winners[hi] !== 'tie';
-          var hasPop = pops2026.side === side && popHoles2026.indexOf(hi) >= 0;
+          var popCount2026 = pops2026.side === side ? (getPopStrokes(pops2026.count, holeHdcps2026)[hi]||0) : 0;
           var style = win ? 'background:#d4edda;font-weight:700' : lose ? 'background:#fde8e8' : '';
-          var popDot = hasPop ? '<sup style="color:var(--gold);font-size:9px;font-weight:900">&#9679;</sup>' : '';
+          var popDot = popCount2026 > 0 ? '<sup style="color:var(--gold);font-size:9px;font-weight:900">'+(popCount2026>1?popCount2026+'':'')+'&#9679;</sup>' : '';
           var display = score!=null ? score : '<span style="color:#ccc">--</span>';
           return '<td style="'+style+'">'+display+popDot+'</td>';
         }).join('');
@@ -1199,23 +1199,36 @@ function calcPops(hdcp1, hdcp2) {
 
 function getPopHoles(count, holeHdcps) {
   // Returns array of hole indices (0-based) that receive pops, sorted by hdcp rating
+  // Handles double-pops when count > 9
   if (!count || !holeHdcps) return [];
   var indexed = holeHdcps.map(function(h,i){return {idx:i,hdcp:h||99};});
   indexed.sort(function(a,b){return a.hdcp - b.hdcp;}); // lower hdcp = harder
-  return indexed.slice(0,count).map(function(x){return x.idx;});
+  return indexed.slice(0, Math.min(count, holeHdcps.length)).map(function(x){return x.idx;});
+}
+
+function getPopStrokes(count, holeHdcps) {
+  // Returns object {holeIdx: strokesReceived} — handles double pops
+  if (!count || !holeHdcps) return {};
+  var indexed = holeHdcps.map(function(h,i){return {idx:i,hdcp:h||99};});
+  indexed.sort(function(a,b){return a.hdcp - b.hdcp;});
+  var strokes = {};
+  for (var i = 0; i < count; i++) {
+    var holeIdx = indexed[i % holeHdcps.length].idx;
+    strokes[holeIdx] = (strokes[holeIdx] || 0) + 1;
+  }
+  return strokes;
 }
 
 function calcHoleWinners(m, pars, holeHdcps) {
   // Returns array of 9 results: 'p1'|'p2'|'tie'
   if (!m.p1.scores || !m.p2.scores) return [];
   var pops = calcPops(m.p1.hdcp, m.p2.hdcp);
-  var popHoles = getPopHoles(pops.count, holeHdcps);
+  var popStrokes = getPopStrokes(pops.count, holeHdcps);
   return pars.map(function(par, hi) {
     var s1 = m.p1.scores[hi], s2 = m.p2.scores[hi];
     if (s1 == null || s2 == null) return 'tie';
-    // Apply pop to the higher-hdcp player
-    var net1 = s1 - (pops.side==='p1' && popHoles.indexOf(hi)>=0 ? 1 : 0);
-    var net2 = s2 - (pops.side==='p2' && popHoles.indexOf(hi)>=0 ? 1 : 0);
+    var net1 = s1 - (pops.side==='p1' ? (popStrokes[hi]||0) : 0);
+    var net2 = s2 - (pops.side==='p2' ? (popStrokes[hi]||0) : 0);
     return net1 < net2 ? 'p1' : net2 < net1 ? 'p2' : 'tie';
   });
 }
@@ -2264,7 +2277,7 @@ function autoCalcWinners(mi) {
 
   var winners = calcHoleWinners(m, pars, holeHdcps);
   var pops = calcPops(h1, h2);
-  var popHoles = getPopHoles(pops.count, holeHdcps);
+  var popStrokes2 = getPopStrokes(pops.count, holeHdcps);
 
   // Highlight hole inputs
   for (var h = 0; h < 9; h++) {
@@ -2274,11 +2287,13 @@ function autoCalcWinners(mi) {
     var w = winners[h];
     e1.style.background = w==='p1' ? '#d4edda' : w==='p2' ? '#fde8e8' : '';
     e2.style.background = w==='p2' ? '#d4edda' : w==='p1' ? '#fde8e8' : '';
-    // Show pop indicator
+    // Show pop indicator (show count if double pop)
     var popEl1 = document.getElementById('pop-'+mi+'-p1-'+h);
     var popEl2 = document.getElementById('pop-'+mi+'-p2-'+h);
-    if (popEl1) popEl1.style.display = (pops.side==='p1' && popHoles.indexOf(h)>=0) ? 'block' : 'none';
-    if (popEl2) popEl2.style.display = (pops.side==='p2' && popHoles.indexOf(h)>=0) ? 'block' : 'none';
+    var strokes1 = pops.side==='p1' ? (popStrokes2[h]||0) : 0;
+    var strokes2 = pops.side==='p2' ? (popStrokes2[h]||0) : 0;
+    if (popEl1) { popEl1.style.display = strokes1 > 0 ? 'block' : 'none'; popEl1.textContent = strokes1 > 1 ? strokes1+'●' : '●'; }
+    if (popEl2) { popEl2.style.display = strokes2 > 0 ? 'block' : 'none'; popEl2.textContent = strokes2 > 1 ? strokes2+'●' : '●'; }
   }
 
   // Only calculate points/result if scores are actually entered
