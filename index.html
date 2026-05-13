@@ -698,7 +698,7 @@ function computeStandings() {
     if (b.pts !== a.pts) return b.pts - a.pts;                          // 1. Points
     if (b.w !== a.w) return b.w - a.w;                                  // 2. Wins
     var aHdcp = a.hdcp||0, bHdcp = b.hdcp||0;
-    if (bHdcp !== aHdcp) return bHdcp - aHdcp;                          // 3. Handicap (higher = better)
+    if (bHdcp !== aHdcp) return aHdcp - bHdcp;                          // 3. Handicap (lower = better)
     var aAvg = a.scores.length ? a.scores.reduce(function(x,y){return x+y;},0)/a.scores.length : 999;
     var bAvg = b.scores.length ? b.scores.reduce(function(x,y){return x+y;},0)/b.scores.length : 999;
     return aAvg - bAvg;                                                  // 4. Avg score (lower = better)
@@ -786,8 +786,8 @@ function renderHomeRecent() {
     // Single clean row per matchup: P1 vs P2 | scores | result | pts
     var p1hdcp = m.p1.hdcp!=null ? ' <small style="color:var(--text-light);font-weight:400">('+m.p1.hdcp+')</small>' : '';
     var p2hdcp = m.p2.hdcp!=null ? ' <small style="color:var(--text-light);font-weight:400">('+m.p2.hdcp+')</small>' : '';
-    var p1name = playerLink(m.p1.name, p1w?'':'color:var(--text-dark)') + p1hdcp;
-    var p2name = playerLink(m.p2.name, p2w?'':'color:var(--text-dark)') + p2hdcp;
+    var p1name = playerLink(m.p1.name, p1w?'font-weight:700':'color:var(--text-dark);font-weight:400') + p1hdcp;
+    var p2name = playerLink(m.p2.name, p2w?'font-weight:700':'color:var(--text-dark);font-weight:400') + p2hdcp;
     var p1dq = m.p1.result==='DQ', p2dq = m.p2.result==='DQ';
     var scores = both
       ? '<span'+(p1w?' style="font-weight:700;color:var(--green-mid)"':'')+'>'+m.p1.total+'</span>'
