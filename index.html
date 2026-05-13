@@ -777,7 +777,8 @@ function renderHomeRecent() {
   // Check if this week is complete (all matchups have both players scored)
   var totalMatchups = w.matchups ? w.matchups.length : 0;
   var completeMatchups = (w.matchups||[]).filter(function(m){
-    return m.p1.total && m.p1.total > 0 && m.p2.total && m.p2.total > 0;
+    return (m.p1.total && m.p1.total > 0 || m.p1.result === 'DQ') &&
+           (m.p2.total && m.p2.total > 0 || m.p2.result === 'DQ');
   }).length;
   var inProgress = totalMatchups > 0 && completeMatchups < totalMatchups;
   if (titleEl) titleEl.textContent = inProgress ? 'Week '+w.weekNum+' In Progress' : 'Recent Results';
@@ -911,7 +912,8 @@ function renderSchedule() {
     // Only mark done if ALL matchups have both players scored
     var matchups = w.matchups || [];
     var complete = matchups.length > 0 && matchups.every(function(m){
-      return m.p1.total && m.p1.total > 0 && m.p2.total && m.p2.total > 0;
+      return (m.p1.total && m.p1.total > 0 || m.p1.result === 'DQ') &&
+             (m.p2.total && m.p2.total > 0 || m.p2.result === 'DQ');
     });
     if (complete) played[w.weekNum] = true;
   });
