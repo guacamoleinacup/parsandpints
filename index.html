@@ -697,11 +697,12 @@ function computeStandings() {
   return Object.values(map).sort(function(a,b){
     if (b.pts !== a.pts) return b.pts - a.pts;                          // 1. Points
     if (b.w !== a.w) return b.w - a.w;                                  // 2. Wins
+    if (a.l !== b.l) return a.l - b.l;                                  // 3. Losses (fewer = better)
     var aHdcp = a.hdcp||0, bHdcp = b.hdcp||0;
-    if (bHdcp !== aHdcp) return aHdcp - bHdcp;                          // 3. Handicap (lower = better)
+    if (aHdcp !== bHdcp) return aHdcp - bHdcp;                          // 4. Handicap (lower = better)
     var aAvg = a.scores.length ? a.scores.reduce(function(x,y){return x+y;},0)/a.scores.length : 999;
     var bAvg = b.scores.length ? b.scores.reduce(function(x,y){return x+y;},0)/b.scores.length : 999;
-    return aAvg - bAvg;                                                  // 4. Avg score (lower = better)
+    return aAvg - bAvg;                                                  // 5. Avg score (lower = better)
   });
 }
 
