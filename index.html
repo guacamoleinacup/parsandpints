@@ -1264,12 +1264,12 @@ function calcWeekSkins(weekData) {
   // Returns {tier1:[{name,hdcp,scores}], tier2:[...], results:{tier1:{name:skins}, tier2:{name:skins}}, earnings:{...}}
   if (!weekData || !weekData.matchups) return null;
 
-  // Collect all players with scores
+  // Collect all players with scores (exclude DQ/absent players with no scores)
   var allPlayers = [];
   weekData.matchups.forEach(function(m) {
-    if (m.p1.name && m.p1.hdcp != null && m.p1.scores && m.p1.scores.some(function(s){return s!=null;}))
+    if (m.p1.name && m.p1.hdcp != null && m.p1.result !== 'DQ' && m.p1.scores && m.p1.scores.some(function(s){return s!=null;}))
       allPlayers.push({name:m.p1.name, hdcp:m.p1.hdcp, scores:m.p1.scores});
-    if (m.p2.name && m.p2.hdcp != null && m.p2.scores && m.p2.scores.some(function(s){return s!=null;}))
+    if (m.p2.name && m.p2.hdcp != null && m.p2.result !== 'DQ' && m.p2.scores && m.p2.scores.some(function(s){return s!=null;}))
       allPlayers.push({name:m.p2.name, hdcp:m.p2.hdcp, scores:m.p2.scores});
   });
 
