@@ -356,6 +356,10 @@ footer strong{color:var(--gold)}
         <div class="form-group"><label>Ben Score</label><input type="number" id="lbow-scores-ben" placeholder="Gross" min="25" max="70"></div>
       </div>
       <div style="font-size:0.75rem;color:var(--text-light);margin:-4px 0 12px">Ben gets 3 strokes &mdash; his net = gross - 3</div>
+      <div class="form-row">
+        <div class="form-group"><label>Carryover Added ($)</label><input type="number" id="lbow-carryover" placeholder="0" min="0" step="0.01" value="0"></div>
+      </div>
+      <div style="font-size:0.75rem;color:var(--text-light);margin:-4px 0 12px">Add any carried-over pot from a previous tie week.</div>
       <div style="font-weight:600;font-size:0.82rem;margin-bottom:6px">Picks</div>
       <div id="lbow-picks-container" style="margin-bottom:8px"><div class="lbow-placeholder" style="color:var(--text-light);font-size:0.82rem">No picks added yet.</div></div>
       <button onclick="addLBOWPickRow()" style="background:none;border:1px dashed var(--border);padding:6px 14px;border-radius:3px;cursor:pointer;font-size:0.82rem;color:var(--text-light);margin-bottom:14px">+ Add Pick</button>
@@ -1936,11 +1940,13 @@ function renderLBOW() {
   var weekCards = entries.slice().sort(function(a,b){return b.week-a.week;}).map(function(e) {
     var sched = SCHEDULE.find(function(s){return s.week===e.week;})||{};
     var pot = (e.picks||[]).length * 10;
-    var winners = (e.picks||[]).filter(function(p){return p.bartels===e.winner;});
-    var payout = winners.length ? Math.round(pot/winners.length*100)/100 : 0;
+    var carryover = e.carryover || 0;
+    var totalPotWk = pot + carryover;
+    var isTie = e.winner === 'TIE';
+    var winners = isTie ? [] : (e.picks||[]).filter(function(p){return p.bartels===e.winner;});
+    var payout = isTie ? 0 : (winners.length ? Math.round(totalPotWk/winners.length*100)/100 : 0);
     var pickRows = (e.picks||[]).sort(function(a,b){return a.name.localeCompare(b.name);}).map(function(pick) {
-      var won = pick.bartels === e.winner;
-      return '<tr style="'+(won?'font-weight:700':'')+'"><td class="name">'+pick.name+'</td>'
+      var won = !isTie && pick.bartels === e.winner;
         +'<td style="text-align:center">'+pick.bartels+(won?' &#9989;':' &#10060;')+'</td>'
         +'<td class="num">'+(won?'$'+payout.toFixed(2):'-')+'</td></tr>';
     }).join('');
@@ -1949,19 +1955,22 @@ function renderLBOW() {
         var scores = e.scores||{};
         var score = scores[b];
         var net = b==='Ben' && score ? score-3 : score;
-        var won = b===e.winner;
-        return '<div style="padding:8px 14px;border-radius:4px;border:1px solid var(--border);text-align:center;'+(won?'background:var(--green-pale);border-color:var(--green-mid)':'')+';">'
+        var won = !isTie && b===e.winner;
+        return '<div style="padding:8px 14px;border-radius:4px;border:1px solid var(--border);text-align:center;'+(won?'background:var(--green-pale);border-color:var(--green-mid)':isTie&&(b==='Ben'||b==='Zach')?'background:#fff9e6;border-color:#c9a84c':'')+';">'
           +'<div style="font-weight:700;color:var(--green-deep)">'+b+(b==='Ben'?' (+3)':'')+'</div>'
           +'<div style="font-size:1.1rem;font-weight:700;color:'+(won?'var(--green-mid)':'var(--text-dark)')+'">'+( score||'--')+(b==='Ben'&&score?' <small style="opacity:0.6">('+net+' net)</small>':'')+'</div>'
           +(won?'<div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--green-mid)">WINNER</div>':'')
-          +'</div>';
+          +(isTie?'<div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:0.08em;color:#c9a84c">TIE</div>':'')
       }).join('')+'</div>';
     return '<div class="card" style="margin-bottom:16px">'
       +'<div class="card-header">&#127942; Week '+e.week+(sched.date?' &mdash; '+sched.date:'')+'</div>'
       +'<div style="padding:14px">'
       +bartelsRow
-      +'<div style="font-size:0.72rem;color:var(--text-light);margin-bottom:8px">$'+pot+' pot &middot; '+(e.picks||[]).length+' entries &middot; $'+payout.toFixed(2)+' per winner</div>'
-      +'<table style="width:100%"><thead><tr><th style="text-align:left">Picker</th><th style="text-align:center">Pick</th><th class="num">Payout</th></tr></thead>'
+      +'<div style="font-size:0.72rem;color:var(--text-light);margin-bottom:8px">'
+      +(carryover?'$'+totalPotWk+' pot ($'+pot+' entries + $'+carryover+' carryover)':'$'+pot+' pot')
+      +' &middot; '+(e.picks||[]).length+' entries'
+      +(isTie?' &middot; <span style="color:#c9a84c;font-weight:600">TIE — carries over</span>':' &middot; $'+payout.toFixed(2)+' per winner')
+      +'</div>'
       +'<tbody>'+pickRows+'</tbody></table>'
       +'</div></div>';
   }).join('');
@@ -1989,10 +1998,12 @@ function openLBOWModal() {
     '<option value="">Select winner...</option>'
     +'<option value="Zach">Zach Bartels</option>'
     +'<option value="Dan">Dan (Kurt) Bartels</option>'
-    +'<option value="Ben">Ben Bartels</option>';
+    +'<option value="Ben">Ben Bartels</option>'
+    +'<option value="TIE">TIE — Carry Over</option>';
   document.getElementById('lbow-scores-zach').value='';
   document.getElementById('lbow-scores-dan').value='';
   document.getElementById('lbow-scores-ben').value='';
+  document.getElementById('lbow-carryover').value='0';
   document.getElementById('lbow-picks-container').innerHTML='<div class="lbow-placeholder" style="color:var(--text-light);font-size:0.82rem">Add picks below...</div>';
   document.getElementById('lbow-save-status').textContent='';
   document.getElementById('lbow-delete-btn').style.display='none';
@@ -2012,6 +2023,7 @@ function lbowWeekChange() {
     // Pre-fill from existing entry
     document.getElementById('lbow-winner-sel').value = existing.winner || '';
     document.getElementById('lbow-scores-zach').value = (existing.scores&&existing.scores.Zach)||'';
+    document.getElementById('lbow-carryover').value = existing.carryover||0;
     document.getElementById('lbow-scores-dan').value  = (existing.scores&&existing.scores.Dan)||'';
     document.getElementById('lbow-scores-ben').value  = (existing.scores&&existing.scores.Ben)||'';
     // Re-render picks
@@ -2127,7 +2139,11 @@ async function saveLBOW() {
   var pot = picks.length * 10;
   var winners = picks.filter(function(p){return p.bartels===winner;});
   var payout = winners.length ? Math.round(pot/winners.length*100)/100 : 0;
-  var entry = {week:week, winner:winner, scores:scores, picks:picks, payout:payout};
+  var carryover = parseFloat(document.getElementById('lbow-carryover').value)||0;
+  var totalPot = pot + carryover;
+  var winners2 = picks.filter(function(p){return p.bartels===winner;});
+  payout = winner==='TIE' ? 0 : (winners2.length ? Math.round(totalPot/winners2.length*100)/100 : 0);
+  var entry = {week:week, winner:winner, scores:scores, picks:picks, payout:payout, carryover:carryover, totalPot:totalPot};
   if (!DB.season2026.lbow) DB.season2026.lbow=[];
   var existing = DB.season2026.lbow.findIndex(function(e){return e.week===week;});
   if (existing>=0) DB.season2026.lbow[existing]=entry; else DB.season2026.lbow.push(entry);
