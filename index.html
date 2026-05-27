@@ -1264,18 +1264,25 @@ function calcWeekSkins(weekData) {
   // Returns {tier1:[{name,hdcp,scores}], tier2:[...], results:{tier1:{name:skins}, tier2:{name:skins}}, earnings:{...}}
   if (!weekData || !weekData.matchups) return null;
 
-  // Collect all players with scores (exclude DQ/absent players with no scores)
+  // Build full player list from ALL matchups (including DQ/absent) for tier assignment
+  // Tier split must always use all 16 players so tiers stay consistent week to week
   var allPlayers = [];
   weekData.matchups.forEach(function(m) {
-    if (m.p1.name && m.p1.hdcp != null && m.p1.result !== 'DQ' && m.p1.scores && m.p1.scores.some(function(s){return s!=null;}))
-      allPlayers.push({name:m.p1.name, hdcp:m.p1.hdcp, scores:m.p1.scores});
-    if (m.p2.name && m.p2.hdcp != null && m.p2.result !== 'DQ' && m.p2.scores && m.p2.scores.some(function(s){return s!=null;}))
-      allPlayers.push({name:m.p2.name, hdcp:m.p2.hdcp, scores:m.p2.scores});
+    if (m.p1.name && m.p1.hdcp != null)
+      allPlayers.push({name:m.p1.name, hdcp:m.p1.hdcp,
+        scores: (m.p1.scores && m.p1.scores.some(function(s){return s!=null;})) ? m.p1.scores : null,
+        dq: m.p1.result==='DQ' || !m.p1.scores || !m.p1.scores.some(function(s){return s!=null;})
+      });
+    if (m.p2.name && m.p2.hdcp != null)
+      allPlayers.push({name:m.p2.name, hdcp:m.p2.hdcp,
+        scores: (m.p2.scores && m.p2.scores.some(function(s){return s!=null;})) ? m.p2.scores : null,
+        dq: m.p2.result==='DQ' || !m.p2.scores || !m.p2.scores.some(function(s){return s!=null;})
+      });
   });
 
   if (allPlayers.length < 2) return null;
 
-  // Sort by handicap ascending (lowest first), split into tiers
+  // Sort ALL players by handicap to determine tiers (DQ players still hold their tier spot)
   allPlayers.sort(function(a,b){return a.hdcp - b.hdcp;});
   var mid = Math.floor(allPlayers.length / 2);
   var tier1 = allPlayers.slice(0, mid);   // low hdcp = Tier 1
@@ -1285,8 +1292,10 @@ function calcWeekSkins(weekData) {
     var skins = {};
     players.forEach(function(p){skins[p.name]=0;});
     for (var hole = 0; hole < 9; hole++) {
-      var scores = players.map(function(p){return {name:p.name,hdcp:p.hdcp,score:p.scores[hole]};})
-                          .filter(function(x){return x.score != null;});
+      var scores = players
+        .filter(function(p){return !p.dq && p.scores;})
+        .map(function(p){return {name:p.name,hdcp:p.hdcp,score:p.scores[hole]};})
+        .filter(function(x){return x.score != null;});
       if (!scores.length) continue;
       var minScore = Math.min.apply(null, scores.map(function(x){return x.score;}));
       var low = scores.filter(function(x){return x.score===minScore;});
