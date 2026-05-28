@@ -690,13 +690,15 @@ function computeStandings() {
   (DB.season2026.skins||[]).forEach(function(s){if(map[s.winner])map[s.winner].skins++;});
   // Auto-calculated skins from hole scores
   (DB.season2026.weeks||[]).forEach(function(week){
-    var result = calcWeekSkins(week);
-    if (!result) return;
-    ['t1','t2'].forEach(function(tier){
-      Object.keys(result[tier].skins).forEach(function(name){
-        if (map[name]) map[name].skins += result[tier].skins[name];
+    try {
+      var result = calcWeekSkins(week);
+      if (!result) return;
+      ['t1','t2'].forEach(function(tier){
+        Object.keys(result[tier].skins).forEach(function(name){
+          if (map[name]) map[name].skins += result[tier].skins[name];
+        });
       });
-    });
+    } catch(e) { console.warn('calcWeekSkins error week '+week.weekNum, e); }
   });
   return Object.values(map).sort(function(a,b){
     if (b.pts !== a.pts) return b.pts - a.pts;                          // 1. Points
@@ -712,17 +714,19 @@ function computeStandings() {
 
 // ── RENDER ALL ────────────────────────
 function renderAll() {
-  var s = computeStandings();
-  renderSchedule();
-  renderHomeStandings(s);
-  renderFullStandings(s);
-  renderHomeRecent();
-  renderHomeUpNext();
-  renderResults();
-  renderPlayoffBracket(s);
-  renderSkins();
-  renderHistory();
-  document.getElementById('hero-weeks-played').textContent = (DB.season2026.weeks||[]).length;
+  try {
+    var s = computeStandings();
+    renderSchedule();
+    try { renderHomeStandings(s); } catch(e) { console.error('renderHomeStandings',e); }
+    try { renderFullStandings(s); } catch(e) { console.error('renderFullStandings',e); }
+    try { renderHomeRecent(); } catch(e) { console.error('renderHomeRecent',e); }
+    try { renderHomeUpNext(); } catch(e) { console.error('renderHomeUpNext',e); }
+    try { renderResults(); } catch(e) { console.error('renderResults',e); }
+    try { renderPlayoffBracket(s); } catch(e) { console.error('renderPlayoffBracket',e); }
+    try { renderSkins(); } catch(e) { console.error('renderSkins',e); }
+    try { renderHistory(); } catch(e) { console.error('renderHistory',e); }
+    document.getElementById('hero-weeks-played').textContent = (DB.season2026.weeks||[]).length;
+  } catch(e) { console.error('renderAll crash',e); }
 }
 
 // ── HELPERS ───────────────────────────
