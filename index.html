@@ -164,6 +164,7 @@ footer strong{color:var(--gold)}
     <button onclick="openWeekModal()">+ Add / Edit Week</button>
     <button onclick="openHistoryModal()">+ Add History</button>
         <button onclick="openLBOWModal()">&#127942; Add / Edit LBOW</button>
+        <button onclick="openScrambleModal()">&#127948; Add / Edit Scramble</button>
     <button onclick="reseedDB()" style="background:rgba(255,255,255,0.12);color:var(--gold);border:1px solid var(--gold)">&#8635; Re-seed Data</button>
     <button onclick="adminLogout()" style="background:rgba(255,255,255,0.15);color:var(--cream);margin-left:auto">Lock</button>
   </div>
@@ -203,8 +204,8 @@ footer strong{color:var(--gold)}
     <div class="notice">Points: 1 pt per hole won + 1 pt for match win = 10 pts available each week &middot; Weeks 5 &amp; 10 are scrambles (no matchup points, no skins) &middot; Weeks 16&ndash;18 are playoffs (top 8)</div>
     <div class="card">
       <table>
-        <thead><tr><th style="width:32px">#</th><th>Player</th><th class="num">Pts</th><th class="num">W-T-L</th><th class="num">Hdcp</th><th class="num">Avg</th><th class="num">Skins</th></tr></thead>
-        <tbody id="full-standings-body"><tr><td colspan="9" style="text-align:center;padding:20px;color:var(--text-light)">Loading...</td></tr></tbody>
+        <thead><tr><th style="width:32px">#</th><th>Player</th><th class="num">Pts</th><th class="num">W-T-L</th><th class="num">Hdcp</th><th class="num">Avg</th><th class="num">Earned</th><th class="num">Net</th></tr></thead>
+        <tbody id="full-standings-body"><tr><td colspan="8" style="text-align:center;padding:20px;color:var(--text-light)">Loading...</td></tr></tbody>
       </table>
     </div>
     <div id="playoff-bracket-section"></div>
@@ -237,6 +238,7 @@ footer strong{color:var(--gold)}
       <button class="inner-tab active" onclick="showInnerTab('results-scorecards',this);reactivateWeekTabs()">Scorecards</button>
       <button class="inner-tab" onclick="showInnerTab('results-skins',this)">&#128176; Skins</button>
       <button class="inner-tab" onclick="showInnerTab('results-lbow',this);renderLBOW()">&#127942; LBOW</button>
+      <button class="inner-tab" onclick="showInnerTab('results-scrambles',this);renderScrambles()">&#127948; Scrambles</button>
     </div>
     <div id="results-scorecards" class="inner-panel active">
       <div class="inner-tabs" id="results-tabs"></div>
@@ -255,6 +257,10 @@ footer strong{color:var(--gold)}
     <div id="results-lbow" class="inner-panel">
       <div class="notice">Low Bartels of the Week &mdash; Optional $10/week. Pick Zach, Dan (Kurt), or Ben. Lowest gross wins (Ben gets 3 strokes off). All correct pickers split the pot.</div>
       <div id="lbow-content"><div style="text-align:center;padding:20px;color:var(--text-light)">Loading...</div></div>
+    </div>
+    <div id="results-scrambles" class="inner-panel">
+      <div class="notice">Scramble weeks are a fun side pot &mdash; $10/player. Results don&#39;t count toward regular season standings.</div>
+      <div id="scrambles-content"><div style="text-align:center;padding:20px;color:var(--text-light)">Loading...</div></div>
     </div>
   </div><!-- end results-2026-panel -->
 
@@ -369,6 +375,25 @@ footer strong{color:var(--gold)}
         <button class="delete-btn" id="lbow-delete-btn" style="display:none" onclick="deleteLBOW()">Delete Week</button>
       </div>
       <div id="lbow-save-status" style="margin-top:8px;font-size:0.82rem;color:var(--green-mid)"></div>
+    </div>
+  </div>
+</div>
+
+<!-- SCRAMBLE MODAL -->
+<div class="modal-overlay" id="scramble-modal">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-header"><h3>&#127948; Add / Edit Scramble</h3><button class="modal-close" onclick="closeModal('scramble-modal')">&times;</button></div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group"><label>Week</label><select id="scramble-week-sel"><option value="">Select week...</option></select></div>
+      </div>
+      <div style="font-weight:600;font-size:0.82rem;margin-bottom:8px">Teams</div>
+      <div id="scramble-teams-container"></div>
+      <button onclick="addScrambleTeam()" style="background:none;border:1px dashed var(--border);padding:6px 14px;border-radius:3px;cursor:pointer;font-size:0.82rem;color:var(--text-light);margin-bottom:14px">+ Add Team</button>
+      <br>
+      <button class="save-btn" onclick="saveScramble()">Save Scramble</button>
+      <button class="delete-btn" id="scramble-delete-btn" style="display:none;margin-left:10px" onclick="deleteScramble()">Delete</button>
+      <div id="scramble-save-status" style="margin-top:8px;font-size:0.82rem;color:var(--green-mid)"></div>
     </div>
   </div>
 </div>
@@ -488,6 +513,7 @@ var COURSE_PARS = {
 var SEED = {
   season2026:{
     lbow:[],
+    scrambles:[],
     players:[
       {id:1,first:'Jack',last:'Balistreri',hdcp:15.8,skins:0},{id:2,first:'Ben',last:'Bartels',hdcp:20.4,skins:0},
       {id:3,first:'Dan',last:'Bartels',hdcp:11.3,skins:0},{id:4,first:'Zach',last:'Bartels',hdcp:13.2,skins:0},
@@ -581,6 +607,7 @@ async function loadDB() {
       if (!DB.season2026) DB.season2026 = JSON.parse(JSON.stringify(SEED.season2026));
       if (!DB.season2026.skins) DB.season2026.skins = [];
       if (!DB.season2026.lbow) DB.season2026.lbow = [];
+      if (!DB.season2026.scrambles) DB.season2026.scrambles = [];
       // 2025 and 2024 are historical — always use hardcoded SEED, never JSONBin
       DB.season2025 = SEED.season2025;
       DB.season2024 = SEED.season2024;
@@ -607,6 +634,128 @@ async function saveDB() {
 }
 
 // ── RESEED ────────────────────────────
+function openScrambleModal() {
+  var sel = '<option value="">Select week...</option>'
+    + SCHEDULE.filter(function(s){return s.type==='scramble';}).map(function(s){
+        var existing = (DB.season2026.scrambles||[]).find(function(e){return e.week===s.week;});
+        return '<option value="'+s.week+'">Week '+s.week+' &mdash; '+s.date+(existing?' ✓':'')+'</option>';
+      }).join('');
+  document.getElementById('scramble-week-sel').innerHTML = sel;
+  document.getElementById('scramble-week-sel').onchange = scrambleWeekChange;
+  document.getElementById('scramble-teams-container').innerHTML = '';
+  document.getElementById('scramble-save-status').textContent = '';
+  document.getElementById('scramble-delete-btn').style.display = 'none';
+  // Start with 4 empty teams
+  for (var i = 0; i < 4; i++) addScrambleTeam();
+  document.getElementById('scramble-modal').classList.add('open');
+}
+
+function scrambleWeekChange() {
+  var wk = parseInt(document.getElementById('scramble-week-sel').value);
+  if (!wk) return;
+  var existing = (DB.season2026.scrambles||[]).find(function(e){return e.week===wk;});
+  var deleteBtn = document.getElementById('scramble-delete-btn');
+  if (deleteBtn) deleteBtn.style.display = existing ? 'inline-block' : 'none';
+  if (!existing) return;
+  // Pre-fill teams
+  var container = document.getElementById('scramble-teams-container');
+  container.innerHTML = '';
+  (existing.teams||[]).forEach(function(team) {
+    addScrambleTeam(team);
+  });
+  document.getElementById('scramble-save-status').textContent = 'Editing existing entry.';
+}
+
+function addScrambleTeam(data) {
+  var container = document.getElementById('scramble-teams-container');
+  var teamNum = container.querySelectorAll('.scramble-team').length + 1;
+  var playerOpts = PLAYERS.map(function(p){
+    return '<option value="'+p.first+' '+p.last+'">'+p.first+' '+p.last+'</option>';
+  }).join('');
+  var subOpt = '<option value="__sub__">Sub...</option>';
+
+  var div = document.createElement('div');
+  div.className = 'scramble-team';
+  div.style.cssText = 'border:1px solid var(--border);border-radius:4px;padding:10px;margin-bottom:10px';
+
+  var playerRows = '';
+  var members = (data && data.players) ? data.players : ['','','',''];
+  for (var i = 0; i < 4; i++) {
+    var val = members[i] || '';
+    var inRoster = PLAYERS.some(function(p){return p.first+' '+p.last===val;});
+    var isSub = val && !inRoster;
+    playerRows += '<div style="display:flex;gap:6px;margin-bottom:5px;align-items:center">'
+      +'<select class="scramble-player-sel" style="flex:1;padding:4px 6px;border:1px solid var(--border);border-radius:3px;font-size:0.8rem" onchange="scramblePlayerChange(this)">'
+      +'<option value="">Player '+(i+1)+'...</option>'
+      +playerOpts
+      +subOpt
+      +'</select>'
+      +'<input type="text" class="scramble-sub-input" placeholder="Sub name" style="display:'+(isSub?'block':'none')+';flex:1;padding:4px 6px;border:1px solid var(--border);border-radius:3px;font-size:0.8rem" value="'+(isSub?val:'')+'">'
+      +'</div>';
+  }
+
+  div.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'
+    +'<div style="font-weight:600;font-size:0.82rem">Team '+teamNum+'</div>'
+    +'<button onclick="this.closest(\'.scramble-team\').remove()" style="background:none;border:none;color:#c0392b;cursor:pointer;font-size:1rem">&times;</button>'
+    +'</div>'
+    +playerRows
+    +'<div style="display:flex;gap:8px;align-items:center;margin-top:8px">'
+    +'<label style="font-size:0.78rem;color:var(--text-light);white-space:nowrap">Team Score:</label>'
+    +'<input type="number" class="scramble-score" placeholder="Total" min="20" max="60" style="width:80px;padding:4px 8px;border:1px solid var(--border);border-radius:3px;font-size:0.82rem" value="'+(data&&data.score||'')+'">'
+    +'<label style="font-size:0.78rem;color:var(--text-light);white-space:nowrap">Payout ($):</label>'
+    +'<input type="number" class="scramble-payout" placeholder="0" min="0" step="0.01" style="width:80px;padding:4px 8px;border:1px solid var(--border);border-radius:3px;font-size:0.82rem" value="'+(data&&data.payout||'')+'">'
+    +'</div>';
+
+  container.appendChild(div);
+
+  // Set player values
+  var selects = div.querySelectorAll('.scramble-player-sel');
+  for (var j = 0; j < selects.length; j++) {
+    var val2 = members[j] || '';
+    var inRoster2 = PLAYERS.some(function(p){return p.first+' '+p.last===val2;});
+    if (val2 && inRoster2) selects[j].value = val2;
+    else if (val2 && !inRoster2) selects[j].value = '__sub__';
+  }
+}
+
+function scramblePlayerChange(sel) {
+  var subInput = sel.nextElementSibling;
+  if (subInput) subInput.style.display = sel.value === '__sub__' ? 'block' : 'none';
+}
+
+async function saveScramble() {
+  var wk = parseInt(document.getElementById('scramble-week-sel').value);
+  if (!wk) { document.getElementById('scramble-save-status').textContent = 'Select a week.'; return; }
+  var teams = [];
+  document.querySelectorAll('.scramble-team').forEach(function(div) {
+    var players = [];
+    div.querySelectorAll('.scramble-player-sel').forEach(function(sel, i) {
+      var subInput = sel.nextElementSibling;
+      var val = sel.value === '__sub__' ? (subInput ? subInput.value.trim() : '') : sel.value;
+      if (val) players.push(val);
+    });
+    var score = parseInt(div.querySelector('.scramble-score').value) || null;
+    var payout = parseFloat(div.querySelector('.scramble-payout').value) || 0;
+    if (players.length) teams.push({players:players, score:score, payout:payout});
+  });
+  if (!DB.season2026.scrambles) DB.season2026.scrambles = [];
+  var idx = DB.season2026.scrambles.findIndex(function(e){return e.week===wk;});
+  var sched = SCHEDULE.find(function(s){return s.week===wk;})||{};
+  var entry = {week:wk, date:sched.date, course:sched.course, teams:teams};
+  if (idx>=0) DB.season2026.scrambles[idx]=entry; else DB.season2026.scrambles.push(entry);
+  var ok = await saveDB();
+  document.getElementById('scramble-save-status').textContent = ok ? 'Saved!' : 'Error saving.';
+  if (ok) { renderAll(); setTimeout(function(){closeModal('scramble-modal');},1200); }
+}
+
+async function deleteScramble() {
+  var wk = parseInt(document.getElementById('scramble-week-sel').value);
+  if (!wk || !confirm('Delete scramble for Week '+wk+'?')) return;
+  DB.season2026.scrambles = (DB.season2026.scrambles||[]).filter(function(e){return e.week!==wk;});
+  var ok = await saveDB();
+  if (ok) { renderAll(); closeModal('scramble-modal'); }
+}
+
 async function clearManualSkins() {
   if (!confirm('Clear all manually entered skins? Auto-calculated skins from hole scores are unaffected.')) return;
   DB.season2026.skins = [];
@@ -710,13 +859,68 @@ function computeStandings() {
   });
 }
 
+// ── SEASON MONEY ─────────────────────
+function computeSeasonMoney() {
+  // Returns {playerName: {skinsEarned, lbowSpent, lbowEarned, scrambleSpent, scrambleEarned, total}}
+  var money = {};
+  function ensure(name) {
+    if (!money[name]) money[name] = {skinsEarned:0, lbowSpent:0, lbowEarned:0, scrambleSpent:0, scrambleEarned:0};
+  }
+
+  // Skins — auto-calculated from weeks
+  (DB.season2026.weeks||[]).forEach(function(week) {
+    var result = calcWeekSkins(week);
+    if (!result) return;
+    ['t1','t2'].forEach(function(tier){
+      Object.keys(result[tier].earnings).forEach(function(name){
+        ensure(name);
+        money[name].skinsEarned += result[tier].earnings[name];
+      });
+    });
+  });
+
+  // LBOW
+  (DB.season2026.lbow||[]).forEach(function(e) {
+    (e.picks||[]).forEach(function(pick) {
+      ensure(pick.name);
+      money[pick.name].lbowSpent += 10;
+      if (!e.winner || e.winner === 'TIE') return;
+      if (pick.bartels === e.winner) {
+        money[pick.name].lbowEarned += e.payout || 0;
+      }
+    });
+  });
+
+  // Scrambles
+  (DB.season2026.scrambles||[]).forEach(function(s) {
+    (s.teams||[]).forEach(function(team) {
+      (team.players||[]).forEach(function(name) {
+        ensure(name);
+        money[name].scrambleSpent += 10;
+        if (team.payout > 0) money[name].scrambleEarned += team.payout;
+      });
+    });
+  });
+
+  // Compute totals
+  Object.keys(money).forEach(function(name) {
+    var m = money[name];
+    m.earned = m.skinsEarned + m.lbowEarned + m.scrambleEarned;
+    m.spent  = m.lbowSpent + m.scrambleSpent;
+    m.net    = m.earned - m.spent;
+  });
+
+  return money;
+}
+
 // ── RENDER ALL ────────────────────────
 function renderAll() {
   var s = computeStandings();
+  var seasonMoney = computeSeasonMoney();
   renderSchedule();
   renderHomeStandings(s);
   renderFullStandings(s);
-  renderHomeRecent();
+  renderFullStandings(s, seasonMoney);
   renderHomeUpNext();
   renderResults();
   renderPlayoffBracket(s);
@@ -754,9 +958,13 @@ function renderHomeStandings(st) {
 }
 
 // ── FULL STANDINGS ────────────────────
-function renderFullStandings(st) {
+function renderFullStandings(st, seasonMoney) {
+  function avg(s){return s.length?(s.reduce(function(a,b){return a+b;},0)/s.length).toFixed(1):'--';}
   document.getElementById('full-standings-body').innerHTML = st.map(function(p,i){
     var name = p.first+' '+p.last;
+    var mon = seasonMoney[name] || {earned:0, net:0};
+    var netCol = mon.net >= 0 ? 'color:#2d7a2d' : 'color:#c0392b';
+    var netStr = mon.net >= 0 ? '+$'+mon.net.toFixed(2) : '-$'+Math.abs(mon.net).toFixed(2);
     return '<tr style="cursor:pointer" onclick="openPlayerModal('+i+')">'
       +'<td style="text-align:center">'+rankBadge(i+1)+'</td>'
       +'<td class="name" style="color:var(--green-mid)">'+name+'</td>'
@@ -764,7 +972,8 @@ function renderFullStandings(st) {
       +'<td class="num" style="white-space:nowrap;font-size:0.78rem">'+p.w+'-'+p.t+'-'+p.l+'</td>'
       +'<td class="num">'+(p.hdcp!=null?p.hdcp:'--')+'</td>'
       +'<td class="num">'+avg(p.scores)+'</td>'
-      +'<td class="num">'+(p.skins||0)+'</td></tr>';
+      +'<td class="num" style="color:#2d7a2d">$'+mon.earned.toFixed(2)+'</td>'
+      +'<td class="num" style="font-weight:700;'+netCol+'">'+netStr+'</td></tr>';
   }).join('');
 }
 
@@ -968,6 +1177,39 @@ function switchResultsSeason(yr, btn) {
     btn.classList.add('active');
   }
   if (yr === '2025') render2025Results();
+}
+
+function renderScrambles() {
+  var el = document.getElementById('scrambles-content');
+  if (!el) return;
+  var scrambles = (DB.season2026.scrambles||[]).slice().sort(function(a,b){return b.week-a.week;});
+  if (!scrambles.length) {
+    el.innerHTML = '<div class="empty-state">No scramble results yet.</div>';
+    return;
+  }
+  var cards = scrambles.map(function(s) {
+    var sched = SCHEDULE.find(function(sc){return sc.week===s.week;})||{};
+    var totalPlayers = s.teams.reduce(function(a,t){return a+t.players.length;},0);
+    var pot = totalPlayers * 10;
+    // Sort teams by score
+    var sorted = s.teams.slice().sort(function(a,b){return (a.score||99)-(b.score||99);});
+    var teamRows = sorted.map(function(team, i) {
+      var won = team.payout > 0;
+      return '<div style="padding:10px 14px;border-bottom:1px solid #f0f0f0;'+(won?'background:var(--green-pale)':'')+'">'
+        +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">'
+        +'<div style="font-weight:'+(won?'700':'400')+'">'+rankBadge(i+1)+' '+team.players.join(', ')+'</div>'
+        +'<div style="font-size:0.9rem;font-weight:700;color:'+(won?'var(--green-mid)':'var(--text-dark)')+'">'+(team.score||'--')+'</div>'
+        +'</div>'
+        +(won?'<div style="font-size:0.72rem;color:var(--green-mid);font-weight:600">Won $'+team.payout.toFixed(2)+'</div>':'')
+        +'</div>';
+    }).join('');
+    return '<div class="card" style="margin-bottom:16px">'
+      +'<div class="card-header">'+cEmoji(sched.course)+' Week '+s.week+' Scramble &mdash; '+(s.date||'')+'</div>'
+      +'<div style="padding:8px 14px;font-size:0.72rem;color:var(--text-light)">$'+pot+' pot &middot; '+totalPlayers+' players &middot; '+s.teams.length+' teams</div>'
+      +teamRows
+      +'</div>';
+  }).join('');
+  el.innerHTML = cards;
 }
 
 function render2025LBOW() {
@@ -1348,6 +1590,38 @@ function toggleHistStats(btn) {
   var open = el.style.display !== 'none';
   el.style.display = open ? 'none' : 'block';
   if (arr) arr.innerHTML = open ? '&#9658;' : '&#9660;';
+}
+
+function buildMoneyStats(playerName) {
+  var mon = computeSeasonMoney()[playerName];
+  if (!mon || (mon.earned === 0 && mon.spent === 0)) return '';
+  var netCol = mon.net >= 0 ? '#2d7a2d' : '#c0392b';
+  var netStr = mon.net >= 0 ? '+$'+mon.net.toFixed(2) : '-$'+Math.abs(mon.net).toFixed(2);
+  var rows = [
+    {label:'Skins Earned', val:'$'+mon.skinsEarned.toFixed(2), col:'#2d7a2d'},
+    {label:'LBOW Earned', val:'$'+mon.lbowEarned.toFixed(2)+' <small style="color:var(--text-light)">(spent $'+mon.lbowSpent.toFixed(2)+')</small>', col:'#2d7a2d'},
+    {label:'Scramble Earned', val:'$'+mon.scrambleEarned.toFixed(2)+' <small style="color:var(--text-light)">(spent $'+mon.scrambleSpent.toFixed(2)+')</small>', col:'#2d7a2d'},
+  ].filter(function(r){return r.val !== '$0.00 <small style="color:var(--text-light)">(spent $0.00)</small>' && r.val !== '$0.00';});
+
+  var rowHtml = rows.map(function(r){
+    return '<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #f0f0f0;font-size:0.8rem">'
+      +'<span style="color:var(--text-mid)">'+r.label+'</span>'
+      +'<span>'+r.val+'</span>'
+      +'</div>';
+  }).join('');
+
+  return '<div style="padding:14px;border-bottom:1px solid var(--border)">'
+    +'<div style="font-size:0.7rem;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-light);margin-bottom:10px">2026 Season Money</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">'
+    +'<div style="text-align:center;background:var(--cream-dark);border-radius:4px;padding:8px">'
+    +'<div style="font-family:serif;font-size:1.2rem;font-weight:700;color:#2d7a2d">$'+mon.earned.toFixed(2)+'</div>'
+    +'<div style="font-size:0.62rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-light)">Earned</div></div>'
+    +'<div style="text-align:center;background:var(--cream-dark);border-radius:4px;padding:8px">'
+    +'<div style="font-family:serif;font-size:1.2rem;font-weight:700;color:'+netCol+'">'+netStr+'</div>'
+    +'<div style="font-size:0.62rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-light)">Net</div></div>'
+    +'</div>'
+    +rowHtml
+    +'</div>';
 }
 
 function build2026Stats(p, playerName) {
@@ -1732,6 +2006,7 @@ function openPlayerModal(idx) {
     +'<table style="width:100%"><thead><tr><th style="text-align:left;font-size:0.68rem">Date</th><th style="text-align:left;font-size:0.68rem">Opponent</th><th style="text-align:center;font-size:0.68rem">Status</th></tr></thead>'
     +'<tbody>'+scheduleRows+'</tbody></table>'
     +'</div>'
+    + buildMoneyStats(playerName)
     + build2026Stats(p, playerName)
     + buildHistoryStats(playerName);
 
