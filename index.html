@@ -915,18 +915,23 @@ function computeSeasonMoney() {
 
 // ── RENDER ALL ────────────────────────
 function renderAll() {
-  var s = computeStandings();
-  var seasonMoney = {}; try { seasonMoney = computeSeasonMoney(); } catch(e) { console.warn('seasonMoney error',e); }
-  renderSchedule();
-  renderHomeStandings(s);
-  renderHomeRecent();
-  renderFullStandings(s, seasonMoney);
-  renderHomeUpNext();
-  renderResults();
-  renderPlayoffBracket(s);
-  renderSkins();
-  renderHistory();
-  document.getElementById('hero-weeks-played').textContent = (DB.season2026.weeks||[]).length;
+  try {
+    var s = computeStandings();
+    var seasonMoney = {};
+    try { seasonMoney = computeSeasonMoney(); } catch(e) { console.warn('seasonMoney error',e); }
+    renderSchedule();
+    renderHomeStandings(s);
+    renderHomeRecent();
+    try { renderFullStandings(s, seasonMoney); } catch(e) { console.warn('renderFullStandings error',e); }
+    renderHomeUpNext();
+    renderResults();
+    renderPlayoffBracket(s);
+    renderSkins();
+    renderHistory();
+    document.getElementById('hero-weeks-played').textContent = (DB.season2026.weeks||[]).length;
+  } catch(e) {
+    console.error('renderAll error:', e);
+  }
 }
 
 // ── HELPERS ───────────────────────────
@@ -959,6 +964,7 @@ function renderHomeStandings(st) {
 
 // ── FULL STANDINGS ────────────────────
 function renderFullStandings(st, seasonMoney) {
+  seasonMoney = seasonMoney || {};
   function avg(s){return s.length?(s.reduce(function(a,b){return a+b;},0)/s.length).toFixed(1):'--';}
   document.getElementById('full-standings-body').innerHTML = st.map(function(p,i){
     var name = p.first+' '+p.last;
