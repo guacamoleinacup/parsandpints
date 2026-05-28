@@ -381,10 +381,10 @@ footer strong{color:var(--gold)}
 <footer><strong>Pars &amp; Pints Summer League</strong> &nbsp;&middot;&nbsp; Est. 2024</footer>
 
 <script>
-var BIN_ID  = '69d3f958856a68218905b11a';
-var API_KEY = '$2a$10$bi8u/5Db8qyxEsv/QYyvuu03trS2sjASrsf0TXa.m3CIfARihdZdS';
-var ADMIN_PW = 'dewgolf123!';
-var BIN_URL = 'https://api.jsonbin.io/v3/b/' + BIN_ID;
+var SUPA_URL = 'https://kqzbdzmzuyibphefbnrn.supabase.co';
+var SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtxemJkem16dXlpYnBoZWZibnJuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5Njk0NjMsImV4cCI6MjA5NTU0NTQ2M30.En_fofTXv9mSRblfstfmq-ShwOzhM7E2oALlvOSXJrA';
+var SUPA_HEADERS = {'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY};
+
 var DB = null;
 
 var PLAYERS = [
@@ -570,22 +570,23 @@ function setWeatherStatus(state) {
 async function loadDB() {
   setSyncStatus('loading');
   try {
-    var r = await fetch(BIN_URL + '/latest', {headers:{'X-Master-Key':API_KEY}});
-    var j = await r.json();
-    if (!j.record || Object.keys(j.record).length === 0) {
+    var r = await fetch(SUPA_URL + '/rest/v1/gamedata?id=eq.season2026&select=data', {headers: SUPA_HEADERS});
+    var rows = await r.json();
+    if (!rows || rows.length === 0) {
+      // No data yet — seed it
       DB = JSON.parse(JSON.stringify(SEED));
       await saveDB();
     } else {
-      DB = j.record;
-      // 2026 is live — only seed if missing
+      DB = {season2026: rows[0].data};
       if (!DB.season2026) DB.season2026 = JSON.parse(JSON.stringify(SEED.season2026));
       if (!DB.season2026.skins) DB.season2026.skins = [];
       if (!DB.season2026.lbow) DB.season2026.lbow = [];
-      // 2025 and 2024 are historical — always use hardcoded SEED, never JSONBin
+      if (!DB.season2026.scrambles) DB.season2026.scrambles = [];
       DB.season2025 = SEED.season2025;
       DB.season2024 = SEED.season2024;
     }
   } catch(e) {
+    console.error('loadDB error:', e);
     DB = JSON.parse(JSON.stringify(SEED));
     setSyncStatus('error');
   }
@@ -595,15 +596,26 @@ async function loadDB() {
 
 async function saveDB() {
   setSyncStatus('loading');
-  // Only save 2026 live data — historical seasons are hardcoded, never written to JSONBin
-  var toSave = {season2026: DB.season2026};
-  var r = await fetch(BIN_URL, {
-    method:'PUT',
-    headers:{'Content-Type':'application/json','X-Master-Key':API_KEY},
-    body:JSON.stringify(toSave)
+  var toSave = DB.season2026;
+  // Try update first, then insert if not exists
+  // PATCH first (update existing row)
+  var r = await fetch(SUPA_URL + '/rest/v1/gamedata?id=eq.season2026', {
+    method:'PATCH',
+    headers: Object.assign({}, SUPA_HEADERS, {'Prefer':'return=representation'}),
+    body: JSON.stringify({data: toSave})
   });
-  setSyncStatus(r.ok ? 'ok' : 'error');
-  return r.ok;
+  var patched = await r.json();
+  // If no row existed, INSERT
+  if (!patched || patched.length === 0) {
+    r = await fetch(SUPA_URL + '/rest/v1/gamedata', {
+      method:'POST',
+      headers: Object.assign({}, SUPA_HEADERS, {'Prefer':'return=minimal'}),
+      body: JSON.stringify({id:'season2026', data: toSave})
+    });
+  }
+  var ok = r.ok || r.status === 201 || r.status === 204;
+  setSyncStatus(ok ? 'ok' : 'error');
+  return ok;
 }
 
 // ── RESEED ────────────────────────────
