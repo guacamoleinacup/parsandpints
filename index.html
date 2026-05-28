@@ -916,10 +916,10 @@ function computeSeasonMoney() {
 // ── RENDER ALL ────────────────────────
 function renderAll() {
   var s = computeStandings();
-  var seasonMoney = computeSeasonMoney();
+  var seasonMoney = {}; try { seasonMoney = computeSeasonMoney(); } catch(e) { console.warn('seasonMoney error',e); }
   renderSchedule();
   renderHomeStandings(s);
-  renderFullStandings(s);
+  renderHomeRecent();
   renderFullStandings(s, seasonMoney);
   renderHomeUpNext();
   renderResults();
