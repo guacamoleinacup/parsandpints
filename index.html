@@ -1124,8 +1124,12 @@ function render2025Results() {
     }
 
     var mRows = (w.matchups||[]).map(function(m) {
-      var winners = calcHoleWinners(m, par, holeHdcps2025);
-      var popsP1 = calcPops(m.p1.hdcp, m.p2.hdcp);
+      var winners = [];
+      var popsP1 = {side:'p1',count:0};
+      try {
+        winners = calcHoleWinners(m, par, holeHdcps2025);
+        popsP1 = calcPops(m.p1.hdcp, m.p2.hdcp);
+      } catch(e) { console.warn('calcHoleWinners error',e); }
       var popHoles = getPopHoles(popsP1.count, holeHdcps2025);
       function makeRow(p, opp, side) {
         var sc = p.scores ? p.scores.map(function(score,hi){
@@ -1240,12 +1244,12 @@ function getPopHoles(count, holeHdcps) {
 
 function getPopStrokes(count, holeHdcps) {
   // Returns object {holeIdx: strokesReceived} — handles double pops
-  if (!count || !holeHdcps) return {};
+  if (!count || !holeHdcps || !holeHdcps.length) return {};
   var indexed = holeHdcps.map(function(h,i){return {idx:i,hdcp:h||99};});
   indexed.sort(function(a,b){return a.hdcp - b.hdcp;});
   var strokes = {};
   for (var i = 0; i < count; i++) {
-    var holeIdx = indexed[i % holeHdcps.length].idx;
+    var holeIdx = indexed[i % indexed.length].idx;
     strokes[holeIdx] = (strokes[holeIdx] || 0) + 1;
   }
   return strokes;
