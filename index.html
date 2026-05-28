@@ -570,7 +570,7 @@ function setWeatherStatus(state) {
 async function loadDB() {
   setSyncStatus('loading');
   try {
-    var r = await fetch(SUPA_URL + '/rest/v1/gamedata?id=eq.season2026&select=data', {headers: SUPA_HEADERS});
+    var r = await fetch(SUPA_URL + '/rest/v1/parsandpints?id=eq.season2026&select=data', {headers: SUPA_HEADERS});
     var rows = await r.json();
     if (!rows || rows.length === 0) {
       // No data yet — seed it
@@ -599,7 +599,7 @@ async function saveDB() {
   var toSave = DB.season2026;
   // Try update first, then insert if not exists
   // PATCH first (update existing row)
-  var r = await fetch(SUPA_URL + '/rest/v1/gamedata?id=eq.season2026', {
+  var r = await fetch(SUPA_URL + '/rest/v1/parsandpints?id=eq.season2026', {
     method:'PATCH',
     headers: Object.assign({}, SUPA_HEADERS, {'Prefer':'return=representation'}),
     body: JSON.stringify({data: toSave})
@@ -607,7 +607,7 @@ async function saveDB() {
   var patched = await r.json();
   // If no row existed, INSERT
   if (!patched || patched.length === 0) {
-    r = await fetch(SUPA_URL + '/rest/v1/gamedata', {
+    r = await fetch(SUPA_URL + '/rest/v1/parsandpints', {
       method:'POST',
       headers: Object.assign({}, SUPA_HEADERS, {'Prefer':'return=minimal'}),
       body: JSON.stringify({id:'season2026', data: toSave})
