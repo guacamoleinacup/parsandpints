@@ -971,6 +971,7 @@ async function renderHomeUpNext() {
   var standings=computeStandings();
   var played={};
   (DB.season2026.weeks||[]).forEach(function(w){played[w.weekNum]=true;});
+  (DB.season2026.scrambles||[]).forEach(function(s){if(s.teams&&s.teams.length)played[s.week]=true;});
   var next=null;
   for(var i=0;i<SCHEDULE.length;i++){if(!played[SCHEDULE[i].week]){next=SCHEDULE[i];break;}}
   var el=document.getElementById('home-up-next');
