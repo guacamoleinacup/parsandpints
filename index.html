@@ -203,7 +203,7 @@ footer strong{color:var(--gold)}
     <div class="notice">Points: 1 pt per hole won + 1 pt for match win = 10 pts available each week &middot; Weeks 5 &amp; 10 are scrambles (no matchup points, no skins) &middot; Weeks 16&ndash;18 are playoffs (top 8)</div>
     <div class="card">
       <table>
-        <thead><tr><th style="width:32px">#</th><th>Player</th><th class="num">Pts</th><th class="num">W-T-L</th><th class="num">Hdcp</th><th class="num">Avg</th><th class="num">Skins</th></tr></thead>
+        <thead><tr><th style="width:32px">#</th><th>Player</th><th class="num">Pts</th><th class="num">W-T-L</th><th class="num">Hdcp</th><th class="num">Avg</th><th class="num">Net $</th></tr></thead>
         <tbody id="full-standings-body"><tr><td colspan="9" style="text-align:center;padding:20px;color:var(--text-light)">Loading...</td></tr></tbody>
       </table>
     </div>
@@ -770,6 +770,53 @@ function renderHomeStandings(st) {
 }
 
 // ── FULL STANDINGS ────────────────────
+function computeSeasonMoney() {
+  var money = {};
+  function ensure(name) {
+    if (!money[name]) money[name] = {skinsEarned:0, lbowSpent:0, lbowEarned:0, scrambleSpent:0, scrambleEarned:0};
+  }
+  // Skins from weekly auto-calc
+  try {
+    (DB.season2026.weeks||[]).forEach(function(week){
+      var result = calcWeekSkins(week);
+      if (!result) return;
+      ['t1','t2'].forEach(function(tier){
+        Object.keys(result[tier].earnings||{}).forEach(function(name){
+          ensure(name);
+          money[name].skinsEarned += result[tier].earnings[name]||0;
+        });
+      });
+    });
+  } catch(e) { console.warn('seasonMoney skins error',e); }
+  // LBOW
+  (DB.season2026.lbow||[]).forEach(function(e){
+    (e.picks||[]).forEach(function(pick){
+      ensure(pick.name);
+      money[pick.name].lbowSpent += 10;
+      if (e.winner && e.winner !== 'TIE' && pick.bartels === e.winner) {
+        money[pick.name].lbowEarned += e.payout||0;
+      }
+    });
+  });
+  // Scrambles
+  (DB.season2026.scrambles||[]).forEach(function(s){
+    (s.teams||[]).forEach(function(team){
+      (team.players||[]).forEach(function(name){
+        ensure(name);
+        money[name].scrambleSpent += 10;
+        if (team.payout > 0) money[name].scrambleEarned += team.payout;
+      });
+    });
+  });
+  Object.keys(money).forEach(function(name){
+    var m = money[name];
+    m.earned = m.skinsEarned + m.lbowEarned + m.scrambleEarned;
+    m.spent  = m.lbowSpent + m.scrambleSpent;
+    m.net    = m.earned - m.spent;
+  });
+  return money;
+}
+
 function renderFullStandings(st) {
   document.getElementById('full-standings-body').innerHTML = st.map(function(p,i){
     var name = p.first+' '+p.last;
@@ -780,7 +827,14 @@ function renderFullStandings(st) {
       +'<td class="num" style="white-space:nowrap;font-size:0.78rem">'+p.w+'-'+p.t+'-'+p.l+'</td>'
       +'<td class="num">'+(p.hdcp!=null?p.hdcp:'--')+'</td>'
       +'<td class="num">'+avg(p.scores)+'</td>'
-      +'<td class="num">'+(p.skins||0)+'</td></tr>';
+      +(function(){
+        try {
+          var mon = computeSeasonMoney()[p.first+' '+p.last]||{net:0};
+          var col = mon.net>0?'color:#2d7a2d':mon.net<0?'color:#c0392b':'';
+          var str = mon.net>0?'+$'+mon.net.toFixed(2):mon.net<0?'-$'+Math.abs(mon.net).toFixed(2):'$0';
+          return '<td class="num" style="font-weight:600;'+col+'">'+str+'</td></tr>';
+        } catch(e) { return '<td class="num">-</td></tr>'; }
+      })();
   }).join('');
 }
 
