@@ -2818,7 +2818,7 @@ function addScrambleTeam(data) {
     +playerRows
     +'<div style="display:flex;gap:8px;align-items:center;margin-top:8px">'
     +'<label style="font-size:0.78rem;color:var(--text-light);white-space:nowrap">Score:</label>'
-    +'<input type="number" class="scramble-score" placeholder="E" min="-20" max="60" style="width:70px;padding:4px 8px;border:1px solid var(--border);border-radius:3px;font-size:0.82rem" value="'+(data&&data.score!=null?data.score:'')+'">'
+    +'<input type="text" class="scramble-score" placeholder="E or number" style="width:90px;padding:4px 8px;border:1px solid var(--border);border-radius:3px;font-size:0.82rem" value="'+(data&&data.score!=null?data.score:'')+'">'
     +'<label style="font-size:0.78rem;color:var(--text-light);white-space:nowrap">Payout ($):</label>'
     +'<input type="number" class="scramble-payout" placeholder="0" min="0" step="0.01" style="width:70px;padding:4px 8px;border:1px solid var(--border);border-radius:3px;font-size:0.82rem" value="'+(data&&data.payout?data.payout:'')+'"></div>';
   container.appendChild(div);
@@ -2845,8 +2845,9 @@ async function saveScramble() {
       var val=sel.value==='__sub__'?(sub?sub.value.trim():''):sel.value;
       if (val) players.push(val);
     });
-    var score=parseInt(div.querySelector('.scramble-score').value);
-    if (isNaN(score)) score=null;
+    var scoreRaw=div.querySelector('.scramble-score').value.trim();
+    var score=scoreRaw===''?null:(scoreRaw.toUpperCase()==='E'?'E':parseInt(scoreRaw));
+    if (score!=='E'&&isNaN(score)) score=null;
     var payout=parseFloat(div.querySelector('.scramble-payout').value)||0;
     if (players.length) teams.push({players:players,score:score,payout:payout});
   });
