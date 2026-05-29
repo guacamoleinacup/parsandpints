@@ -164,6 +164,7 @@ footer strong{color:var(--gold)}
     <button onclick="openWeekModal()">+ Add / Edit Week</button>
     <button onclick="openHistoryModal()">+ Add History</button>
         <button onclick="openLBOWModal()">&#127942; Add / Edit LBOW</button>
+        <button onclick="openScrambleModal()">&#127948; Add / Edit Scramble</button>
     <button onclick="reseedDB()" style="background:rgba(255,255,255,0.12);color:var(--gold);border:1px solid var(--gold)">&#8635; Re-seed Data</button>
     <button onclick="adminLogout()" style="background:rgba(255,255,255,0.15);color:var(--cream);margin-left:auto">Lock</button>
   </div>
@@ -237,6 +238,7 @@ footer strong{color:var(--gold)}
       <button class="inner-tab active" onclick="showInnerTab('results-scorecards',this);reactivateWeekTabs()">Scorecards</button>
       <button class="inner-tab" onclick="showInnerTab('results-skins',this)">&#128176; Skins</button>
       <button class="inner-tab" onclick="showInnerTab('results-lbow',this);renderLBOW()">&#127942; LBOW</button>
+      <button class="inner-tab" onclick="showInnerTab('results-scrambles',this);renderScrambles()">&#127948; Scrambles</button>
     </div>
     <div id="results-scorecards" class="inner-panel active">
       <div class="inner-tabs" id="results-tabs"></div>
@@ -255,6 +257,10 @@ footer strong{color:var(--gold)}
     <div id="results-lbow" class="inner-panel">
       <div class="notice">Low Bartels of the Week &mdash; Optional $10/week. Pick Zach, Dan (Kurt), or Ben. Lowest gross wins (Ben gets 3 strokes off). All correct pickers split the pot.</div>
       <div id="lbow-content"><div style="text-align:center;padding:20px;color:var(--text-light)">Loading...</div></div>
+    </div>
+    <div id="results-scrambles" class="inner-panel">
+      <div class="notice">Scramble weeks are a fun side pot &mdash; $10/player. Results don't count toward regular season standings.</div>
+      <div id="scrambles-content"><div style="text-align:center;padding:20px;color:var(--text-light)">Loading...</div></div>
     </div>
   </div><!-- end results-2026-panel -->
 
@@ -369,6 +375,24 @@ footer strong{color:var(--gold)}
         <button class="delete-btn" id="lbow-delete-btn" style="display:none" onclick="deleteLBOW()">Delete Week</button>
       </div>
       <div id="lbow-save-status" style="margin-top:8px;font-size:0.82rem;color:var(--green-mid)"></div>
+    </div>
+  </div>
+</div>
+
+<!-- SCRAMBLE MODAL -->
+<div class="modal-overlay" id="scramble-modal">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-header"><h3>&#127948; Add / Edit Scramble</h3><button class="modal-close" onclick="closeModal('scramble-modal')">&times;</button></div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group"><label>Week</label><select id="scramble-week-sel"><option value="">Select week...</option></select></div>
+      </div>
+      <div id="scramble-teams-container"></div>
+      <button onclick="addScrambleTeam()" style="background:none;border:1px dashed var(--border);padding:6px 14px;border-radius:3px;cursor:pointer;font-size:0.82rem;color:var(--text-light);margin-bottom:14px">+ Add Team</button>
+      <br>
+      <button class="save-btn" onclick="saveScramble()">Save Scramble</button>
+      <button class="delete-btn" id="scramble-delete-btn" style="display:none;margin-left:10px" onclick="deleteScramble()">Delete</button>
+      <div id="scramble-save-status" style="margin-top:8px;font-size:0.82rem;color:var(--green-mid)"></div>
     </div>
   </div>
 </div>
@@ -2749,6 +2773,151 @@ function closePhotoOverlay() {
 }
 
 // ── MODAL UTILS ───────────────────────
+
+function openScrambleModal() {
+  var sel = '<option value="">Select week...</option>'
+    + SCHEDULE.filter(function(s){return s.type==='scramble';}).map(function(s){
+        var existing = (DB.season2026.scrambles||[]).find(function(e){return e.week===s.week;});
+        return '<option value="'+s.week+'">Week '+s.week+' — '+s.date+(existing?' ✓':'')+'</option>';
+      }).join('');
+  document.getElementById('scramble-week-sel').innerHTML = sel;
+  document.getElementById('scramble-week-sel').onchange = scrambleWeekChange;
+  document.getElementById('scramble-teams-container').innerHTML = '';
+  document.getElementById('scramble-save-status').textContent = '';
+  document.getElementById('scramble-delete-btn').style.display = 'none';
+  for (var i = 0; i < 4; i++) addScrambleTeam();
+  document.getElementById('scramble-modal').classList.add('open');
+}
+
+function scrambleWeekChange() {
+  var wk = parseInt(document.getElementById('scramble-week-sel').value);
+  if (!wk) return;
+  var existing = (DB.season2026.scrambles||[]).find(function(e){return e.week===wk;});
+  document.getElementById('scramble-delete-btn').style.display = existing ? 'inline-block' : 'none';
+  if (!existing) return;
+  var container = document.getElementById('scramble-teams-container');
+  container.innerHTML = '';
+  (existing.teams||[]).forEach(function(team){ addScrambleTeam(team); });
+  document.getElementById('scramble-save-status').textContent = 'Editing existing entry.';
+}
+
+function addScrambleTeam(data) {
+  var container = document.getElementById('scramble-teams-container');
+  var teamNum = container.querySelectorAll('.scramble-team').length + 1;
+  var playerOpts = PLAYERS.map(function(p){
+    return '<option value="'+p.first+' '+p.last+'">'+p.first+' '+p.last+'</option>';
+  }).join('');
+
+  var div = document.createElement('div');
+  div.className = 'scramble-team';
+  div.style.cssText = 'border:1px solid var(--border);border-radius:4px;padding:10px;margin-bottom:10px';
+
+  var members = (data && data.players) ? data.players : ['','','',''];
+  var playerRows = members.map(function(val, i) {
+    var inRoster = val && PLAYERS.some(function(p){return p.first+' '+p.last===val;});
+    var isSub = val && !inRoster;
+    return '<div style="display:flex;gap:6px;margin-bottom:5px;align-items:center">'
+      +'<select class="scramble-player-sel" style="flex:1;padding:4px 6px;border:1px solid var(--border);border-radius:3px;font-size:0.8rem" onchange="scramblePlayerChange(this)">'
+      +'<option value="">Player '+(i+1)+'...</option>'
+      +playerOpts
+      +'<option value="__sub__">Sub (type name)...</option>'
+      +'</select>'
+      +'<input type="text" class="scramble-sub-input" placeholder="Sub name" style="display:'+(isSub?'block':'none')+';flex:1;padding:4px 6px;border:1px solid var(--border);border-radius:3px;font-size:0.8rem" value="'+(isSub?val:'')+'">'
+      +'</div>';
+  }).join('');
+
+  div.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'
+    +'<div style="font-weight:600;font-size:0.82rem">Team '+teamNum+'</div>'
+    +'<button onclick="this.closest(\'.scramble-team\').remove()" style="background:none;border:none;color:#c0392b;cursor:pointer;font-size:1rem">&times;</button>'
+    +'</div>'
+    +playerRows
+    +'<div style="display:flex;gap:8px;align-items:center;margin-top:8px">'
+    +'<label style="font-size:0.78rem;color:var(--text-light);white-space:nowrap">Score:</label>'
+    +'<input type="number" class="scramble-score" placeholder="Total" min="20" max="60" style="width:70px;padding:4px 8px;border:1px solid var(--border);border-radius:3px;font-size:0.82rem" value="'+(data&&data.score!=null?data.score:'')+'">'
+    +'<label style="font-size:0.78rem;color:var(--text-light);white-space:nowrap">Payout ($):</label>'
+    +'<input type="number" class="scramble-payout" placeholder="0" min="0" step="0.01" style="width:70px;padding:4px 8px;border:1px solid var(--border);border-radius:3px;font-size:0.82rem" value="'+(data&&data.payout?data.payout:'')+'">'
+    +'</div>';
+
+  container.appendChild(div);
+
+  // Set player dropdown values after DOM insert
+  var sels = div.querySelectorAll('.scramble-player-sel');
+  members.forEach(function(val, i) {
+    if (!val) return;
+    var inRoster = PLAYERS.some(function(p){return p.first+' '+p.last===val;});
+    sels[i].value = inRoster ? val : '__sub__';
+  });
+}
+
+function scramblePlayerChange(sel) {
+  var sub = sel.nextElementSibling;
+  if (sub) sub.style.display = sel.value === '__sub__' ? 'block' : 'none';
+}
+
+async function saveScramble() {
+  var wk = parseInt(document.getElementById('scramble-week-sel').value);
+  if (!wk) { document.getElementById('scramble-save-status').textContent = 'Select a week first.'; return; }
+  var teams = [];
+  document.querySelectorAll('.scramble-team').forEach(function(div) {
+    var players = [];
+    div.querySelectorAll('.scramble-player-sel').forEach(function(sel) {
+      var sub = sel.nextElementSibling;
+      var val = sel.value === '__sub__' ? (sub ? sub.value.trim() : '') : sel.value;
+      if (val) players.push(val);
+    });
+    var score = parseInt(div.querySelector('.scramble-score').value)||null;
+    var payout = parseFloat(div.querySelector('.scramble-payout').value)||0;
+    if (players.length) teams.push({players:players, score:score, payout:payout});
+  });
+  if (!DB.season2026.scrambles) DB.season2026.scrambles = [];
+  var sched = SCHEDULE.find(function(s){return s.week===wk;})||{};
+  var entry = {week:wk, date:sched.date, course:sched.course, teams:teams};
+  var idx = DB.season2026.scrambles.findIndex(function(e){return e.week===wk;});
+  if (idx>=0) DB.season2026.scrambles[idx]=entry; else DB.season2026.scrambles.push(entry);
+  var ok = await saveDB();
+  document.getElementById('scramble-save-status').textContent = ok ? 'Saved!' : 'Error saving.';
+  if (ok) { renderScrambles(); setTimeout(function(){closeModal('scramble-modal');},1200); }
+}
+
+async function deleteScramble() {
+  var wk = parseInt(document.getElementById('scramble-week-sel').value);
+  if (!wk || !confirm('Delete scramble for Week '+wk+'?')) return;
+  DB.season2026.scrambles = (DB.season2026.scrambles||[]).filter(function(e){return e.week!==wk;});
+  var ok = await saveDB();
+  if (ok) { renderScrambles(); closeModal('scramble-modal'); }
+}
+
+function renderScrambles() {
+  var el = document.getElementById('scrambles-content');
+  if (!el) return;
+  var scrambles = (DB.season2026.scrambles||[]).slice().sort(function(a,b){return b.week-a.week;});
+  if (!scrambles.length) {
+    el.innerHTML = '<div class="empty-state">No scramble results yet.</div>';
+    return;
+  }
+  el.innerHTML = scrambles.map(function(s) {
+    var sched = SCHEDULE.find(function(sc){return sc.week===s.week;})||{};
+    var totalPlayers = s.teams.reduce(function(a,t){return a+t.players.length;},0);
+    var pot = totalPlayers * 10;
+    var sorted = s.teams.slice().sort(function(a,b){return (a.score||99)-(b.score||99);});
+    var teamRows = sorted.map(function(team, i) {
+      var won = team.payout > 0;
+      return '<div style="padding:10px 14px;border-bottom:1px solid #f0f0f0;'+(won?'background:var(--green-pale)':'')+'">'
+        +'<div style="display:flex;justify-content:space-between;align-items:center">'
+        +'<div style="font-weight:'+(won?'700':'400')+'">'+rankBadge(i+1)+' '+team.players.join(', ')+'</div>'
+        +'<div style="font-size:0.95rem;font-weight:700;color:'+(won?'var(--green-mid)':'var(--text-dark)')+'">'+( team.score||'--')+'</div>'
+        +'</div>'
+        +(won?'<div style="font-size:0.72rem;color:var(--green-mid);font-weight:600;margin-top:2px">Won $'+team.payout.toFixed(2)+'</div>':'')
+        +'</div>';
+    }).join('');
+    return '<div class="card" style="margin-bottom:16px">'
+      +'<div class="card-header">'+cEmoji(sched.course)+' Week '+s.week+' Scramble — '+(s.date||'')+'</div>'
+      +'<div style="padding:6px 14px;font-size:0.72rem;color:var(--text-light)">$'+pot+' pot · '+totalPlayers+' players · '+s.teams.length+' teams</div>'
+      +teamRows
+      +'</div>';
+  }).join('');
+}
+
 function closeModal(id){document.getElementById(id).classList.remove('open');}
 document.querySelectorAll('.modal-overlay').forEach(function(o){o.addEventListener('click',function(e){if(e.target===o)o.classList.remove('open');});});
 
