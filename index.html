@@ -164,7 +164,6 @@ footer strong{color:var(--gold)}
     <button onclick="openWeekModal()">+ Add / Edit Week</button>
     <button onclick="openHistoryModal()">+ Add History</button>
         <button onclick="openLBOWModal()">&#127942; Add / Edit LBOW</button>
-        <button onclick="openScrambleModal()">&#127948; Add / Edit Scramble</button>
     <button onclick="reseedDB()" style="background:rgba(255,255,255,0.12);color:var(--gold);border:1px solid var(--gold)">&#8635; Re-seed Data</button>
     <button onclick="adminLogout()" style="background:rgba(255,255,255,0.15);color:var(--cream);margin-left:auto">Lock</button>
   </div>
@@ -204,7 +203,7 @@ footer strong{color:var(--gold)}
     <div class="notice">Points: 1 pt per hole won + 1 pt for match win = 10 pts available each week &middot; Weeks 5 &amp; 10 are scrambles (no matchup points, no skins) &middot; Weeks 16&ndash;18 are playoffs (top 8)</div>
     <div class="card">
       <table>
-        <thead><tr><th style="width:32px">#</th><th>Player</th><th class="num">Pts</th><th class="num">W-T-L</th><th class="num">Hdcp</th><th class="num">Avg</th><th class="num">Net $</th></tr></thead>
+        <thead><tr><th style="width:32px">#</th><th>Player</th><th class="num">Pts</th><th class="num">W-T-L</th><th class="num">Hdcp</th><th class="num">Avg</th><th class="num">Skins</th></tr></thead>
         <tbody id="full-standings-body"><tr><td colspan="9" style="text-align:center;padding:20px;color:var(--text-light)">Loading...</td></tr></tbody>
       </table>
     </div>
@@ -238,7 +237,6 @@ footer strong{color:var(--gold)}
       <button class="inner-tab active" onclick="showInnerTab('results-scorecards',this);reactivateWeekTabs()">Scorecards</button>
       <button class="inner-tab" onclick="showInnerTab('results-skins',this)">&#128176; Skins</button>
       <button class="inner-tab" onclick="showInnerTab('results-lbow',this);renderLBOW()">&#127942; LBOW</button>
-      <button class="inner-tab" onclick="showInnerTab('results-scrambles',this);renderScrambles()">&#127948; Scrambles</button>
     </div>
     <div id="results-scorecards" class="inner-panel active">
       <div class="inner-tabs" id="results-tabs"></div>
@@ -257,10 +255,6 @@ footer strong{color:var(--gold)}
     <div id="results-lbow" class="inner-panel">
       <div class="notice">Low Bartels of the Week &mdash; Optional $10/week. Pick Zach, Dan (Kurt), or Ben. Lowest gross wins (Ben gets 3 strokes off). All correct pickers split the pot.</div>
       <div id="lbow-content"><div style="text-align:center;padding:20px;color:var(--text-light)">Loading...</div></div>
-    </div>
-    <div id="results-scrambles" class="inner-panel">
-      <div class="notice">Scramble weeks are a fun side pot &mdash; $10/player. Results don't count toward regular season standings.</div>
-      <div id="scrambles-content"><div style="text-align:center;padding:20px;color:var(--text-light)">Loading...</div></div>
     </div>
   </div><!-- end results-2026-panel -->
 
@@ -379,24 +373,6 @@ footer strong{color:var(--gold)}
   </div>
 </div>
 
-<!-- SCRAMBLE MODAL -->
-<div class="modal-overlay" id="scramble-modal">
-  <div class="modal" style="max-width:520px">
-    <div class="modal-header"><h3>&#127948; Add / Edit Scramble</h3><button class="modal-close" onclick="closeModal('scramble-modal')">&times;</button></div>
-    <div class="modal-body">
-      <div class="form-row">
-        <div class="form-group"><label>Week</label><select id="scramble-week-sel"><option value="">Select week...</option></select></div>
-      </div>
-      <div id="scramble-teams-container"></div>
-      <button onclick="addScrambleTeam()" style="background:none;border:1px dashed var(--border);padding:6px 14px;border-radius:3px;cursor:pointer;font-size:0.82rem;color:var(--text-light);margin-bottom:14px">+ Add Team</button>
-      <br>
-      <button class="save-btn" onclick="saveScramble()">Save Scramble</button>
-      <button class="delete-btn" id="scramble-delete-btn" style="display:none;margin-left:10px" onclick="deleteScramble()">Delete</button>
-      <div id="scramble-save-status" style="margin-top:8px;font-size:0.82rem;color:var(--green-mid)"></div>
-    </div>
-  </div>
-</div>
-
 <!-- PHOTO OVERLAY -->
 <div id="photo-overlay" onclick="closePhotoOverlay()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:300;align-items:center;justify-content:center;cursor:zoom-out">
   <img id="photo-overlay-img" src="" style="max-width:90vw;max-height:90vh;border-radius:8px;box-shadow:0 8px 40px rgba(0,0,0,0.6)">
@@ -405,11 +381,10 @@ footer strong{color:var(--gold)}
 <footer><strong>Pars &amp; Pints Summer League</strong> &nbsp;&middot;&nbsp; Est. 2024</footer>
 
 <script>
+var BIN_ID  = '69d3f958856a68218905b11a';
+var API_KEY = '$2a$10$bi8u/5Db8qyxEsv/QYyvuu03trS2sjASrsf0TXa.m3CIfARihdZdS';
 var ADMIN_PW = 'dewgolf123!';
-var SUPA_URL = 'https://kqzbdzmzuyibphefbnrn.supabase.co';
-var SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtxemJkem16dXlpYnBoZWZibnJuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5Njk0NjMsImV4cCI6MjA5NTU0NTQ2M30.En_fofTXv9mSRblfstfmq-ShwOzhM7E2oALlvOSXJrA';
-var SUPA_HEADERS = {'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY};
-
+var BIN_URL = 'https://api.jsonbin.io/v3/b/' + BIN_ID;
 var DB = null;
 
 var PLAYERS = [
@@ -486,7 +461,7 @@ var COURSE_COORDS = {
 
 var STATS_2025 = {"Alex Hein":{"rounds":[{"week":1,"course":"Oakwood","total":45},{"week":2,"course":"Whitnall","total":43},{"week":3,"course":"Oakwood","total":50},{"week":6,"course":"Oakwood","total":43},{"week":8,"course":"Greenfield","total":45},{"week":9,"course":"Whitnall","total":46},{"week":11,"course":"Oakwood","total":43},{"week":12,"course":"Greenfield","total":39},{"week":13,"course":"Whitnall","total":43},{"week":14,"course":"Oakwood","total":42},{"week":15,"course":"Oakwood","total":46}],"playoffRounds":[],"overallAvg":44.09,"regularAvg":44.09,"bestRound":39,"worstRound":50,"roundsPlayed":11,"courseAvgs":{"Oakwood":{"avg":44.83,"rounds":6,"best":42,"worst":50},"Whitnall":{"avg":44.0,"rounds":3,"best":43,"worst":46},"Greenfield":{"avg":42.0,"rounds":2,"best":39,"worst":45}},"par3Avg":4.25,"par3VsPar":1.25,"par4Avg":4.72,"par4VsPar":0.72,"par5Avg":6.54,"par5VsPar":1.54},"Alex Henry":{"rounds":[{"week":1,"course":"Oakwood","total":45},{"week":2,"course":"Whitnall","total":54},{"week":3,"course":"Oakwood","total":47},{"week":6,"course":"Oakwood","total":51},{"week":8,"course":"Greenfield","total":53},{"week":9,"course":"Whitnall","total":51},{"week":11,"course":"Oakwood","total":47},{"week":12,"course":"Greenfield","total":45},{"week":13,"course":"Whitnall","total":43},{"week":14,"course":"Oakwood","total":55},{"week":15,"course":"Oakwood","total":49}],"playoffRounds":[],"overallAvg":49.09,"regularAvg":49.09,"bestRound":43,"worstRound":55,"roundsPlayed":11,"courseAvgs":{"Oakwood":{"avg":49.0,"rounds":6,"best":45,"worst":55},"Whitnall":{"avg":49.33,"rounds":3,"best":43,"worst":54},"Greenfield":{"avg":49.0,"rounds":2,"best":45,"worst":53}},"par3Avg":4.05,"par3VsPar":1.05,"par4Avg":5.61,"par4VsPar":1.61,"par5Avg":6.92,"par5VsPar":1.92},"Ben Bartels":{"rounds":[{"week":1,"course":"Oakwood","total":50},{"week":2,"course":"Whitnall","total":54},{"week":3,"course":"Oakwood","total":51},{"week":6,"course":"Oakwood","total":50},{"week":7,"course":"Oakwood","total":48},{"week":8,"course":"Greenfield","total":47},{"week":9,"course":"Whitnall","total":46},{"week":11,"course":"Oakwood","total":53},{"week":12,"course":"Greenfield","total":44},{"week":13,"course":"Whitnall","total":51},{"week":14,"course":"Oakwood","total":53},{"week":15,"course":"Oakwood","total":56}],"playoffRounds":[{"round":"RD1","course":"Greenfield","total":47},{"round":"RD2","course":"Oakwood","total":50}],"overallAvg":50.0,"regularAvg":50.25,"bestRound":44,"worstRound":56,"roundsPlayed":12,"courseAvgs":{"Oakwood":{"avg":51.38,"rounds":8,"best":48,"worst":56},"Whitnall":{"avg":50.33,"rounds":3,"best":46,"worst":54},"Greenfield":{"avg":46.0,"rounds":3,"best":44,"worst":47}},"par3Avg":4.55,"par3VsPar":1.55,"par4Avg":5.56,"par4VsPar":1.56,"par5Avg":7.0,"par5VsPar":2.0},"CJ Malek":{"rounds":[{"week":1,"course":"Oakwood","total":42},{"week":2,"course":"Whitnall","total":38},{"week":3,"course":"Oakwood","total":40},{"week":6,"course":"Oakwood","total":46},{"week":7,"course":"Oakwood","total":42},{"week":8,"course":"Greenfield","total":36},{"week":9,"course":"Whitnall","total":37},{"week":11,"course":"Oakwood","total":39},{"week":12,"course":"Greenfield","total":37},{"week":13,"course":"Whitnall","total":43},{"week":14,"course":"Oakwood","total":40},{"week":15,"course":"Oakwood","total":38}],"playoffRounds":[{"round":"RD1","course":"Greenfield","total":38}],"overallAvg":39.69,"regularAvg":39.83,"bestRound":36,"worstRound":46,"roundsPlayed":12,"courseAvgs":{"Oakwood":{"avg":41.0,"rounds":7,"best":38,"worst":46},"Whitnall":{"avg":39.33,"rounds":3,"best":37,"worst":43},"Greenfield":{"avg":37.0,"rounds":3,"best":36,"worst":38}},"par3Avg":3.86,"par3VsPar":0.86,"par4Avg":4.5,"par4VsPar":0.5,"par5Avg":5.07,"par5VsPar":0.07},"Dan Bartels":{"rounds":[{"week":1,"course":"Oakwood","total":45},{"week":2,"course":"Whitnall","total":45},{"week":3,"course":"Oakwood","total":44},{"week":6,"course":"Oakwood","total":49},{"week":7,"course":"Oakwood","total":40},{"week":8,"course":"Greenfield","total":44},{"week":9,"course":"Whitnall","total":41},{"week":11,"course":"Oakwood","total":44},{"week":12,"course":"Greenfield","total":39},{"week":13,"course":"Whitnall","total":43},{"week":14,"course":"Oakwood","total":43},{"week":15,"course":"Oakwood","total":42}],"playoffRounds":[{"round":"RD1","course":"Greenfield","total":46}],"overallAvg":43.46,"regularAvg":43.25,"bestRound":39,"worstRound":49,"roundsPlayed":12,"courseAvgs":{"Oakwood":{"avg":43.86,"rounds":7,"best":40,"worst":49},"Whitnall":{"avg":43.0,"rounds":3,"best":41,"worst":45},"Greenfield":{"avg":43.0,"rounds":3,"best":39,"worst":46}},"par3Avg":3.91,"par3VsPar":0.91,"par4Avg":4.87,"par4VsPar":0.87,"par5Avg":5.93,"par5VsPar":0.93},"Jack Balistreri":{"rounds":[{"week":1,"course":"Oakwood","total":48},{"week":2,"course":"Whitnall","total":48},{"week":3,"course":"Oakwood","total":48},{"week":6,"course":"Oakwood","total":49},{"week":7,"course":"Oakwood","total":50},{"week":8,"course":"Greenfield","total":42},{"week":9,"course":"Whitnall","total":52},{"week":11,"course":"Oakwood","total":51},{"week":12,"course":"Greenfield","total":43},{"week":13,"course":"Whitnall","total":41},{"week":14,"course":"Oakwood","total":43},{"week":15,"course":"Oakwood","total":54}],"playoffRounds":[{"round":"RD1","course":"Greenfield","total":50}],"overallAvg":47.62,"regularAvg":47.42,"bestRound":41,"worstRound":54,"roundsPlayed":12,"courseAvgs":{"Oakwood":{"avg":49.0,"rounds":7,"best":43,"worst":54},"Whitnall":{"avg":47.0,"rounds":3,"best":41,"worst":52},"Greenfield":{"avg":45.0,"rounds":3,"best":42,"worst":50}},"par3Avg":3.73,"par3VsPar":0.73,"par4Avg":5.35,"par4VsPar":1.35,"par5Avg":6.73,"par5VsPar":1.73},"Jack Mielke":{"rounds":[{"week":1,"course":"Oakwood","total":48},{"week":2,"course":"Whitnall","total":40},{"week":3,"course":"Oakwood","total":47},{"week":6,"course":"Oakwood","total":46},{"week":8,"course":"Greenfield","total":49},{"week":11,"course":"Oakwood","total":47},{"week":12,"course":"Greenfield","total":42},{"week":13,"course":"Whitnall","total":46},{"week":14,"course":"Oakwood","total":48},{"week":15,"course":"Oakwood","total":41}],"playoffRounds":[],"overallAvg":45.4,"regularAvg":45.4,"bestRound":40,"worstRound":49,"roundsPlayed":10,"courseAvgs":{"Oakwood":{"avg":46.17,"rounds":6,"best":41,"worst":48},"Whitnall":{"avg":43.0,"rounds":2,"best":40,"worst":46},"Greenfield":{"avg":45.5,"rounds":2,"best":42,"worst":49}},"par3Avg":4.0,"par3VsPar":1.0,"par4Avg":5.2,"par4VsPar":1.2,"par5Avg":6.33,"par5VsPar":1.33},"John Trepanier":{"rounds":[{"week":1,"course":"Oakwood","total":45},{"week":2,"course":"Whitnall","total":43},{"week":3,"course":"Oakwood","total":44},{"week":6,"course":"Oakwood","total":40},{"week":7,"course":"Oakwood","total":41},{"week":8,"course":"Greenfield","total":38},{"week":9,"course":"Whitnall","total":43},{"week":11,"course":"Oakwood","total":40},{"week":12,"course":"Greenfield","total":39},{"week":13,"course":"Whitnall","total":39},{"week":14,"course":"Oakwood","total":41},{"week":15,"course":"Oakwood","total":38}],"playoffRounds":[{"round":"RD1","course":"Greenfield","total":35},{"round":"RD2","course":"Oakwood","total":35},{"round":"RD3","course":"Whitnall","total":40}],"overallAvg":40.07,"regularAvg":40.92,"bestRound":35,"worstRound":45,"roundsPlayed":12,"courseAvgs":{"Oakwood":{"avg":40.5,"rounds":8,"best":35,"worst":45},"Whitnall":{"avg":41.25,"rounds":4,"best":39,"worst":43},"Greenfield":{"avg":37.33,"rounds":3,"best":35,"worst":39}},"par3Avg":3.59,"par3VsPar":0.59,"par4Avg":4.71,"par4VsPar":0.71,"par5Avg":5.47,"par5VsPar":0.47},"Josh Mack":{"rounds":[{"week":1,"course":"Oakwood","total":64},{"week":2,"course":"Whitnall","total":56},{"week":3,"course":"Oakwood","total":67},{"week":6,"course":"Oakwood","total":53},{"week":7,"course":"Oakwood","total":57},{"week":8,"course":"Greenfield","total":50},{"week":9,"course":"Whitnall","total":58},{"week":11,"course":"Oakwood","total":59},{"week":12,"course":"Greenfield","total":55},{"week":13,"course":"Whitnall","total":55},{"week":14,"course":"Oakwood","total":53},{"week":15,"course":"Oakwood","total":51}],"playoffRounds":[],"overallAvg":56.5,"regularAvg":56.5,"bestRound":50,"worstRound":67,"roundsPlayed":12,"courseAvgs":{"Oakwood":{"avg":57.71,"rounds":7,"best":51,"worst":67},"Whitnall":{"avg":56.33,"rounds":3,"best":55,"worst":58},"Greenfield":{"avg":52.5,"rounds":2,"best":50,"worst":55}},"par3Avg":4.77,"par3VsPar":1.77,"par4Avg":6.58,"par4VsPar":2.58,"par5Avg":7.6,"par5VsPar":2.6},"Matt Phillips":{"rounds":[{"week":1,"course":"Oakwood","total":46},{"week":2,"course":"Whitnall","total":51},{"week":3,"course":"Oakwood","total":52},{"week":6,"course":"Oakwood","total":47},{"week":7,"course":"Oakwood","total":51},{"week":8,"course":"Greenfield","total":53},{"week":9,"course":"Whitnall","total":44},{"week":11,"course":"Oakwood","total":51},{"week":12,"course":"Greenfield","total":45},{"week":13,"course":"Whitnall","total":43},{"week":14,"course":"Oakwood","total":52},{"week":15,"course":"Oakwood","total":45}],"playoffRounds":[{"round":"RD1","course":"Greenfield","total":41},{"round":"RD2","course":"Oakwood","total":48},{"round":"RD3","course":"Whitnall","total":46}],"overallAvg":47.67,"regularAvg":48.33,"bestRound":41,"worstRound":53,"roundsPlayed":12,"courseAvgs":{"Oakwood":{"avg":49.0,"rounds":8,"best":45,"worst":52},"Whitnall":{"avg":46.0,"rounds":4,"best":43,"worst":51},"Greenfield":{"avg":46.33,"rounds":3,"best":41,"worst":53}},"par3Avg":3.91,"par3VsPar":0.91,"par4Avg":5.56,"par4VsPar":1.56,"par5Avg":6.93,"par5VsPar":1.93},"Matt Sklander":{"rounds":[{"week":1,"course":"Oakwood","total":47},{"week":2,"course":"Whitnall","total":45},{"week":3,"course":"Oakwood","total":48},{"week":6,"course":"Oakwood","total":49},{"week":7,"course":"Oakwood","total":45},{"week":8,"course":"Greenfield","total":37},{"week":9,"course":"Whitnall","total":49},{"week":11,"course":"Oakwood","total":51},{"week":12,"course":"Greenfield","total":40},{"week":13,"course":"Whitnall","total":43},{"week":14,"course":"Oakwood","total":47},{"week":15,"course":"Oakwood","total":54}],"playoffRounds":[],"overallAvg":46.25,"regularAvg":46.25,"bestRound":37,"worstRound":54,"roundsPlayed":12,"courseAvgs":{"Oakwood":{"avg":48.71,"rounds":7,"best":45,"worst":54},"Whitnall":{"avg":45.67,"rounds":3,"best":43,"worst":49},"Greenfield":{"avg":38.5,"rounds":2,"best":37,"worst":40}},"par3Avg":4.14,"par3VsPar":1.14,"par4Avg":5.1,"par4VsPar":1.1,"par5Avg":6.07,"par5VsPar":1.07},"Mike Trepanier":{"rounds":[{"week":1,"course":"Oakwood","total":51},{"week":2,"course":"Whitnall","total":48},{"week":6,"course":"Oakwood","total":53},{"week":7,"course":"Oakwood","total":54},{"week":9,"course":"Whitnall","total":44},{"week":13,"course":"Whitnall","total":45},{"week":15,"course":"Oakwood","total":48}],"playoffRounds":[],"overallAvg":49.0,"regularAvg":49.0,"bestRound":44,"worstRound":54,"roundsPlayed":7,"courseAvgs":{"Oakwood":{"avg":51.5,"rounds":4,"best":48,"worst":54},"Whitnall":{"avg":45.67,"rounds":3,"best":44,"worst":48}},"par3Avg":4.42,"par3VsPar":1.42,"par4Avg":5.39,"par4VsPar":1.39,"par5Avg":7.11,"par5VsPar":2.11},"Nick Kriesel":{"rounds":[{"week":1,"course":"Oakwood","total":50},{"week":2,"course":"Whitnall","total":48},{"week":3,"course":"Oakwood","total":49},{"week":6,"course":"Oakwood","total":54},{"week":7,"course":"Oakwood","total":58},{"week":9,"course":"Whitnall","total":50},{"week":11,"course":"Oakwood","total":46},{"week":12,"course":"Greenfield","total":46},{"week":13,"course":"Whitnall","total":51},{"week":15,"course":"Oakwood","total":45}],"playoffRounds":[],"overallAvg":49.7,"regularAvg":49.7,"bestRound":45,"worstRound":58,"roundsPlayed":10,"courseAvgs":{"Oakwood":{"avg":50.33,"rounds":6,"best":45,"worst":58},"Whitnall":{"avg":49.67,"rounds":3,"best":48,"worst":51},"Greenfield":{"avg":46.0,"rounds":1,"best":46,"worst":46}},"par3Avg":3.94,"par3VsPar":0.94,"par4Avg":5.86,"par4VsPar":1.86,"par5Avg":6.77,"par5VsPar":1.77},"Sam Harmeyer":{"rounds":[{"week":1,"course":"Oakwood","total":48},{"week":2,"course":"Whitnall","total":43},{"week":3,"course":"Oakwood","total":47},{"week":6,"course":"Oakwood","total":50},{"week":7,"course":"Oakwood","total":45},{"week":8,"course":"Greenfield","total":46},{"week":9,"course":"Whitnall","total":52},{"week":11,"course":"Oakwood","total":43},{"week":12,"course":"Greenfield","total":39},{"week":13,"course":"Whitnall","total":46},{"week":14,"course":"Oakwood","total":49},{"week":15,"course":"Oakwood","total":47}],"playoffRounds":[{"round":"RD1","course":"Greenfield","total":44}],"overallAvg":46.08,"regularAvg":46.25,"bestRound":39,"worstRound":52,"roundsPlayed":12,"courseAvgs":{"Oakwood":{"avg":47.0,"rounds":7,"best":43,"worst":50},"Whitnall":{"avg":47.0,"rounds":3,"best":43,"worst":52},"Greenfield":{"avg":43.0,"rounds":3,"best":39,"worst":46}},"par3Avg":4.36,"par3VsPar":1.36,"par4Avg":5.0,"par4VsPar":1.0,"par5Avg":6.73,"par5VsPar":1.73},"Shaun Diederich":{"rounds":[{"week":1,"course":"Oakwood","total":45},{"week":2,"course":"Whitnall","total":39},{"week":3,"course":"Oakwood","total":45},{"week":6,"course":"Oakwood","total":42},{"week":7,"course":"Oakwood","total":44},{"week":8,"course":"Greenfield","total":37},{"week":9,"course":"Whitnall","total":39},{"week":11,"course":"Oakwood","total":44},{"week":12,"course":"Greenfield","total":38},{"week":13,"course":"Whitnall","total":49},{"week":14,"course":"Oakwood","total":44},{"week":15,"course":"Oakwood","total":48}],"playoffRounds":[{"round":"RD1","course":"Greenfield","total":42},{"round":"RD2","course":"Oakwood","total":50}],"overallAvg":43.29,"regularAvg":42.83,"bestRound":37,"worstRound":50,"roundsPlayed":12,"courseAvgs":{"Oakwood":{"avg":45.25,"rounds":8,"best":42,"worst":50},"Whitnall":{"avg":42.33,"rounds":3,"best":39,"worst":49},"Greenfield":{"avg":39.0,"rounds":3,"best":37,"worst":42}},"par3Avg":3.73,"par3VsPar":0.73,"par4Avg":4.77,"par4VsPar":0.77,"par5Avg":5.87,"par5VsPar":0.87},"Zach Bartels":{"rounds":[{"week":1,"course":"Oakwood","total":51},{"week":2,"course":"Whitnall","total":47},{"week":3,"course":"Oakwood","total":45},{"week":6,"course":"Oakwood","total":40},{"week":7,"course":"Oakwood","total":45},{"week":8,"course":"Greenfield","total":43},{"week":9,"course":"Whitnall","total":48},{"week":11,"course":"Oakwood","total":41},{"week":13,"course":"Whitnall","total":44},{"week":14,"course":"Oakwood","total":40},{"week":15,"course":"Oakwood","total":45}],"playoffRounds":[],"overallAvg":44.45,"regularAvg":44.45,"bestRound":40,"worstRound":51,"roundsPlayed":11,"courseAvgs":{"Oakwood":{"avg":43.86,"rounds":7,"best":40,"worst":51},"Whitnall":{"avg":46.33,"rounds":3,"best":44,"worst":48},"Greenfield":{"avg":43.0,"rounds":1,"best":43,"worst":43}},"par3Avg":4.05,"par3VsPar":1.05,"par4Avg":5.13,"par4VsPar":1.13,"par5Avg":5.4,"par5VsPar":0.4}};
 
-var WEEKS_2025 = [{"weekNum":1,"date":"Tue Apr 29, 2025","course":"Oakwood Golf Course","pars":[4,5,4,3,4,5,4,3,4],"hdcps":[7,5,15,17,3,13,1,9,11],"matchups":[{"p1":{"name":"Jack Balistreri","hdcp":11.8,"scores":[5,6,5,4,7,8,4,3,6],"total":48,"result":"","pts":4.0},"p2":{"name":"Mike Trepanier","hdcp":19.8,"scores":[6,9,6,3,5,7,5,5,5],"total":51,"result":"1UP","pts":6.0}},{"p1":{"name":"Ben Bartels","hdcp":18.8,"scores":[4,7,7,5,5,6,7,4,5],"total":50,"result":"1UP","pts":6.0},"p2":{"name":"John Trepanier","hdcp":4.8,"scores":[6,6,5,4,4,6,5,4,5],"total":45,"result":"","pts":4.0}},{"p1":{"name":"Dan Bartels","hdcp":14.2,"scores":[6,6,5,3,4,6,4,4,7],"total":45,"result":"5UP","pts":7.5},"p2":{"name":"Matt Sklander","hdcp":10.1,"scores":[6,7,6,4,4,7,5,4,4],"total":47,"result":"","pts":2.5}},{"p1":{"name":"Zach Bartels","hdcp":13.4,"scores":[6,7,5,4,7,7,6,3,6],"total":51,"result":"","pts":3.0},"p2":{"name":"Matt Phillips","hdcp":19.2,"scores":[6,5,6,3,5,6,4,5,6],"total":46,"result":"3UP","pts":7.0}},{"p1":{"name":"Shaun Diederich","hdcp":10.3,"scores":[6,5,5,4,4,6,6,5,4],"total":45,"result":"3UP","pts":7.0},"p2":{"name":"Jack Mielke","hdcp":6.1,"scores":[5,7,8,5,4,7,3,5,4],"total":48,"result":"","pts":3.0}},{"p1":{"name":"Sam Harmeyer","hdcp":10.7,"scores":[5,9,6,5,5,6,4,3,5],"total":48,"result":"","pts":4.0},"p2":{"name":"CJ Malek","hdcp":4.5,"scores":[5,5,4,4,5,5,5,4,5],"total":42,"result":"1UP","pts":6.0}},{"p1":{"name":"Alex Hein","hdcp":11.8,"scores":[5,6,4,4,5,7,4,5,5],"total":45,"result":"3UP","pts":7.0},"p2":{"name":"Josh Mack","hdcp":26.2,"scores":[10,10,9,4,7,7,5,3,9],"total":64,"result":"","pts":3.0}},{"p1":{"name":"Alex Henry","hdcp":19.7,"scores":[5,5,5,4,4,6,6,4,6],"total":45,"result":"AS","pts":5.0},"p2":{"name":"Nick Kriesel","hdcp":24.5,"scores":[5,8,7,4,6,6,6,3,5],"total":50,"result":"AS","pts":5.0}}]},{"weekNum":2,"date":"Tue May 6, 2025","course":"Whitnall Golf Course","pars":[4,4,3,4,4,3,5,4,4],"hdcps":[9,3,15,7,11,17,1,5,13],"matchups":[{"p1":{"name":"Ben Bartels","hdcp":18.8,"scores":[4,10,4,6,7,6,7,6,4],"total":54,"result":"","pts":4.0},"p2":{"name":"Matt Phillips","hdcp":18.9,"scores":[6,7,4,7,4,6,6,5,6],"total":51,"result":"1UP","pts":6.0}},{"p1":{"name":"Alex Hein","hdcp":12.0,"scores":[5,5,4,4,4,4,8,5,4],"total":43,"result":"5UP","pts":8.0},"p2":{"name":"Alex Henry","hdcp":19.7,"scores":[7,7,4,6,5,4,11,5,5],"total":54,"result":"","pts":2.0}},{"p1":{"name":"Shaun Diederich","hdcp":10.3,"scores":[5,5,3,4,5,4,4,4,5],"total":39,"result":"5UP","pts":8.0},"p2":{"name":"Josh Mack","hdcp":26.2,"scores":[6,7,5,8,6,5,6,9,4],"total":56,"result":"","pts":2.0}},{"p1":{"name":"Mike Trepanier","hdcp":19.8,"scores":[5,6,5,4,4,4,10,6,4],"total":48,"result":"3UP","pts":7.0},"p2":{"name":"Matt Sklander","hdcp":10.5,"scores":[5,3,3,5,7,6,5,6,5],"total":45,"result":"","pts":3.0}},{"p1":{"name":"Sam Harmeyer","hdcp":10.7,"scores":[4,4,4,4,5,5,6,5,6],"total":43,"result":"AS","pts":5.0},"p2":{"name":"Nick Kriesel","hdcp":24.5,"scores":[6,6,4,5,5,5,7,6,4],"total":48,"result":"AS","pts":5.0}},{"p1":{"name":"Dan Bartels","hdcp":14.1,"scores":[4,6,3,6,5,4,7,6,4],"total":45,"result":"","pts":4.0},"p2":{"name":"Jack Mielke","hdcp":6.1,"scores":[4,5,3,5,5,5,5,4,4],"total":40,"result":"1UP","pts":6.0}},{"p1":{"name":"Zach Bartels","hdcp":13.4,"scores":[5,5,5,7,5,3,7,5,5],"total":47,"result":"","pts":2.0},"p2":{"name":"CJ Malek","hdcp":4.5,"scores":[4,3,3,5,4,5,5,5,4],"total":38,"result":"5UP","pts":8.0}},{"p1":{"name":"Jack Balistreri","hdcp":12.8,"scores":[6,5,3,6,4,5,7,7,5],"total":48,"result":"","pts":3.5},"p2":{"name":"John Trepanier","hdcp":5.4,"scores":[5,6,3,4,6,4,4,5,6],"total":43,"result":"2UP","pts":6.5}}]},{"weekNum":3,"date":"Tue May 13, 2025","course":"Oakwood Golf Course","pars":[4,5,4,3,4,5,4,3,4],"hdcps":[6,2,18,10,12,8,16,14,4],"matchups":[{"p1":{"name":"Zach Bartels","hdcp":13.4,"scores":[5,6,3,4,6,5,6,4,6],"total":45,"result":"","pts":3.5},"p2":{"name":"Nick Kriesel","hdcp":24.5,"scores":[7,5,7,3,5,6,5,4,7],"total":49,"result":"2UP","pts":6.5}},{"p1":{"name":"Shaun Diederich","hdcp":10.2,"scores":[3,7,5,4,7,5,5,4,5],"total":45,"result":"","pts":3.5},"p2":{"name":"Alex Henry","hdcp":19.7,"scores":[5,7,7,3,6,6,5,4,4],"total":47,"result":"2UP","pts":6.5}},{"p1":{"name":"Sam Harmeyer","hdcp":10.7,"scores":[6,5,5,5,5,6,6,3,6],"total":47,"result":"3UP","pts":7.0},"p2":{"name":"Alex Hein","hdcp":12.2,"scores":[6,7,5,6,4,7,7,4,4],"total":50,"result":"","pts":3.0}},{"p1":{"name":"Jack Balistreri","hdcp":14.5,"scores":[6,6,7,3,7,7,5,3,4],"total":48,"result":"","pts":3.5},"p2":{"name":"Matt Sklander","hdcp":10.8,"scores":[5,6,5,5,6,6,5,4,6],"total":48,"result":"2UP","pts":6.5}},{"p1":{"name":"John Trepanier","hdcp":5.4,"scores":[4,8,4,4,5,5,5,3,6],"total":44,"result":"2UP","pts":6.5},"p2":{"name":"Matt Phillips","hdcp":18.7,"scores":[6,10,6,3,6,8,6,3,4],"total":52,"result":"","pts":3.5}},{"p1":{"name":"Mike Trepanier","hdcp":19.8,"scores":[],"total":null,"result":"DQ","pts":0.0},"p2":{"name":"Jack Mielke","hdcp":6.1,"scores":[7,6,4,4,4,9,4,4,5],"total":47,"result":"Win","pts":7.5}},{"p1":{"name":"Ben Bartels","hdcp":19.0,"scores":[6,8,7,3,6,7,5,4,5],"total":51,"result":"","pts":3.0},"p2":{"name":"CJ Malek","hdcp":4.5,"scores":[5,4,6,4,5,5,4,3,4],"total":40,"result":"3UP","pts":7.0}},{"p1":{"name":"Dan Bartels","hdcp":13.5,"scores":[5,7,4,5,5,6,4,4,4],"total":44,"result":"5UP","pts":8.0},"p2":{"name":"Josh Mack","hdcp":26.2,"scores":[10,7,10,6,7,9,8,4,6],"total":67,"result":"","pts":2.0}}]},{"weekNum":6,"date":"Tue Jun 3, 2025","course":"Oakwood Golf Course","pars":[4,5,4,3,4,5,4,3,4],"hdcps":[7,5,15,17,3,13,1,9,11],"matchups":[{"p1":{"name":"Josh Mack","hdcp":26.2,"scores":[7,6,5,5,7,8,5,5,5],"total":53,"result":"AS","pts":5.0},"p2":{"name":"Jack Mielke","hdcp":6.1,"scores":[6,5,6,3,4,6,6,4,6],"total":46,"result":"AS","pts":5.0}},{"p1":{"name":"Matt Phillips","hdcp":18.4,"scores":[6,6,5,3,5,8,5,4,5],"total":47,"result":"1UP","pts":6.0},"p2":{"name":"Nick Kriesel","hdcp":24.1,"scores":[6,10,7,3,5,7,6,4,6],"total":54,"result":"","pts":4.0}},{"p1":{"name":"Jack Balistreri","hdcp":14.5,"scores":[6,7,5,4,4,6,8,4,5],"total":49,"result":"1UP","pts":6.0},"p2":{"name":"CJ Malek","hdcp":4.5,"scores":[5,7,4,7,4,5,5,4,5],"total":46,"result":"","pts":4.0}},{"p1":{"name":"Matt Sklander","hdcp":10.8,"scores":[5,6,5,5,6,7,5,5,5],"total":49,"result":"","pts":4.0},"p2":{"name":"Alex Henry","hdcp":19.7,"scores":[6,8,7,4,5,5,7,4,5],"total":51,"result":"1UP","pts":6.0}},{"p1":{"name":"John Trepanier","hdcp":5.8,"scores":[4,6,4,4,5,4,5,3,5],"total":40,"result":"","pts":4.0},"p2":{"name":"Alex Hein","hdcp":11.7,"scores":[7,5,5,3,4,6,5,5,3],"total":43,"result":"1UP","pts":6.0}},{"p1":{"name":"Ben Bartels","hdcp":19.2,"scores":[6,8,4,4,6,6,5,6,5],"total":50,"result":"","pts":3.0},"p2":{"name":"Shaun Diederich","hdcp":10.8,"scores":[4,6,4,4,4,5,5,4,6],"total":42,"result":"3UP","pts":7.0}},{"p1":{"name":"Mike Trepanier","hdcp":19.4,"scores":[7,6,5,6,5,7,6,4,7],"total":53,"result":"AS","pts":5.0},"p2":{"name":"Sam Harmeyer","hdcp":10.7,"scores":[5,7,7,4,4,6,6,6,5],"total":50,"result":"AS","pts":5.0}},{"p1":{"name":"Dan Bartels","hdcp":13.7,"scores":[7,7,5,3,6,6,6,3,6],"total":49,"result":"","pts":2.0},"p2":{"name":"Zach Bartels","hdcp":13.4,"scores":[4,5,4,4,4,5,6,2,6],"total":40,"result":"5UP","pts":8.0}}]},{"weekNum":7,"date":"Tue Jun 10, 2025","course":"Oakwood Golf Course","pars":[4,5,4,3,4,5,4,3,4],"hdcps":[6,2,18,10,12,8,16,14,4],"matchups":[{"p1":{"name":"John Trepanier","hdcp":5.8,"scores":[4,6,5,4,5,5,5,3,4],"total":41,"result":"1UP","pts":6.0},"p2":{"name":"Shaun Diederich","hdcp":10.7,"scores":[5,5,5,4,5,7,5,3,5],"total":44,"result":"","pts":4.0}},{"p1":{"name":"Ben Bartels","hdcp":19.2,"scores":[5,6,6,3,6,7,5,4,6],"total":48,"result":"","pts":3.5},"p2":{"name":"Dan Bartels","hdcp":13.7,"scores":[5,5,3,4,4,6,5,4,4],"total":40,"result":"2UP","pts":6.5}},{"p1":{"name":"Jack Balistreri","hdcp":14.5,"scores":[5,6,6,6,5,7,5,4,6],"total":50,"result":"AS","pts":5.0},"p2":{"name":"Josh Mack","hdcp":26.2,"scores":[7,6,8,6,4,8,5,4,9],"total":57,"result":"AS","pts":5.0}},{"p1":{"name":"Matt Phillips","hdcp":18.4,"scores":[6,10,4,4,5,6,5,3,8],"total":51,"result":"WIN","pts":7.5},"p2":{"name":"Alex Hein","hdcp":12.2,"scores":[],"total":null,"result":"DQ","pts":0.0}},{"p1":{"name":"Jack Mielke","hdcp":6.1,"scores":[],"total":null,"result":"DQ","pts":0.0},"p2":{"name":"Alex Henry","hdcp":19.7,"scores":[],"total":null,"result":"DQ","pts":0.0}},{"p1":{"name":"CJ Malek","hdcp":4.5,"scores":[5,5,6,4,5,5,5,3,4],"total":42,"result":"1UP","pts":6.0},"p2":{"name":"Nick Kriesel","hdcp":24.1,"scores":[9,8,6,4,5,6,8,4,8],"total":58,"result":"","pts":4.0}},{"p1":{"name":"Mike Trepanier","hdcp":19.4,"scores":[7,6,8,4,5,8,5,6,5],"total":54,"result":"","pts":4.0},"p2":{"name":"Zach Bartels","hdcp":13.4,"scores":[4,7,4,6,6,4,5,5,4],"total":45,"result":"1UP","pts":6.0}},{"p1":{"name":"Matt Sklander","hdcp":10.8,"scores":[4,6,5,4,7,5,4,5,5],"total":45,"result":"","pts":4.0},"p2":{"name":"Sam Harmeyer","hdcp":10.4,"scores":[5,8,4,4,6,4,5,4,5],"total":45,"result":"1UP","pts":6.0}}]},{"weekNum":8,"date":"Tue Jun 17, 2025","course":"Greenfield Golf Course","pars":[4,4,4,4,4,3,4,3,4],"hdcps":[9,7,5,3,11,17,1,15,13],"matchups":[{"p1":{"name":"CJ Malek","hdcp":4.5,"scores":[5,3,4,4,5,3,5,4,3],"total":36,"result":"4UP","pts":7.5},"p2":{"name":"A Hein(12.2)","hdcp":12.2,"scores":[6,5,6,5,4,4,8,4,3],"total":45,"result":"","pts":2.5}},{"p1":{"name":"Matt Sklander","hdcp":11.1,"scores":[5,3,5,4,6,2,5,3,4],"total":37,"result":"AS","pts":5.0},"p2":{"name":"Zach Bartels","hdcp":13.5,"scores":[4,6,4,6,4,4,5,6,4],"total":43,"result":"AS","pts":5.0}},{"p1":{"name":"John Trepanier","hdcp":5.8,"scores":[5,6,4,5,5,2,3,4,4],"total":38,"result":"1UP","pts":6.0},"p2":{"name":"Dan Bartels","hdcp":13.2,"scores":[3,7,5,5,5,4,6,4,5],"total":44,"result":"","pts":4.0}},{"p1":{"name":"Mike Trepanier","hdcp":19.4,"scores":[],"total":null,"result":"DQ","pts":0.0},"p2":{"name":"Ben Bartels","hdcp":19.2,"scores":[6,5,5,5,7,4,4,6,5],"total":47,"result":"WIN","pts":7.5}},{"p1":{"name":"Jack Mielke","hdcp":6.1,"scores":[6,7,6,6,5,5,5,5,4],"total":49,"result":"","pts":3.0},"p2":{"name":"Sam Harmeyer","hdcp":10.4,"scores":[5,4,6,6,4,6,5,5,5],"total":46,"result":"3UP","pts":7.0}},{"p1":{"name":"Josh Mack","hdcp":26.2,"scores":[5,9,5,6,5,4,6,4,6],"total":50,"result":"4UP","pts":7.5},"p2":{"name":"Alex Henry","hdcp":19.7,"scores":[5,5,6,8,5,4,7,6,7],"total":53,"result":"","pts":2.5}},{"p1":{"name":"Jack Balistreri","hdcp":14.8,"scores":[5,7,4,5,4,4,6,3,4],"total":42,"result":"WIN","pts":7.5},"p2":{"name":"Nick Kriesel","hdcp":24.1,"scores":[],"total":null,"result":"DQ","pts":0.0}},{"p1":{"name":"Matt Phillips","hdcp":18.4,"scores":[6,5,6,4,7,5,7,5,8],"total":53,"result":"","pts":2.5},"p2":{"name":"Shaun Diederich","hdcp":10.7,"scores":[4,5,4,4,4,2,6,4,4],"total":37,"result":"4UP","pts":7.5}}]},{"weekNum":9,"date":"Tue Jun 24, 2025","course":"Whitnall Golf Course","pars":[4,4,3,4,4,3,5,4,4],"hdcps":[9,3,15,7,11,17,1,5,13],"matchups":[{"p1":{"name":"Jack Balistreri","hdcp":15.3,"scores":[5,7,4,6,6,6,8,5,5],"total":52,"result":"","pts":3.5},"p2":{"name":"Alex Henry","hdcp":19.7,"scores":[6,7,3,6,5,4,9,6,5],"total":51,"result":"2UP","pts":6.5}},{"p1":{"name":"Alex Hein","hdcp":12.6,"scores":[5,5,4,4,5,5,8,5,5],"total":46,"result":"","pts":3.5},"p2":{"name":"Nick Kriesel","hdcp":24.1,"scores":[5,6,3,7,5,3,9,6,6],"total":50,"result":"2UP","pts":6.5}},{"p1":{"name":"Jack Mielke","hdcp":6.1,"scores":[],"total":null,"result":"DQ","pts":0.0},"p2":{"name":"Zach Bartels","hdcp":13.5,"scores":[6,7,4,5,7,4,5,5,5],"total":48,"result":"WIN","pts":7.5}},{"p1":{"name":"CJ Malek","hdcp":4.7,"scores":[5,4,3,4,5,3,5,5,3],"total":37,"result":"","pts":3.5},"p2":{"name":"Shaun Diederich","hdcp":10.6,"scores":[4,5,4,4,4,3,5,5,5],"total":39,"result":"2UP","pts":6.5}},{"p1":{"name":"Josh Mack","hdcp":26.2,"scores":[6,8,5,6,7,6,9,6,5],"total":58,"result":"1UP","pts":6.0},"p2":{"name":"Sam Harmeyer","hdcp":10.4,"scores":[5,5,5,7,5,5,8,6,6],"total":52,"result":"","pts":4.0}},{"p1":{"name":"Matt Phillips","hdcp":18.4,"scores":[5,5,4,4,5,3,5,7,6],"total":44,"result":"","pts":3.5},"p2":{"name":"Dan Bartels","hdcp":13.2,"scores":[4,6,3,4,4,6,5,5,4],"total":41,"result":"2UP","pts":6.5}},{"p1":{"name":"Matt Sklander","hdcp":11.0,"scores":[4,7,4,5,4,4,6,6,6],"total":46,"result":"AS","pts":5.0},"p2":{"name":"Ben Bartels","hdcp":19.7,"scores":[5,6,6,6,5,5,6,5,5],"total":49,"result":"AS","pts":5.0}},{"p1":{"name":"John Trepanier","hdcp":5.9,"scores":[5,4,3,5,6,5,5,5,5],"total":43,"result":"","pts":3.0},"p2":{"name":"Mike Trepanier","hdcp":19.4,"scores":[7,7,3,5,5,4,6,3,4],"total":44,"result":"3UP","pts":7.0}}]},{"weekNum":11,"date":"Tue Jul 8, 2025","course":"Oakwood Golf Course","pars":[4,5,4,3,4,5,4,3,4],"hdcps":[6,2,18,10,12,8,16,14,4],"matchups":[{"p1":{"name":"Alex Henry","hdcp":19.7,"scores":[6,6,4,4,7,6,5,4,5],"total":47,"result":"","pts":3.5},"p2":{"name":"Zach Bartels","hdcp":13.5,"scores":[4,5,5,3,6,4,5,4,5],"total":41,"result":"2UP","pts":6.5}},{"p1":{"name":"Nick Kriesel","hdcp":23.7,"scores":[6,5,7,5,4,5,6,4,4],"total":46,"result":"2UP","pts":6.5},"p2":{"name":"Dan Bartels","hdcp":12.9,"scores":[4,5,4,4,5,6,5,6,5],"total":44,"result":"","pts":3.5}},{"p1":{"name":"Jack Mielke","hdcp":6.1,"scores":[7,7,6,3,6,5,4,4,5],"total":47,"result":"","pts":2.5},"p2":{"name":"John Trepanier","hdcp":5.8,"scores":[4,5,4,5,5,5,5,3,4],"total":40,"result":"4UP","pts":7.5}},{"p1":{"name":"Alex Hein","hdcp":11.4,"scores":[4,6,5,5,5,6,4,4,4],"total":43,"result":"1UP","pts":6.0},"p2":{"name":"Shaun Diederich","hdcp":10.6,"scores":[5,7,4,4,6,7,3,4,4],"total":44,"result":"","pts":4.0}},{"p1":{"name":"Josh Mack","hdcp":26.2,"scores":[7,9,7,6,9,7,5,4,5],"total":59,"result":"","pts":3.0},"p2":{"name":"Ben Bartels","hdcp":19.7,"scores":[5,8,6,6,6,6,5,4,7],"total":53,"result":"3UP","pts":7.0}},{"p1":{"name":"CJ Malek","hdcp":4.7,"scores":[4,5,5,4,4,5,4,3,5],"total":39,"result":"WIN","pts":7.5},"p2":{"name":"Mike Trepanier","hdcp":18.7,"scores":[],"total":null,"result":"DQ","pts":0.0}},{"p1":{"name":"Jack Balistreri","hdcp":15.3,"scores":[7,7,5,5,5,9,4,3,6],"total":51,"result":"","pts":4.0},"p2":{"name":"Sam Harmeyer","hdcp":10.1,"scores":[null,7,5,4,4,5,4,4,4],"total":43,"result":"1UP","pts":6.0}},{"p1":{"name":"Matt Phillips","hdcp":19.7,"scores":[6,8,6,4,7,6,6,4,4],"total":51,"result":"AS","pts":5.0},"p2":{"name":"Matt Sklander","hdcp":11.0,"scores":[7,6,5,4,6,5,6,5,7],"total":51,"result":"AS","pts":5.0}}]},{"weekNum":12,"date":"Tue Jul 15, 2025","course":"Greenfield Golf Course","pars":[4,4,4,4,4,3,4,3,4],"hdcps":[9,7,5,3,11,17,1,15,13],"matchups":[{"p1":{"name":"Jack Mielke","hdcp":6.1,"scores":[5,5,6,4,5,3,5,4,5],"total":42,"result":"","pts":2.5},"p2":{"name":"Matt Phillips","hdcp":19.6,"scores":[5,5,6,5,5,3,7,3,6],"total":45,"result":"4UP","pts":7.5}},{"p1":{"name":"Josh Mack","hdcp":26.2,"scores":[4,10,7,6,5,4,8,5,6],"total":55,"result":"","pts":3.5},"p2":{"name":"John Trepanier","hdcp":5.9,"scores":[4,4,7,4,4,4,5,3,4],"total":39,"result":"2UP","pts":6.5}},{"p1":{"name":"CJ Malek","hdcp":4.7,"scores":[4,5,5,5,3,3,4,4,4],"total":37,"result":"AS","pts":5.0},"p2":{"name":"Matt Sklander","hdcp":11.9,"scores":[5,6,5,4,4,4,4,4,4],"total":40,"result":"AS","pts":5.0}},{"p1":{"name":"Sam Harmeyer","hdcp":10.1,"scores":[6,5,4,5,4,3,4,4,4],"total":39,"result":"WIN","pts":7.5},"p2":{"name":"Zach Bartels","hdcp":13.2,"scores":[],"total":null,"result":"DQ","pts":0.0}},{"p1":{"name":"Jack Balistreri","hdcp":15.8,"scores":[6,7,5,4,6,3,5,3,4],"total":43,"result":"WIN","pts":7.5},"p2":{"name":"Shaun Diederich","hdcp":10.5,"scores":[5,4,5,5,4,3,6,3,3],"total":38,"result":"DQ","pts":0.0}},{"p1":{"name":"Nick Kriesel","hdcp":23.2,"scores":[5,7,5,5,5,5,5,3,6],"total":46,"result":"WIN","pts":7.5},"p2":{"name":"Mike Trepanier","hdcp":18.7,"scores":[],"total":null,"result":"DQ","pts":0.0}},{"p1":{"name":"Alex Hein","hdcp":11.3,"scores":[5,5,6,4,4,2,4,5,4],"total":39,"result":"AS","pts":5.0},"p2":{"name":"Dan Bartels","hdcp":12.0,"scores":[4,6,5,4,4,2,5,4,5],"total":39,"result":"AS","pts":5.0}},{"p1":{"name":"Alex Henry","hdcp":19.9,"scores":[7,6,5,5,5,4,5,4,4],"total":45,"result":"","pts":3.5},"p2":{"name":"Ben Bartels","hdcp":19.7,"scores":[6,5,5,5,4,3,7,4,5],"total":44,"result":"2UP","pts":6.5}}]},{"weekNum":13,"date":"Tue Jul 22, 2025","course":"Whitnall Golf Course","pars":[4,4,3,4,4,3,5,4,4],"hdcps":[9,3,15,7,11,17,1,5,13],"matchups":[{"p1":{"name":"Alex Henry","hdcp":20.3,"scores":[7,4,3,5,4,3,5,7,5],"total":43,"result":"2UP","pts":6.5},"p2":{"name":"John Trepanier","hdcp":6.4,"scores":[5,4,3,4,4,4,6,5,4],"total":39,"result":"","pts":3.5}},{"p1":{"name":"CJ Malek","hdcp":4.7,"scores":[4,6,5,4,5,5,5,5,4],"total":43,"result":"2UP","pts":6.5},"p2":{"name":"Jack Mielke","hdcp":6.6,"scores":[5,6,4,5,5,4,6,6,5],"total":46,"result":"","pts":3.5}},{"p1":{"name":"Jack Balistreri","hdcp":15.8,"scores":[5,6,3,4,4,3,6,6,4],"total":41,"result":"3UP","pts":7.0},"p2":{"name":"Zach Bartels","hdcp":13.2,"scores":[5,6,4,4,6,4,5,6,4],"total":44,"result":"","pts":3.0}},{"p1":{"name":"Alex Hein","hdcp":10.9,"scores":[6,5,5,3,5,4,7,3,5],"total":43,"result":"AS","pts":5.0},"p2":{"name":"Mike Trepanier","hdcp":18.7,"scores":[8,4,5,5,5,4,5,5,4],"total":45,"result":"AS","pts":5.0}},{"p1":{"name":"Josh Mack","hdcp":26.2,"scores":[6,9,5,6,6,5,7,5,6],"total":55,"result":"","pts":2.5},"p2":{"name":"Matt Phillips","hdcp":19.9,"scores":[6,5,4,4,5,5,6,5,3],"total":43,"result":"4UP","pts":7.5}},{"p1":{"name":"Nick Kriesel","hdcp":23.2,"scores":[6,7,4,6,5,6,6,6,5],"total":51,"result":"","pts":3.5},"p2":{"name":"Matt Sklander","hdcp":11.8,"scores":[5,4,3,4,5,4,7,4,7],"total":43,"result":"2UP","pts":6.5}},{"p1":{"name":"Sam Harmeyer","hdcp":10.1,"scores":[5,6,4,4,6,4,8,5,4],"total":46,"result":"1UP","pts":6.0},"p2":{"name":"Ben Bartels","hdcp":20.0,"scores":[6,5,5,5,6,5,9,6,4],"total":51,"result":"","pts":4.0}},{"p1":{"name":"Shaun Diederich","hdcp":10.5,"scores":[6,6,4,6,7,4,7,5,4],"total":49,"result":"","pts":2.5},"p2":{"name":"Dan Bartels","hdcp":11.3,"scores":[4,6,3,4,7,5,6,4,4],"total":43,"result":"4UP","pts":7.5}}]},{"weekNum":14,"date":"Tue Jul 29, 2025","course":"Oakwood Golf Course","pars":[4,5,4,3,4,5,4,3,4],"hdcps":[7,5,15,17,3,13,1,9,11],"matchups":[{"p1":{"name":"Jack Balistreri","hdcp":15.8,"scores":[5,5,6,3,6,6,4,3,5],"total":43,"result":"AS","pts":5.0},"p2":{"name":"Dan Bartels","hdcp":11.3,"scores":[3,5,6,5,4,6,6,3,5],"total":43,"result":"AS","pts":5.0}},{"p1":{"name":"Zach Bartels","hdcp":13.2,"scores":[5,4,6,4,4,5,4,4,4],"total":40,"result":"5UP","pts":8.0},"p2":{"name":"Ben Bartels","hdcp":20.4,"scores":[7,6,6,3,6,8,5,6,6],"total":53,"result":"","pts":2.0}},{"p1":{"name":"Shaun Diederich","hdcp":10.7,"scores":[4,7,5,4,5,5,5,4,5],"total":44,"result":"WIN","pts":7.5},"p2":{"name":"Mike Trepanier","hdcp":18.7,"scores":[],"total":null,"result":"DQ","pts":0.0}},{"p1":{"name":"Sam Harmeyer","hdcp":10.1,"scores":[4,8,7,5,4,8,5,4,4],"total":49,"result":"","pts":3.5},"p2":{"name":"John Trepanier","hdcp":6.8,"scores":[5,5,5,4,4,6,5,3,4],"total":41,"result":"2UP","pts":6.5}},{"p1":{"name":"Alex Hein","hdcp":10.9,"scores":[4,6,4,4,5,6,5,4,4],"total":42,"result":"3UP","pts":7.0},"p2":{"name":"Matt Sklander","hdcp":11.9,"scores":[5,6,5,5,4,6,6,4,6],"total":47,"result":"","pts":3.0}},{"p1":{"name":"Josh Mack","hdcp":28.6,"scores":[5,9,6,5,6,6,6,5,5],"total":53,"result":"","pts":4.0},"p2":{"name":"CJ Malek","hdcp":4.7,"scores":[5,6,5,4,4,4,4,3,5],"total":40,"result":"1UP","pts":6.0}},{"p1":{"name":"Nick Kriesel","hdcp":23.2,"scores":[],"total":null,"result":"DQ","pts":0.0},"p2":{"name":"Jack Mielke","hdcp":6.6,"scores":[6,7,7,4,4,6,5,3,6],"total":48,"result":"WIN","pts":7.5}},{"p1":{"name":"Alex Henry","hdcp":20.1,"scores":[6,10,6,5,6,6,6,6,4],"total":55,"result":"","pts":3.5},"p2":{"name":"Matt Phillips","hdcp":19.8,"scores":[6,7,6,4,5,7,6,4,7],"total":52,"result":"2UP","pts":6.5}}]},{"weekNum":15,"date":"Tue Aug 5, 2025","course":"Oakwood Golf Course","pars":[4,5,4,3,4,5,4,3,4],"hdcps":[6,2,18,10,12,8,16,14,4],"matchups":[{"p1":{"name":"Zach Bartels","hdcp":12.8,"scores":[5,7,5,5,4,6,4,4,5],"total":45,"result":"","pts":3.0},"p2":{"name":"John Trepanier","hdcp":6.8,"scores":[4,6,4,3,5,5,4,3,4],"total":38,"result":"3UP","pts":7.0}},{"p1":{"name":"Shaun Diederich","hdcp":10.7,"scores":[6,7,5,4,6,5,4,5,6],"total":48,"result":"2UP","pts":6.5},"p2":{"name":"Matt Sklander","hdcp":10.7,"scores":[8,7,7,3,4,6,8,4,7],"total":54,"result":"","pts":3.5}},{"p1":{"name":"Jack Balistreri","hdcp":16.4,"scores":[7,6,5,5,7,7,5,5,7],"total":54,"result":"AS","pts":5.0},"p2":{"name":"Ben Bartels","hdcp":20.4,"scores":[7,7,6,4,6,7,5,5,9],"total":56,"result":"AS","pts":5.0}},{"p1":{"name":"Alex Hein","hdcp":10.8,"scores":[5,7,6,4,7,5,4,4,4],"total":46,"result":"","pts":4.0},"p2":{"name":"Jack Mielke","hdcp":6.6,"scores":[6,6,4,3,4,5,6,3,4],"total":41,"result":"1UP","pts":6.0}}]},{"weekNum":16,"date":"Tue Aug 12, 2025","course":"Greenfield Golf Course","pars":[4,4,4,4,4,3,4,3,4],"hdcps":[9,7,5,3,11,17,1,15,13],"matchups":[{"p1":{"name":"CJ Malek","hdcp":4.7,"scores":[5,5,5,4,5,3,4,3,4],"total":38,"result":"","pts":0},"p2":{"name":"Ben Bartels","hdcp":20.4,"scores":[5,8,8,4,5,4,4,4,5],"total":47,"result":"1UP","pts":0}},{"p1":{"name":"Matt Phillips","hdcp":19.7,"scores":[4,6,4,6,4,4,5,4,4],"total":41,"result":"5UP","pts":0},"p2":{"name":"Jack Balistreri","hdcp":15.8,"scores":[5,9,7,5,5,4,7,3,5],"total":50,"result":"","pts":0}},{"p1":{"name":"John Trepanier","hdcp":6.5,"scores":[4,5,5,3,4,3,4,3,4],"total":35,"result":"2UP","pts":0},"p2":{"name":"Sam Harmeyer","hdcp":9.5,"scores":[6,5,5,5,6,4,4,5,4],"total":44,"result":"","pts":0}},{"p1":{"name":"Dan Bartels","hdcp":11.7,"scores":[4,7,4,5,5,3,7,5,6],"total":46,"result":"","pts":0},"p2":{"name":"Shaun Diederich","hdcp":10.7,"scores":[6,7,5,5,4,3,4,4,4],"total":42,"result":"2UP","pts":0}}]},{"weekNum":17,"date":"Tue Aug 19, 2025","course":"Oakwood Golf Course","pars":[4,5,4,3,4,5,4,3,4],"hdcps":[7,5,15,17,3,13,1,9,11],"matchups":[{"p1":{"name":"Matt Phillips","hdcp":19.5,"scores":[5,7,6,5,4,7,4,5,5],"total":48,"result":"1UP","pts":0},"p2":{"name":"Ben Bartels","hdcp":20.8,"scores":[7,6,7,3,5,6,5,4,7],"total":50,"result":"","pts":0}},{"p1":{"name":"John Trepanier","hdcp":6.0,"scores":[3,5,4,2,4,5,5,3,4],"total":35,"result":"7UP","pts":0},"p2":{"name":"Shaun Diederich","hdcp":11.0,"scores":[5,6,5,4,5,7,8,4,6],"total":50,"result":"","pts":0}}]},{"weekNum":18,"date":"Tue Aug 26, 2025","course":"Whitnall Golf Course","pars":[4,4,3,4,4,3,5,4,4],"hdcps":[9,3,15,7,11,17,1,5,13],"matchups":[{"p1":{"name":"Matt Phillips","hdcp":19.5,"scores":[6,4,4,4,5,6,6,5,6],"total":46,"result":"1UP","pts":0},"p2":{"name":"John Trepanier","hdcp":5.6,"scores":[5,4,3,5,4,4,6,5,4],"total":40,"result":"","pts":0}}]}];
+var WEEKS_2025 = [{"weekNum":1,"date":"Tue Apr 29, 2025","course":"Oakwood Golf Course","pars":[4,5,4,3,4,5,4,3,4],"hdcps":[7,5,15,17,3,13,1,9,11],"matchups":[{"p1":{"name":"Jack Balistreri","hdcp":11.8,"scores":[5,6,5,4,7,8,4,3,6],"total":48,"result":"","pts":4.0},"p2":{"name":"Mike Trepanier","hdcp":19.8,"scores":[6,9,6,3,5,7,5,5,5],"total":51,"result":"1UP","pts":6.0}},{"p1":{"name":"Ben Bartels","hdcp":18.8,"scores":[4,7,7,5,5,6,7,4,5],"total":50,"result":"1UP","pts":6.0},"p2":{"name":"John Trepanier","hdcp":4.8,"scores":[6,6,5,4,4,6,5,4,5],"total":45,"result":"","pts":4.0}},{"p1":{"name":"Dan Bartels","hdcp":14.2,"scores":[6,6,5,3,4,6,4,4,7],"total":45,"result":"5UP","pts":7.5},"p2":{"name":"Matt Sklander","hdcp":10.1,"scores":[6,7,6,4,4,7,5,4,4],"total":47,"result":"","pts":2.5}},{"p1":{"name":"Zach Bartels","hdcp":13.4,"scores":[6,7,5,4,7,7,6,3,6],"total":51,"result":"","pts":3.0},"p2":{"name":"Matt Phillips","hdcp":19.2,"scores":[6,5,6,3,5,6,4,5,6],"total":46,"result":"3UP","pts":7.0}},{"p1":{"name":"Shaun Diederich","hdcp":10.3,"scores":[6,5,5,4,4,6,6,5,4],"total":45,"result":"3UP","pts":7.0},"p2":{"name":"Jack Mielke","hdcp":6.1,"scores":[5,7,8,5,4,7,3,5,4],"total":48,"result":"","pts":3.0}},{"p1":{"name":"Sam Harmeyer","hdcp":10.7,"scores":[5,9,6,5,5,6,4,3,5],"total":48,"result":"","pts":4.0},"p2":{"name":"CJ Malek","hdcp":4.5,"scores":[5,5,4,4,5,5,5,4,5],"total":42,"result":"1UP","pts":6.0}},{"p1":{"name":"Alex Hein","hdcp":11.8,"scores":[5,6,4,4,5,7,4,5,5],"total":45,"result":"3UP","pts":7.0},"p2":{"name":"Josh Mack","hdcp":26.2,"scores":[10,10,9,4,7,7,5,3,9],"total":64,"result":"","pts":3.0}},{"p1":{"name":"Alex Henry","hdcp":19.7,"scores":[5,5,5,4,4,6,6,4,6],"total":45,"result":"AS","pts":5.0},"p2":{"name":"Nick Kriesel","hdcp":24.5,"scores":[5,8,7,4,6,6,6,3,5],"total":50,"result":"AS","pts":5.0}}]},{"weekNum":2,"date":"Tue May 6, 2025","course":"Whitnall Golf Course","pars":[4,4,3,4,4,3,5,4,4],"hdcps":[9,3,15,7,11,17,1,5,13],"matchups":[{"p1":{"name":"Ben Bartels","hdcp":18.8,"scores":[4,10,4,6,7,6,7,6,4],"total":54,"result":"","pts":4.0},"p2":{"name":"Matt Phillips","hdcp":18.9,"scores":[6,7,4,7,4,6,6,5,6],"total":51,"result":"1UP","pts":6.0}},{"p1":{"name":"Alex Hein","hdcp":12.0,"scores":[5,5,4,4,4,4,8,5,4],"total":43,"result":"5UP","pts":8.0},"p2":{"name":"Alex Henry","hdcp":19.7,"scores":[7,7,4,6,5,4,11,5,5],"total":54,"result":"","pts":2.0}},{"p1":{"name":"Shaun Diederich","hdcp":10.3,"scores":[5,5,3,4,5,4,4,4,5],"total":39,"result":"5UP","pts":8.0},"p2":{"name":"Josh Mack","hdcp":26.2,"scores":[6,7,5,8,6,5,6,9,4],"total":56,"result":"","pts":2.0}},{"p1":{"name":"Mike Trepanier","hdcp":19.8,"scores":[5,6,5,4,4,4,10,6,4],"total":48,"result":"3UP","pts":7.0},"p2":{"name":"Matt Sklander","hdcp":10.5,"scores":[5,3,3,5,7,6,5,6,5],"total":45,"result":"","pts":3.0}},{"p1":{"name":"Sam Harmeyer","hdcp":10.7,"scores":[4,4,4,4,5,5,6,5,6],"total":43,"result":"AS","pts":5.0},"p2":{"name":"Nick Kriesel","hdcp":24.5,"scores":[6,6,4,5,5,5,7,6,4],"total":48,"result":"AS","pts":5.0}},{"p1":{"name":"Dan Bartels","hdcp":14.1,"scores":[4,6,3,6,5,4,7,6,4],"total":45,"result":"","pts":4.0},"p2":{"name":"Jack Mielke","hdcp":6.1,"scores":[4,5,3,5,5,5,5,4,4],"total":40,"result":"1UP","pts":6.0}},{"p1":{"name":"Zach Bartels","hdcp":13.4,"scores":[5,5,5,7,5,3,7,5,5],"total":47,"result":"","pts":2.0},"p2":{"name":"CJ Malek","hdcp":4.5,"scores":[4,3,3,5,4,5,5,5,4],"total":38,"result":"5UP","pts":8.0}},{"p1":{"name":"Jack Balistreri","hdcp":12.8,"scores":[6,5,3,6,4,5,7,7,5],"total":48,"result":"","pts":3.5},"p2":{"name":"John Trepanier","hdcp":5.4,"scores":[5,6,3,4,6,4,4,5,6],"total":43,"result":"2UP","pts":6.5}}]},{"weekNum":3,"date":"Tue May 13, 2025","course":"Oakwood Golf Course","pars":[4,5,4,3,4,5,4,3,4],"hdcps":[6,2,18,10,12,8,16,14,4],"matchups":[{"p1":{"name":"Zach Bartels","hdcp":13.4,"scores":[5,6,3,4,6,5,6,4,6],"total":45,"result":"","pts":3.5},"p2":{"name":"Nick Kriesel","hdcp":24.5,"scores":[7,5,7,3,5,6,5,4,7],"total":49,"result":"2UP","pts":6.5}},{"p1":{"name":"Shaun Diederich","hdcp":10.2,"scores":[3,7,5,4,7,5,5,4,5],"total":45,"result":"","pts":3.5},"p2":{"name":"Alex Henry","hdcp":19.7,"scores":[5,7,7,3,6,6,5,4,4],"total":47,"result":"2UP","pts":6.5}},{"p1":{"name":"Sam Harmeyer","hdcp":10.7,"scores":[6,5,5,5,5,6,6,3,6],"total":47,"result":"3UP","pts":7.0},"p2":{"name":"Alex Hein","hdcp":12.2,"scores":[6,7,5,6,4,7,7,4,4],"total":50,"result":"","pts":3.0}},{"p1":{"name":"Jack Balistreri","hdcp":14.5,"scores":[6,6,7,3,7,7,5,3,4],"total":48,"result":"","pts":3.5},"p2":{"name":"Matt Sklander","hdcp":10.8,"scores":[5,6,5,5,6,6,5,4,6],"total":48,"result":"2UP","pts":6.5}},{"p1":{"name":"John Trepanier","hdcp":5.4,"scores":[4,8,4,4,5,5,5,3,6],"total":44,"result":"2UP","pts":6.5},"p2":{"name":"Matt Phillips","hdcp":18.7,"scores":[6,10,6,3,6,8,6,3,4],"total":52,"result":"","pts":3.5}},{"p1":{"name":"Mike Trepanier","hdcp":19.8,"scores":[],"total":null,"result":"DQ","pts":0.0},"p2":{"name":"Jack Mielke","hdcp":6.1,"scores":[7,6,4,4,4,9,4,4,5],"total":47,"result":"Win","pts":7.5}},{"p1":{"name":"Ben Bartels","hdcp":19.0,"scores":[6,8,7,3,6,7,5,4,5],"total":51,"result":"","pts":3.0},"p2":{"name":"CJ Malek","hdcp":4.5,"scores":[5,4,6,4,5,5,4,3,4],"total":40,"result":"3UP","pts":7.0}},{"p1":{"name":"Dan Bartels","hdcp":13.5,"scores":[5,7,4,5,5,6,4,4,4],"total":44,"result":"5UP","pts":8.0},"p2":{"name":"Josh Mack","hdcp":26.2,"scores":[10,7,10,6,7,9,8,4,6],"total":67,"result":"","pts":2.0}}]},{"weekNum":6,"date":"Tue Jun 3, 2025","course":"Oakwood Golf Course","pars":[4,5,4,3,4,5,4,3,4],"hdcps":[7,5,15,17,3,13,1,9,11],"matchups":[{"p1":{"name":"Josh Mack","hdcp":26.2,"scores":[7,6,5,5,7,8,5,5,5],"total":53,"result":"AS","pts":5.0},"p2":{"name":"Jack Mielke","hdcp":6.1,"scores":[6,5,6,3,4,6,6,4,6],"total":46,"result":"AS","pts":5.0}},{"p1":{"name":"Matt Phillips","hdcp":18.4,"scores":[6,6,5,3,5,8,5,4,5],"total":47,"result":"1UP","pts":6.0},"p2":{"name":"Nick Kriesel","hdcp":24.1,"scores":[6,10,7,3,5,7,6,4,6],"total":54,"result":"","pts":4.0}},{"p1":{"name":"Jack Balistreri","hdcp":14.5,"scores":[6,7,5,4,4,6,8,4,5],"total":49,"result":"1UP","pts":6.0},"p2":{"name":"CJ Malek","hdcp":4.5,"scores":[5,7,4,7,4,5,5,4,5],"total":46,"result":"","pts":4.0}},{"p1":{"name":"Matt Sklander","hdcp":10.8,"scores":[5,6,5,5,6,7,5,5,5],"total":49,"result":"","pts":4.0},"p2":{"name":"Alex Henry","hdcp":19.7,"scores":[6,8,7,4,5,5,7,4,5],"total":51,"result":"1UP","pts":6.0}},{"p1":{"name":"John Trepanier","hdcp":5.8,"scores":[4,6,4,4,5,4,5,3,5],"total":40,"result":"","pts":4.0},"p2":{"name":"Alex Hein","hdcp":11.7,"scores":[7,5,5,3,4,6,5,5,3],"total":43,"result":"1UP","pts":6.0}},{"p1":{"name":"Ben Bartels","hdcp":19.2,"scores":[6,8,4,4,6,6,5,6,5],"total":50,"result":"","pts":3.0},"p2":{"name":"Shaun Diederich","hdcp":10.8,"scores":[4,6,4,4,4,5,5,4,6],"total":42,"result":"3UP","pts":7.0}},{"p1":{"name":"Mike Trepanier","hdcp":19.4,"scores":[7,6,5,6,5,7,6,4,7],"total":53,"result":"AS","pts":5.0},"p2":{"name":"Sam Harmeyer","hdcp":10.7,"scores":[5,7,7,4,4,6,6,6,5],"total":50,"result":"AS","pts":5.0}},{"p1":{"name":"Dan Bartels","hdcp":13.7,"scores":[7,7,5,3,6,6,6,3,6],"total":49,"result":"","pts":2.0},"p2":{"name":"Zach Bartels","hdcp":13.4,"scores":[4,5,4,4,4,5,6,2,6],"total":40,"result":"5UP","pts":8.0}}]},{"weekNum":7,"date":"Tue Jun 10, 2025","course":"Oakwood Golf Course","pars":[4,5,4,3,4,5,4,3,4],"hdcps":[6,2,18,10,12,8,16,14,4],"matchups":[{"p1":{"name":"John Trepanier","hdcp":5.8,"scores":[4,6,5,4,5,5,5,3,4],"total":41,"result":"1UP","pts":6.0},"p2":{"name":"Shaun Diederich","hdcp":10.7,"scores":[5,5,5,4,5,7,5,3,5],"total":44,"result":"","pts":4.0}},{"p1":{"name":"Ben Bartels","hdcp":19.2,"scores":[5,6,6,3,6,7,5,4,6],"total":48,"result":"","pts":3.5},"p2":{"name":"Dan Bartels","hdcp":13.7,"scores":[5,5,3,4,4,6,5,4,4],"total":40,"result":"2UP","pts":6.5}},{"p1":{"name":"Jack Balistreri","hdcp":14.5,"scores":[5,6,6,6,5,7,5,4,6],"total":50,"result":"AS","pts":5.0},"p2":{"name":"Josh Mack","hdcp":26.2,"scores":[7,6,8,6,4,8,5,4,9],"total":57,"result":"AS","pts":5.0}},{"p1":{"name":"Matt Phillips","hdcp":18.4,"scores":[6,10,4,4,5,6,5,3,8],"total":51,"result":"WIN","pts":7.5},"p2":{"name":"Alex Hein","hdcp":12.2,"scores":[],"total":null,"result":"DQ","pts":0.0}},{"p1":{"name":"Jack Mielke","hdcp":6.1,"scores":[],"total":null,"result":"DQ","pts":0.0},"p2":{"name":"Alex Henry","hdcp":19.7,"scores":[],"total":null,"result":"DQ","pts":0.0}},{"p1":{"name":"CJ Malek","hdcp":4.5,"scores":[5,5,6,4,5,5,5,3,4],"total":42,"result":"1UP","pts":6.0},"p2":{"name":"Nick Kriesel","hdcp":24.1,"scores":[9,8,6,4,5,6,8,4,8],"total":58,"result":"","pts":4.0}},{"p1":{"name":"Mike Trepanier","hdcp":19.4,"scores":[7,6,8,4,5,8,5,6,5],"total":54,"result":"","pts":4.0},"p2":{"name":"Zach Bartels","hdcp":13.4,"scores":[4,7,4,6,6,4,5,5,4],"total":45,"result":"1UP","pts":6.0}},{"p1":{"name":"Matt Sklander","hdcp":10.8,"scores":[4,6,5,4,7,5,4,5,5],"total":45,"result":"","pts":4.0},"p2":{"name":"Sam Harmeyer","hdcp":10.4,"scores":[5,8,4,4,6,4,5,4,5],"total":45,"result":"1UP","pts":6.0}}]},{"weekNum":8,"date":"Tue Jun 17, 2025","course":"Greenfield Golf Course","pars":[4,4,4,4,4,3,4,3,4],"hdcps":[9,7,5,3,11,17,1,15,13],"matchups":[{"p1":{"name":"CJ Malek","hdcp":4.5,"scores":[5,3,4,4,5,3,5,4,3],"total":36,"result":"4UP","pts":7.5},"p2":{"name":"A Hein(12.2)","hdcp":12.2,"scores":[6,5,6,5,4,4,8,4,3],"total":45,"result":"","pts":2.5}},{"p1":{"name":"Matt Sklander","hdcp":11.1,"scores":[5,3,5,4,6,2,5,3,4],"total":37,"result":"AS","pts":5.0},"p2":{"name":"Zach Bartels","hdcp":13.5,"scores":[4,6,4,6,4,4,5,6,4],"total":43,"result":"AS","pts":5.0}},{"p1":{"name":"John Trepanier","hdcp":5.8,"scores":[5,6,4,5,5,2,3,4,4],"total":38,"result":"1UP","pts":6.0},"p2":{"name":"Dan Bartels","hdcp":13.2,"scores":[3,7,5,5,5,4,6,4,5],"total":44,"result":"","pts":4.0}},{"p1":{"name":"Mike Trepanier","hdcp":19.4,"scores":[],"total":null,"result":"DQ","pts":0.0},"p2":{"name":"Ben Bartels","hdcp":19.2,"scores":[6,5,5,5,7,4,4,6,5],"total":47,"result":"WIN","pts":7.5}},{"p1":{"name":"Jack Mielke","hdcp":6.1,"scores":[6,7,6,6,5,5,5,5,4],"total":49,"result":"","pts":3.0},"p2":{"name":"Sam Harmeyer","hdcp":10.4,"scores":[5,4,6,6,4,6,5,5,5],"total":46,"result":"3UP","pts":7.0}},{"p1":{"name":"Josh Mack","hdcp":26.2,"scores":[5,9,5,6,5,4,6,4,6],"total":50,"result":"4UP","pts":7.5},"p2":{"name":"Alex Henry","hdcp":19.7,"scores":[5,5,6,8,5,4,7,6,7],"total":53,"result":"","pts":2.5}},{"p1":{"name":"Jack Balistreri","hdcp":14.8,"scores":[5,7,4,5,4,4,6,3,4],"total":42,"result":"WIN","pts":7.5},"p2":{"name":"Nick Kriesel","hdcp":24.1,"scores":[],"total":null,"result":"DQ","pts":0.0}},{"p1":{"name":"Matt Phillips","hdcp":18.4,"scores":[6,5,6,4,7,5,7,5,8],"total":53,"result":"","pts":2.5},"p2":{"name":"Shaun Diederich","hdcp":10.7,"scores":[4,5,4,4,4,2,6,4,4],"total":37,"result":"4UP","pts":7.5}}]},{"weekNum":9,"date":"Tue Jun 24, 2025","course":"Whitnall Golf Course","pars":[4,4,3,4,4,3,5,4,4],"hdcps":[9,3,15,7,11,17,1,5,13],"matchups":[{"p1":{"name":"Jack Balistreri","hdcp":15.3,"scores":[5,7,4,6,6,6,8,5,5],"total":52,"result":"","pts":3.5},"p2":{"name":"Alex Henry","hdcp":19.7,"scores":[6,7,3,6,5,4,9,6,5],"total":51,"result":"2UP","pts":6.5}},{"p1":{"name":"Alex Hein","hdcp":12.6,"scores":[5,5,4,4,5,5,8,5,5],"total":46,"result":"","pts":3.5},"p2":{"name":"Nick Kriesel","hdcp":24.1,"scores":[5,6,3,7,5,3,9,6,6],"total":50,"result":"2UP","pts":6.5}},{"p1":{"name":"Jack Mielke","hdcp":6.1,"scores":[],"total":null,"result":"DQ","pts":0.0},"p2":{"name":"Zach Bartels","hdcp":13.5,"scores":[6,7,4,5,7,4,5,5,5],"total":48,"result":"WIN","pts":7.5}},{"p1":{"name":"CJ Malek","hdcp":4.7,"scores":[5,4,3,4,5,3,5,5,3],"total":37,"result":"","pts":3.5},"p2":{"name":"Shaun Diederich","hdcp":10.6,"scores":[4,5,4,4,4,3,5,5,5],"total":39,"result":"2UP","pts":6.5}},{"p1":{"name":"Josh Mack","hdcp":26.2,"scores":[6,8,5,6,7,6,9,6,5],"total":58,"result":"1UP","pts":6.0},"p2":{"name":"Sam Harmeyer","hdcp":10.4,"scores":[5,5,5,7,5,5,8,6,6],"total":52,"result":"","pts":4.0}},{"p1":{"name":"Matt Phillips","hdcp":18.4,"scores":[5,5,4,4,5,3,5,7,6],"total":44,"result":"","pts":3.5},"p2":{"name":"Dan Bartels","hdcp":13.2,"scores":[4,6,3,4,4,6,5,5,4],"total":41,"result":"2UP","pts":6.5}},{"p1":{"name":"Matt Sklander","hdcp":11.0,"scores":[4,7,4,5,4,4,6,6,6],"total":46,"result":"AS","pts":5.0},"p2":{"name":"Ben Bartels","hdcp":19.7,"scores":[5,6,6,6,5,5,6,5,5],"total":49,"result":"AS","pts":5.0}},{"p1":{"name":"John Trepanier","hdcp":5.9,"scores":[5,4,3,5,6,5,5,5,5],"total":43,"result":"","pts":3.0},"p2":{"name":"Mike Trepanier","hdcp":19.4,"scores":[7,7,3,5,5,4,6,3,4],"total":44,"result":"3UP","pts":7.0}}]},{"weekNum":11,"date":"Tue Jul 8, 2025","course":"Oakwood Golf Course","pars":[4,5,4,3,4,5,4,3,4],"hdcps":[6,2,18,10,12,8,16,14,4],"matchups":[{"p1":{"name":"Alex Henry","hdcp":19.7,"scores":[6,6,4,4,7,6,5,4,5],"total":47,"result":"","pts":3.5},"p2":{"name":"Zach Bartels","hdcp":13.5,"scores":[4,5,5,3,6,4,5,4,5],"total":41,"result":"2UP","pts":6.5}},{"p1":{"name":"Nick Kriesel","hdcp":23.7,"scores":[6,5,7,5,4,5,6,4,4],"total":46,"result":"2UP","pts":6.5},"p2":{"name":"Dan Bartels","hdcp":12.9,"scores":[4,5,4,4,5,6,5,6,5],"total":44,"result":"","pts":3.5}},{"p1":{"name":"Jack Mielke","hdcp":6.1,"scores":[7,7,6,3,6,5,4,4,5],"total":47,"result":"","pts":2.5},"p2":{"name":"John Trepanier","hdcp":5.8,"scores":[4,5,4,5,5,5,5,3,4],"total":40,"result":"4UP","pts":7.5}},{"p1":{"name":"Alex Hein","hdcp":11.4,"scores":[4,6,5,5,5,6,4,4,4],"total":43,"result":"1UP","pts":6.0},"p2":{"name":"Shaun Diederich","hdcp":10.6,"scores":[5,7,4,4,6,7,3,4,4],"total":44,"result":"","pts":4.0}},{"p1":{"name":"Josh Mack","hdcp":26.2,"scores":[7,9,7,6,9,7,5,4,5],"total":59,"result":"","pts":3.0},"p2":{"name":"Ben Bartels","hdcp":19.7,"scores":[5,8,6,6,6,6,5,4,7],"total":53,"result":"3UP","pts":7.0}},{"p1":{"name":"CJ Malek","hdcp":4.7,"scores":[4,5,5,4,4,5,4,3,5],"total":39,"result":"WIN","pts":7.5},"p2":{"name":"Mike Trepanier","hdcp":18.7,"scores":[],"total":null,"result":"DQ","pts":0.0}},{"p1":{"name":"Jack Balistreri","hdcp":15.3,"scores":[7,7,5,5,5,9,4,3,6],"total":51,"result":"","pts":4.0},"p2":{"name":"Sam Harmeyer","hdcp":10.1,"scores":[null,7,5,4,4,5,4,4,4],"total":43,"result":"1UP","pts":6.0}},{"p1":{"name":"Matt Phillips","hdcp":19.7,"scores":[6,8,6,4,7,6,6,4,4],"total":51,"result":"AS","pts":5.0},"p2":{"name":"Matt Sklander","hdcp":11.0,"scores":[7,6,5,4,6,5,6,5,7],"total":51,"result":"AS","pts":5.0}}]},{"weekNum":12,"date":"Tue Jul 15, 2025","course":"Greenfield Golf Course","pars":[4,4,4,4,4,3,4,3,4],"hdcps":[9,7,5,3,11,17,1,15,13],"matchups":[{"p1":{"name":"Jack Mielke","hdcp":6.1,"scores":[5,5,6,4,5,3,5,4,5],"total":42,"result":"","pts":2.5},"p2":{"name":"Matt Phillips","hdcp":19.6,"scores":[5,5,6,5,5,3,7,3,6],"total":45,"result":"4UP","pts":7.5}},{"p1":{"name":"Josh Mack","hdcp":26.2,"scores":[4,10,7,6,5,4,8,5,6],"total":55,"result":"","pts":3.5},"p2":{"name":"John Trepanier","hdcp":5.9,"scores":[4,4,7,4,4,4,5,3,4],"total":39,"result":"2UP","pts":6.5}},{"p1":{"name":"CJ Malek","hdcp":4.7,"scores":[4,5,5,5,3,3,4,4,4],"total":37,"result":"AS","pts":5.0},"p2":{"name":"Matt Sklander","hdcp":11.9,"scores":[5,6,5,4,4,4,4,4,4],"total":40,"result":"AS","pts":5.0}},{"p1":{"name":"Sam Harmeyer","hdcp":10.1,"scores":[6,5,4,5,4,3,4,4,4],"total":39,"result":"WIN","pts":7.5},"p2":{"name":"Zach Bartels","hdcp":13.2,"scores":[],"total":null,"result":"DQ","pts":0.0}},{"p1":{"name":"Jack Balistreri","hdcp":15.8,"scores":[6,7,5,4,6,3,5,3,4],"total":43,"result":"WIN","pts":7.5},"p2":{"name":"Shaun Diederich","hdcp":10.5,"scores":[5,4,5,5,4,3,6,3,3],"total":38,"result":"DQ","pts":0.0}},{"p1":{"name":"Nick Kriesel","hdcp":23.2,"scores":[5,7,5,5,5,5,5,3,6],"total":46,"result":"WIN","pts":7.5},"p2":{"name":"Mike Trepanier","hdcp":18.7,"scores":[],"total":null,"result":"DQ","pts":0.0}},{"p1":{"name":"Alex Hein","hdcp":11.3,"scores":[5,5,6,4,4,2,4,5,4],"total":39,"result":"AS","pts":5.0},"p2":{"name":"Dan Bartels","hdcp":12.0,"scores":[4,6,5,4,4,2,5,4,5],"total":39,"result":"AS","pts":5.0}},{"p1":{"name":"Alex Henry","hdcp":19.9,"scores":[7,6,5,5,5,4,5,4,4],"total":45,"result":"","pts":3.5},"p2":{"name":"Ben Bartels","hdcp":19.7,"scores":[6,5,5,5,4,3,7,4,5],"total":44,"result":"2UP","pts":6.5}}]},{"weekNum":13,"date":"Tue Jul 22, 2025","course":"Whitnall Golf Course","pars":[4,4,3,4,4,3,5,4,4],"hdcps":[9,3,15,7,11,17,1,5,13],"matchups":[{"p1":{"name":"Alex Henry","hdcp":20.3,"scores":[7,4,3,5,4,3,5,7,5],"total":43,"result":"2UP","pts":6.5},"p2":{"name":"John Trepanier","hdcp":6.4,"scores":[5,4,3,4,4,4,6,5,4],"total":39,"result":"","pts":3.5}},{"p1":{"name":"CJ Malek","hdcp":4.7,"scores":[4,6,5,4,5,5,5,5,4],"total":43,"result":"2UP","pts":6.5},"p2":{"name":"Jack Mielke","hdcp":6.6,"scores":[5,6,4,5,5,4,6,6,5],"total":46,"result":"","pts":3.5}},{"p1":{"name":"Jack Balistreri","hdcp":15.8,"scores":[5,6,3,4,4,3,6,6,4],"total":41,"result":"3UP","pts":7.0},"p2":{"name":"Zach Bartels","hdcp":13.2,"scores":[5,6,4,4,6,4,5,6,4],"total":44,"result":"","pts":3.0}},{"p1":{"name":"Alex Hein","hdcp":10.9,"scores":[6,5,5,3,5,4,7,3,5],"total":43,"result":"AS","pts":5.0},"p2":{"name":"Mike Trepanier","hdcp":18.7,"scores":[8,4,5,5,5,4,5,5,4],"total":45,"result":"AS","pts":5.0}},{"p1":{"name":"Josh Mack","hdcp":26.2,"scores":[6,9,5,6,6,5,7,5,6],"total":55,"result":"","pts":2.5},"p2":{"name":"Matt Phillips","hdcp":19.9,"scores":[6,5,4,4,5,5,6,5,3],"total":43,"result":"4UP","pts":7.5}},{"p1":{"name":"Nick Kriesel","hdcp":23.2,"scores":[6,7,4,6,5,6,6,6,5],"total":51,"result":"","pts":3.5},"p2":{"name":"Matt Sklander","hdcp":11.8,"scores":[5,4,3,4,5,4,7,4,7],"total":43,"result":"2UP","pts":6.5}},{"p1":{"name":"Sam Harmeyer","hdcp":10.1,"scores":[5,6,4,4,6,4,8,5,4],"total":46,"result":"1UP","pts":6.0},"p2":{"name":"Ben Bartels","hdcp":20.0,"scores":[6,5,5,5,6,5,9,6,4],"total":51,"result":"","pts":4.0}},{"p1":{"name":"Shaun Diederich","hdcp":10.5,"scores":[6,6,4,6,7,4,7,5,4],"total":49,"result":"","pts":2.5},"p2":{"name":"Dan Bartels","hdcp":11.3,"scores":[4,6,3,4,7,5,6,4,4],"total":43,"result":"4UP","pts":7.5}}]},{"weekNum":14,"date":"Tue Jul 29, 2025","course":"Oakwood Golf Course","pars":[4,5,4,3,4,5,4,3,4],"hdcps":[7,5,15,17,3,13,1,9,11],"matchups":[{"p1":{"name":"Jack Balistreri","hdcp":15.8,"scores":[5,5,6,3,6,6,4,3,5],"total":43,"result":"AS","pts":5.0},"p2":{"name":"Dan Bartels","hdcp":11.3,"scores":[3,5,6,5,4,6,6,3,5],"total":43,"result":"AS","pts":5.0}},{"p1":{"name":"Zach Bartels","hdcp":13.2,"scores":[5,4,6,4,4,5,4,4,4],"total":40,"result":"5UP","pts":8.0},"p2":{"name":"Ben Bartels","hdcp":20.4,"scores":[7,6,6,3,6,8,5,6,6],"total":53,"result":"","pts":2.0}},{"p1":{"name":"Shaun Diederich","hdcp":10.7,"scores":[4,7,5,4,5,5,5,4,5],"total":44,"result":"WIN","pts":7.5},"p2":{"name":"Mike Trepanier","hdcp":18.7,"scores":[],"total":null,"result":"DQ","pts":0.0}},{"p1":{"name":"Sam Harmeyer","hdcp":10.1,"scores":[4,8,7,5,4,8,5,4,4],"total":49,"result":"","pts":3.5},"p2":{"name":"John Trepanier","hdcp":6.8,"scores":[5,5,5,4,4,6,5,3,4],"total":41,"result":"2UP","pts":6.5}},{"p1":{"name":"Alex Hein","hdcp":10.9,"scores":[4,6,4,4,5,6,5,4,4],"total":42,"result":"3UP","pts":7.0},"p2":{"name":"Matt Sklander","hdcp":11.9,"scores":[5,6,5,5,4,6,6,4,6],"total":47,"result":"","pts":3.0}},{"p1":{"name":"Josh Mack","hdcp":28.6,"scores":[5,9,6,5,6,6,6,5,5],"total":53,"result":"","pts":4.0},"p2":{"name":"CJ Malek","hdcp":4.7,"scores":[5,6,5,4,4,4,4,3,5],"total":40,"result":"1UP","pts":6.0}},{"p1":{"name":"Nick Kriesel","hdcp":23.2,"scores":[],"total":null,"result":"DQ","pts":0.0},"p2":{"name":"Jack Mielke","hdcp":6.6,"scores":[6,7,7,4,4,6,5,3,6],"total":48,"result":"WIN","pts":7.5}},{"p1":{"name":"Alex Henry","hdcp":20.1,"scores":[6,10,6,5,6,6,6,6,4],"total":55,"result":"","pts":3.5},"p2":{"name":"Matt Phillips","hdcp":19.8,"scores":[6,7,6,4,5,7,6,4,7],"total":52,"result":"2UP","pts":6.5}}]},{"weekNum":15,"date":"Tue Aug 5, 2025","course":"Oakwood Golf Course","pars":[4,5,4,3,4,5,4,3,4],"hdcps":[6,2,18,10,12,8,16,14,4],"matchups":[{"p1":{"name":"Zach Bartels","hdcp":12.8,"scores":[5,7,5,5,4,6,4,4,5],"total":45,"result":"","pts":3.0},"p2":{"name":"John Trepanier","hdcp":6.8,"scores":[4,6,4,3,5,5,4,3,4],"total":38,"result":"3UP","pts":7.0}},{"p1":{"name":"Shaun Diederich","hdcp":10.7,"scores":[6,7,5,4,6,5,4,5,6],"total":48,"result":"2UP","pts":6.5},"p2":{"name":"Matt Sklander","hdcp":10.7,"scores":[8,7,7,3,4,6,8,4,7],"total":54,"result":"","pts":3.5}},{"p1":{"name":"Jack Balistreri","hdcp":16.4,"scores":[7,6,5,5,7,7,5,5,7],"total":54,"result":"AS","pts":5.0},"p2":{"name":"Ben Bartels","hdcp":20.4,"scores":[7,7,6,4,6,7,5,5,9],"total":56,"result":"AS","pts":5.0}},{"p1":{"name":"Alex Hein","hdcp":10.8,"scores":[5,7,6,4,7,5,4,4,4],"total":46,"result":"","pts":4.0},"p2":{"name":"Jack Mielke","hdcp":6.6,"scores":[6,6,4,3,4,5,6,3,4],"total":41,"result":"1UP","pts":6.0}}]},{"weekNum":16,"date":"Tue Aug 12, 2025","course":"Greenfield Golf Course","pars":[],"hdcps":[],"matchups":[{"p1":{"name":"CJ Malek","hdcp":4.7,"scores":[5,5,5,4,5,3,4,3,4],"total":38,"result":"","pts":0},"p2":{"name":"Ben Bartels","hdcp":20.4,"scores":[5,8,8,4,5,4,4,4,5],"total":47,"result":"1UP","pts":0}},{"p1":{"name":"Matt Phillips","hdcp":19.7,"scores":[4,6,4,6,4,4,5,4,4],"total":41,"result":"5UP","pts":0},"p2":{"name":"Jack Balistreri","hdcp":15.8,"scores":[5,9,7,5,5,4,7,3,5],"total":50,"result":"","pts":0}},{"p1":{"name":"John Trepanier","hdcp":6.5,"scores":[4,5,5,3,4,3,4,3,4],"total":35,"result":"2UP","pts":0},"p2":{"name":"Sam Harmeyer","hdcp":9.5,"scores":[6,5,5,5,6,4,4,5,4],"total":44,"result":"","pts":0}},{"p1":{"name":"Dan Bartels","hdcp":11.7,"scores":[4,7,4,5,5,3,7,5,6],"total":46,"result":"","pts":0},"p2":{"name":"Shaun Diederich","hdcp":10.7,"scores":[6,7,5,5,4,3,4,4,4],"total":42,"result":"2UP","pts":0}}]},{"weekNum":17,"date":"Tue Aug 19, 2025","course":"Oakwood Golf Course","pars":[],"hdcps":[],"matchups":[{"p1":{"name":"Matt Phillips","hdcp":19.5,"scores":[5,7,6,5,4,7,4,5,5],"total":48,"result":"1UP","pts":0},"p2":{"name":"Ben Bartels","hdcp":20.8,"scores":[7,6,7,3,5,6,5,4,7],"total":50,"result":"","pts":0}},{"p1":{"name":"John Trepanier","hdcp":6.0,"scores":[3,5,4,2,4,5,5,3,4],"total":35,"result":"7UP","pts":0},"p2":{"name":"Shaun Diederich","hdcp":11.0,"scores":[5,6,5,4,5,7,8,4,6],"total":50,"result":"","pts":0}}]},{"weekNum":18,"date":"Tue Aug 26, 2025","course":"Whitnall Golf Course","pars":[],"hdcps":[],"matchups":[{"p1":{"name":"Matt Phillips","hdcp":19.5,"scores":[6,4,4,4,5,6,6,5,6],"total":46,"result":"1UP","pts":0},"p2":{"name":"John Trepanier","hdcp":5.6,"scores":[5,4,3,5,4,4,6,5,4],"total":40,"result":"","pts":0}}]}];
 
 var SKINS_2025 = {"pot":832,"entryFee":52,"summary":{"Jack Balistreri":{"holes":12,"total":64.66,"avg":5.39,"net":12.66},"Ben Bartels":{"holes":8,"total":51.84,"avg":6.48,"net":-0.16},"Dan Bartels":{"holes":12,"total":73.08,"avg":6.09,"net":21.08},"Zach Bartels":{"holes":13,"total":71.42,"avg":5.49,"net":19.42},"Shaun Diederich":{"holes":10,"total":79.74,"avg":7.97,"net":27.74},"Sam Harmeyer":{"holes":3,"total":28.0,"avg":9.33,"net":-24.0},"Alex Hein":{"holes":9,"total":60.53,"avg":6.73,"net":8.53},"Alex Henry":{"holes":11,"total":69.19,"avg":6.29,"net":17.19},"Nick Kriesel":{"holes":8,"total":39.8,"avg":4.98,"net":-12.2},"Josh Mack":{"holes":5,"total":29.44,"avg":5.89,"net":-22.56},"CJ Malek":{"holes":8,"total":60.53,"avg":7.57,"net":8.53},"Jack Mielke":{"holes":3,"total":23.82,"avg":7.94,"net":-28.18},"Matt Phillips":{"holes":10,"total":57.7,"avg":5.77,"net":5.7},"Matt Sklander":{"holes":5,"total":40.8,"avg":8.16,"net":-11.2},"John Trepanier":{"holes":6,"total":53.07,"avg":8.85,"net":1.07},"Mike Trepanier":{"holes":5,"total":28.38,"avg":5.68,"net":-23.62}},"weekly":{"1":[{"name":"CJ Malek","scores":[5,5,4,4,5,5,5,4,5],"skins":1,"amount":0},{"name":"Jack Mielke","scores":[5,7,8,5,4,7,3,5,4],"skins":1,"amount":0},{"name":"Shaun Diederich","scores":[6,5,5,4,4,6,6,5,4],"skins":1,"amount":0},{"name":"Jack Balistreri","scores":[5,6,5,4,7,8,4,3,6],"skins":1,"amount":0},{"name":"Alex Hein","scores":[5,6,4,4,5,7,4,5,5],"skins":1,"amount":0},{"name":"Ben Bartels","scores":[4,7,7,5,5,6,7,4,5],"skins":1,"amount":0},{"name":"Matt Phillips","scores":[6,5,6,3,5,6,4,5,6],"skins":1,"amount":0},{"name":"Alex Henry","scores":[5,5,5,4,4,6,6,4,6],"skins":2,"amount":0}],"2":[{"name":"Shaun Diederich","scores":[5,5,3,4,5,4,4,4,5],"skins":2,"amount":0},{"name":"Matt Sklander","scores":[5,3,3,5,7,6,5,6,5],"skins":1,"amount":0},{"name":"Zach Bartels","scores":[5,5,5,7,5,3,7,5,5],"skins":2,"amount":0},{"name":"Dan Bartels","scores":[4,6,3,6,5,4,7,6,4],"skins":1,"amount":4.57},{"name":"Ben Bartels","scores":[4,10,4,6,7,6,7,6,4],"skins":1,"amount":4.57},{"name":"Mike Trepanier","scores":[5,6,5,4,4,4,10,6,4],"skins":2,"amount":0},{"name":"Josh Mack","scores":[6,7,5,8,6,5,6,9,4],"skins":1,"amount":4.57}],"3":[{"name":"CJ Malek","scores":[5,4,6,4,5,5,4,3,4],"skins":1,"amount":0},{"name":"Jack Mielke","scores":[7,6,4,4,4,9,4,4,5],"skins":1,"amount":0},{"name":"Shaun Diederich","scores":[3,7,5,4,7,5,5,4,5],"skins":1,"amount":0},{"name":"Alex Hein","scores":[6,7,5,6,4,7,7,4,4],"skins":2,"amount":0},{"name":"Zach Bartels","scores":[5,6,3,4,6,5,6,4,6],"skins":1,"amount":0},{"name":"Dan Bartels","scores":[5,7,4,5,5,6,4,4,4],"skins":2,"amount":0},{"name":"Matt Phillips","scores":[6,10,6,3,6,8,6,3,4],"skins":1,"amount":0},{"name":"Alex Henry","scores":[5,7,7,3,6,6,5,4,4],"skins":1,"amount":0},{"name":"Nick Kriesel","scores":[7,5,7,3,5,6,5,4,7],"skins":2,"amount":0}],"6":[{"name":"John Trepanier","scores":[4,6,4,4,5,4,5,3,5],"skins":1,"amount":0},{"name":"Alex Hein","scores":[7,5,5,3,4,6,5,5,3],"skins":2,"amount":0},{"name":"Zach Bartels","scores":[4,5,4,4,4,5,6,2,6],"skins":1,"amount":0},{"name":"Dan Bartels","scores":[7,7,5,3,6,6,6,3,6],"skins":1,"amount":0},{"name":"Jack Balistreri","scores":[6,7,5,4,4,6,8,4,5],"skins":1,"amount":0},{"name":"Ben Bartels","scores":[6,8,4,4,6,6,5,6,5],"skins":1,"amount":0},{"name":"Alex Henry","scores":[6,8,7,4,5,5,7,4,5],"skins":1,"amount":0}],"7":[{"name":"Shaun Diederich","scores":[5,5,5,4,5,7,5,3,5],"skins":1,"amount":0},{"name":"Matt Sklander","scores":[4,6,5,4,7,5,4,5,5],"skins":1,"amount":0},{"name":"Zach Bartels","scores":[4,7,4,6,6,4,5,5,4],"skins":2,"amount":0},{"name":"Dan Bartels","scores":[5,5,3,4,4,6,5,4,4],"skins":3,"amount":0},{"name":"Matt Phillips","scores":[6,10,4,4,5,6,5,3,8],"skins":1,"amount":0},{"name":"Ben Bartels","scores":[5,6,6,3,6,7,5,4,6],"skins":1,"amount":0},{"name":"Josh Mack","scores":[7,6,8,6,4,8,5,4,9],"skins":1,"amount":0}],"8":[{"name":"John Trepanier","scores":[5,6,4,5,5,2,3,4,4],"skins":1,"amount":0},{"name":"Matt Sklander","scores":[5,3,5,4,6,2,5,3,4],"skins":2,"amount":0},{"name":"Alex Hein","scores":[6,5,6,5,4,4,8,4,3],"skins":1,"amount":0},{"name":"Dan Bartels","scores":[3,7,5,5,5,4,6,4,5],"skins":1,"amount":0},{"name":"Zach Bartels","scores":[4,6,4,6,4,4,5,6,4],"skins":1,"amount":0},{"name":"Jack Balistreri","scores":[5,7,4,5,4,4,6,3,4],"skins":4,"amount":0},{"name":"Matt Phillips","scores":[6,5,6,4,7,5,7,5,8],"skins":1,"amount":0},{"name":"Ben Bartels","scores":[6,5,5,5,7,4,4,6,5],"skins":1,"amount":0}],"11":[{"name":"Zach Bartels","scores":[4,5,5,3,6,4,5,4,5],"skins":3,"amount":0},{"name":"Jack Balistreri","scores":[7,7,5,5,5,9,4,3,6],"skins":2,"amount":0},{"name":"Alex Henry","scores":[6,6,4,4,7,6,5,4,5],"skins":1,"amount":0}],"12":[{"name":"CJ Malek","scores":[4,5,5,5,3,3,4,4,4],"skins":1,"amount":0},{"name":"Sam Harmeyer","scores":[6,5,4,5,4,3,4,4,4],"skins":1,"amount":0},{"name":"Shaun Diederich","scores":[5,4,5,5,4,3,6,3,3],"skins":3,"amount":0},{"name":"Dan Bartels","scores":[4,6,5,4,4,2,5,4,5],"skins":1,"amount":0},{"name":"Jack Balistreri","scores":[6,7,5,4,6,3,5,3,4],"skins":1,"amount":0},{"name":"Ben Bartels","scores":[6,5,5,5,4,3,7,4,5],"skins":2,"amount":0},{"name":"Alex Henry","scores":[7,6,5,5,5,4,5,4,4],"skins":1,"amount":0},{"name":"Josh Mack","scores":[4,10,7,6,5,4,8,5,6],"skins":1,"amount":0}],"13":[{"name":"CJ Malek","scores":[4,6,5,4,5,5,5,5,4],"skins":1,"amount":0},{"name":"John Trepanier","scores":[5,4,3,4,4,4,6,5,4],"skins":1,"amount":0},{"name":"Alex Hein","scores":[6,5,5,3,5,4,7,3,5],"skins":2,"amount":0},{"name":"Dan Bartels","scores":[4,6,3,4,7,5,6,4,4],"skins":1,"amount":0},{"name":"Matt Sklander","scores":[5,4,3,4,5,4,7,4,7],"skins":1,"amount":0},{"name":"Jack Balistreri","scores":[5,6,3,4,4,3,6,6,4],"skins":1,"amount":0},{"name":"Matt Phillips","scores":[6,5,4,4,5,5,6,5,3],"skins":1,"amount":0},{"name":"Alex Henry","scores":[7,4,3,5,4,3,5,7,5],"skins":4,"amount":0}],"14":[{"name":"CJ Malek","scores":[5,6,5,4,4,4,4,3,5],"skins":2,"amount":0},{"name":"Alex Hein","scores":[4,6,4,4,5,6,5,4,4],"skins":1,"amount":0},{"name":"Dan Bartels","scores":[3,5,6,5,4,6,6,3,5],"skins":2,"amount":0},{"name":"Zach Bartels","scores":[5,4,6,4,4,5,4,4,4],"skins":3,"amount":0},{"name":"Jack Balistreri","scores":[5,5,6,3,6,6,4,3,5],"skins":2,"amount":0},{"name":"Ben Bartels","scores":[7,6,6,3,6,8,5,6,6],"skins":1,"amount":0},{"name":"Alex Henry","scores":[6,10,6,5,6,6,6,6,4],"skins":1,"amount":0}],"15":[{"name":"CJ Malek","scores":[6,5,4,4,4,4,3,4,4],"skins":1,"amount":0},{"name":"John Trepanier","scores":[4,6,4,3,5,5,4,3,4],"skins":1,"amount":0},{"name":"Sam Harmeyer","scores":[6,5,5,7,6,4,5,4,5],"skins":1,"amount":0},{"name":"Mike Trepanier","scores":[7,7,4,3,5,6,5,5,6],"skins":1,"amount":0},{"name":"Matt Phillips","scores":[5,5,4,4,5,5,7,4,6],"skins":2,"amount":0},{"name":"Nick Kriesel","scores":[5,6,5,4,6,6,4,4,5],"skins":2,"amount":0},{"name":"Josh Mack","scores":[7,10,4,4,4,6,6,3,7],"skins":2,"amount":0}]}};
 
@@ -595,23 +570,22 @@ function setWeatherStatus(state) {
 async function loadDB() {
   setSyncStatus('loading');
   try {
-    var r = await fetch(SUPA_URL + '/rest/v1/parsandpints?id=eq.season2026&select=data', {headers: SUPA_HEADERS});
-    var rows = await r.json();
-    if (!rows || rows.length === 0) {
-      // No data yet — seed it
+    var r = await fetch(BIN_URL + '/latest', {headers:{'X-Master-Key':API_KEY}});
+    var j = await r.json();
+    if (!j.record || Object.keys(j.record).length === 0) {
       DB = JSON.parse(JSON.stringify(SEED));
       await saveDB();
     } else {
-      DB = {season2026: rows[0].data};
+      DB = j.record;
+      // 2026 is live — only seed if missing
       if (!DB.season2026) DB.season2026 = JSON.parse(JSON.stringify(SEED.season2026));
       if (!DB.season2026.skins) DB.season2026.skins = [];
       if (!DB.season2026.lbow) DB.season2026.lbow = [];
-      if (!DB.season2026.scrambles) DB.season2026.scrambles = [];
+      // 2025 and 2024 are historical — always use hardcoded SEED, never JSONBin
       DB.season2025 = SEED.season2025;
       DB.season2024 = SEED.season2024;
     }
   } catch(e) {
-    console.error('loadDB error:', e);
     DB = JSON.parse(JSON.stringify(SEED));
     setSyncStatus('error');
   }
@@ -621,26 +595,15 @@ async function loadDB() {
 
 async function saveDB() {
   setSyncStatus('loading');
-  var toSave = DB.season2026;
-  // Try update first, then insert if not exists
-  // PATCH first (update existing row)
-  var r = await fetch(SUPA_URL + '/rest/v1/parsandpints?id=eq.season2026', {
-    method:'PATCH',
-    headers: Object.assign({}, SUPA_HEADERS, {'Prefer':'return=representation'}),
-    body: JSON.stringify({data: toSave})
+  // Only save 2026 live data — historical seasons are hardcoded, never written to JSONBin
+  var toSave = {season2026: DB.season2026};
+  var r = await fetch(BIN_URL, {
+    method:'PUT',
+    headers:{'Content-Type':'application/json','X-Master-Key':API_KEY},
+    body:JSON.stringify(toSave)
   });
-  var patched = await r.json();
-  // If no row existed, INSERT
-  if (!patched || patched.length === 0) {
-    r = await fetch(SUPA_URL + '/rest/v1/parsandpints', {
-      method:'POST',
-      headers: Object.assign({}, SUPA_HEADERS, {'Prefer':'return=minimal'}),
-      body: JSON.stringify({id:'season2026', data: toSave})
-    });
-  }
-  var ok = r.ok || r.status === 201 || r.status === 204;
-  setSyncStatus(ok ? 'ok' : 'error');
-  return ok;
+  setSyncStatus(r.ok ? 'ok' : 'error');
+  return r.ok;
 }
 
 // ── RESEED ────────────────────────────
@@ -727,15 +690,13 @@ function computeStandings() {
   (DB.season2026.skins||[]).forEach(function(s){if(map[s.winner])map[s.winner].skins++;});
   // Auto-calculated skins from hole scores
   (DB.season2026.weeks||[]).forEach(function(week){
-    try {
-      var result = calcWeekSkins(week);
-      if (!result) return;
-      ['t1','t2'].forEach(function(tier){
-        Object.keys(result[tier].skins).forEach(function(name){
-          if (map[name]) map[name].skins += result[tier].skins[name];
-        });
+    var result = calcWeekSkins(week);
+    if (!result) return;
+    ['t1','t2'].forEach(function(tier){
+      Object.keys(result[tier].skins).forEach(function(name){
+        if (map[name]) map[name].skins += result[tier].skins[name];
       });
-    } catch(e) { console.warn('calcWeekSkins error week '+week.weekNum, e); }
+    });
   });
   return Object.values(map).sort(function(a,b){
     if (b.pts !== a.pts) return b.pts - a.pts;                          // 1. Points
@@ -751,19 +712,17 @@ function computeStandings() {
 
 // ── RENDER ALL ────────────────────────
 function renderAll() {
-  try {
-    var s = computeStandings();
-    renderSchedule();
-    try { renderHomeStandings(s); } catch(e) { console.error('renderHomeStandings',e); }
-    try { renderFullStandings(s); } catch(e) { console.error('renderFullStandings',e); }
-    try { renderHomeRecent(); } catch(e) { console.error('renderHomeRecent',e); }
-    try { renderHomeUpNext(); } catch(e) { console.error('renderHomeUpNext',e); }
-    try { renderResults(); } catch(e) { console.error('renderResults',e); }
-    try { renderPlayoffBracket(s); } catch(e) { console.error('renderPlayoffBracket',e); }
-    try { renderSkins(); } catch(e) { console.error('renderSkins',e); }
-    try { renderHistory(); } catch(e) { console.error('renderHistory',e); }
-    document.getElementById('hero-weeks-played').textContent = (DB.season2026.weeks||[]).length;
-  } catch(e) { console.error('renderAll crash',e); }
+  var s = computeStandings();
+  renderSchedule();
+  renderHomeStandings(s);
+  renderFullStandings(s);
+  renderHomeRecent();
+  renderHomeUpNext();
+  renderResults();
+  renderPlayoffBracket(s);
+  renderSkins();
+  renderHistory();
+  document.getElementById('hero-weeks-played').textContent = (DB.season2026.weeks||[]).length;
 }
 
 // ── HELPERS ───────────────────────────
@@ -795,53 +754,6 @@ function renderHomeStandings(st) {
 }
 
 // ── FULL STANDINGS ────────────────────
-function computeSeasonMoney() {
-  var money = {};
-  function ensure(name) {
-    if (!money[name]) money[name] = {skinsEarned:0, lbowSpent:0, lbowEarned:0, scrambleSpent:0, scrambleEarned:0};
-  }
-  // Skins from weekly auto-calc
-  try {
-    (DB.season2026.weeks||[]).forEach(function(week){
-      var result = calcWeekSkins(week);
-      if (!result) return;
-      ['t1','t2'].forEach(function(tier){
-        Object.keys(result[tier].earnings||{}).forEach(function(name){
-          ensure(name);
-          money[name].skinsEarned += result[tier].earnings[name]||0;
-        });
-      });
-    });
-  } catch(e) { console.warn('seasonMoney skins error',e); }
-  // LBOW
-  (DB.season2026.lbow||[]).forEach(function(e){
-    (e.picks||[]).forEach(function(pick){
-      ensure(pick.name);
-      money[pick.name].lbowSpent += 10;
-      if (e.winner && e.winner !== 'TIE' && pick.bartels === e.winner) {
-        money[pick.name].lbowEarned += e.payout||0;
-      }
-    });
-  });
-  // Scrambles
-  (DB.season2026.scrambles||[]).forEach(function(s){
-    (s.teams||[]).forEach(function(team){
-      (team.players||[]).forEach(function(name){
-        ensure(name);
-        money[name].scrambleSpent += 10;
-        if (team.payout > 0) money[name].scrambleEarned += team.payout;
-      });
-    });
-  });
-  Object.keys(money).forEach(function(name){
-    var m = money[name];
-    m.earned = m.skinsEarned + m.lbowEarned + m.scrambleEarned;
-    m.spent  = m.lbowSpent + m.scrambleSpent + 52; // $52 skins season entry
-    m.net    = m.earned - m.spent;
-  });
-  return money;
-}
-
 function renderFullStandings(st) {
   document.getElementById('full-standings-body').innerHTML = st.map(function(p,i){
     var name = p.first+' '+p.last;
@@ -852,14 +764,7 @@ function renderFullStandings(st) {
       +'<td class="num" style="white-space:nowrap;font-size:0.78rem">'+p.w+'-'+p.t+'-'+p.l+'</td>'
       +'<td class="num">'+(p.hdcp!=null?p.hdcp:'--')+'</td>'
       +'<td class="num">'+avg(p.scores)+'</td>'
-      +(function(){
-        try {
-          var mon = computeSeasonMoney()[p.first+' '+p.last]||{net:0};
-          var col = mon.net>0?'color:#2d7a2d':mon.net<0?'color:#c0392b':'';
-          var str = mon.net>0?'+$'+mon.net.toFixed(2):mon.net<0?'-$'+Math.abs(mon.net).toFixed(2):'$0';
-          return '<td class="num" style="font-weight:600;'+col+'">'+str+'</td></tr>';
-        } catch(e) { return '<td class="num">-</td></tr>'; }
-      })();
+      +'<td class="num">'+(p.skins||0)+'</td></tr>';
   }).join('');
 }
 
@@ -873,8 +778,6 @@ function renderHomeRecent() {
     return;
   }
   var w=weeks[weeks.length-1], sc=SCHEDULE.find(function(s){return s.week===w.weekNum;})||{};
-
-
   // Check if this week is complete (all matchups have both players scored)
   var totalMatchups = w.matchups ? w.matchups.length : 0;
   var completeMatchups = (w.matchups||[]).filter(function(m){
@@ -1018,11 +921,7 @@ function renderSchedule() {
     });
     if (complete) played[w.weekNum] = true;
   });
-  // Mark scramble weeks as done if scramble data exists
-  // Mark scramble weeks as done if scramble data exists
-  if (DB) (DB.season2026.scrambles||[]).forEach(function(s){
-    if (s.teams && s.teams.length) played[s.week] = true;
-  });
+  var nextSet=false;
   document.getElementById('schedule-grid').innerHTML=SCHEDULE.map(function(w){
     var done=!!played[w.week], isNext=!done&&!nextSet;
     if(isNext)nextSet=true;
@@ -1209,12 +1108,8 @@ function render2025Results() {
     }
 
     var mRows = (w.matchups||[]).map(function(m) {
-      var winners = [];
-      var popsP1 = {side:'p1',count:0};
-      try {
-        winners = calcHoleWinners(m, par, holeHdcps2025);
-        popsP1 = calcPops(m.p1.hdcp, m.p2.hdcp);
-      } catch(e) { console.warn('calcHoleWinners error',e); }
+      var winners = calcHoleWinners(m, par, holeHdcps2025);
+      var popsP1 = calcPops(m.p1.hdcp, m.p2.hdcp);
       var popHoles = getPopHoles(popsP1.count, holeHdcps2025);
       function makeRow(p, opp, side) {
         var sc = p.scores ? p.scores.map(function(score,hi){
@@ -1329,12 +1224,12 @@ function getPopHoles(count, holeHdcps) {
 
 function getPopStrokes(count, holeHdcps) {
   // Returns object {holeIdx: strokesReceived} — handles double pops
-  if (!count || !holeHdcps || !holeHdcps.length) return {};
+  if (!count || !holeHdcps) return {};
   var indexed = holeHdcps.map(function(h,i){return {idx:i,hdcp:h||99};});
   indexed.sort(function(a,b){return a.hdcp - b.hdcp;});
   var strokes = {};
   for (var i = 0; i < count; i++) {
-    var holeIdx = indexed[i % indexed.length].idx;
+    var holeIdx = indexed[i % holeHdcps.length].idx;
     strokes[holeIdx] = (strokes[holeIdx] || 0) + 1;
   }
   return strokes;
@@ -2684,29 +2579,7 @@ async function openMatchupModal(weekNum) {
 
   var rows = '';
   if (sched.type === 'scramble') {
-    var scrambleData = (DB.season2026.scrambles||[]).find(function(s){return s.week===weekNum;});
-    if (scrambleData && scrambleData.teams && scrambleData.teams.length) {
-      var sorted = scrambleData.teams.slice().sort(function(a,b){return (a.score||99)-(b.score||99);});
-      rows = sorted.map(function(team, i) {
-        var won = team.payout > 0;
-        return '<div style="padding:11px 16px;border-bottom:1px solid #eee;'+(won?'background:var(--green-pale)':'')+'">'
-          +'<div style="display:flex;justify-content:space-between;align-items:center">'
-          +'<span style="font-weight:'+(won?'700':'400')+'">'+rankBadge(i+1)+' '+team.players.join(', ')+'</span>'
-          +'<span style="font-weight:700;color:'+(won?'var(--green-mid)':'var(--text-dark)')+'">'+(team.score!=null?(team.score===0||team.score==='E'?'E':team.score):'--')+'</span>'
-          +'</div>'
-          +(function(){
-            var net = (team.payout||0) - 10;
-            var col = net>0?'color:var(--green-mid)':'color:#c0392b';
-            var str = net>0?'+$'+net.toFixed(2):'-$'+Math.abs(net).toFixed(2);
-            return won
-              ? '<div style="font-size:0.72rem;font-weight:600;color:var(--green-mid)">Won $'+team.payout.toFixed(2)+' &middot; Net '+str+' per player</div>'
-              : '<div style="font-size:0.72rem;color:#c0392b">Net -$10.00 per player</div>';
-          })()
-          +'</div>';
-      }).join('');
-    } else {
-      rows = '<div style="padding:24px;text-align:center;color:var(--text-light);font-style:italic">Scramble &mdash; teams TBD on the course.</div>';
-    }
+    rows = '<div style="padding:24px;text-align:center;color:var(--text-light);font-style:italic">Scramble &mdash; teams TBD on the course.</div>';
   } else if (sched.type === 'playoff') {
     rows = '<div style="padding:24px;text-align:center;color:var(--text-light);font-style:italic">Playoff bracket determined by standings after Week 15.</div>';
   } else if (!pairs.length) {
@@ -2802,158 +2675,6 @@ function closePhotoOverlay() {
 }
 
 // ── MODAL UTILS ───────────────────────
-
-function openScrambleModal() {
-  var sel = '<option value="">Select week...</option>'
-    + SCHEDULE.filter(function(s){return s.type==='scramble';}).map(function(s){
-        var existing = (DB.season2026.scrambles||[]).find(function(e){return e.week===s.week;});
-        return '<option value="'+s.week+'">Week '+s.week+' — '+s.date+(existing?' ✓':'')+'</option>';
-      }).join('');
-  document.getElementById('scramble-week-sel').innerHTML = sel;
-  document.getElementById('scramble-week-sel').onchange = scrambleWeekChange;
-  document.getElementById('scramble-teams-container').innerHTML = '';
-  document.getElementById('scramble-save-status').textContent = '';
-  document.getElementById('scramble-delete-btn').style.display = 'none';
-  for (var i = 0; i < 4; i++) addScrambleTeam();
-  document.getElementById('scramble-modal').classList.add('open');
-}
-
-function scrambleWeekChange() {
-  var wk = parseInt(document.getElementById('scramble-week-sel').value);
-  if (!wk) return;
-  var existing = (DB.season2026.scrambles||[]).find(function(e){return e.week===wk;});
-  document.getElementById('scramble-delete-btn').style.display = existing ? 'inline-block' : 'none';
-  if (!existing) return;
-  var container = document.getElementById('scramble-teams-container');
-  container.innerHTML = '';
-  (existing.teams||[]).forEach(function(team){ addScrambleTeam(team); });
-  document.getElementById('scramble-save-status').textContent = 'Editing existing entry.';
-}
-
-function addScrambleTeam(data) {
-  var container = document.getElementById('scramble-teams-container');
-  var teamNum = container.querySelectorAll('.scramble-team').length + 1;
-  var playerOpts = PLAYERS.map(function(p){
-    return '<option value="'+p.first+' '+p.last+'">'+p.first+' '+p.last+'</option>';
-  }).join('');
-
-  var div = document.createElement('div');
-  div.className = 'scramble-team';
-  div.style.cssText = 'border:1px solid var(--border);border-radius:4px;padding:10px;margin-bottom:10px';
-
-  var members = (data && data.players) ? data.players : ['','','',''];
-  var playerRows = members.map(function(val, i) {
-    var inRoster = val && PLAYERS.some(function(p){return p.first+' '+p.last===val;});
-    var isSub = val && !inRoster;
-    return '<div style="display:flex;gap:6px;margin-bottom:5px;align-items:center">'
-      +'<select class="scramble-player-sel" style="flex:1;padding:4px 6px;border:1px solid var(--border);border-radius:3px;font-size:0.8rem" onchange="scramblePlayerChange(this)">'
-      +'<option value="">Player '+(i+1)+'...</option>'
-      +playerOpts
-      +'<option value="__sub__">Sub (type name)...</option>'
-      +'</select>'
-      +'<input type="text" class="scramble-sub-input" placeholder="Sub name" style="display:'+(isSub?'block':'none')+';flex:1;padding:4px 6px;border:1px solid var(--border);border-radius:3px;font-size:0.8rem" value="'+(isSub?val:'')+'">'
-      +'</div>';
-  }).join('');
-
-  div.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'
-    +'<div style="font-weight:600;font-size:0.82rem">Team '+teamNum+'</div>'
-    +'<button onclick="this.closest(\'.scramble-team\').remove()" style="background:none;border:none;color:#c0392b;cursor:pointer;font-size:1rem">&times;</button>'
-    +'</div>'
-    +playerRows
-    +'<div style="display:flex;gap:8px;align-items:center;margin-top:8px">'
-    +'<label style="font-size:0.78rem;color:var(--text-light);white-space:nowrap">Score:</label>'
-    +'<input type="number" class="scramble-score" placeholder="Total" min="20" max="60" style="width:70px;padding:4px 8px;border:1px solid var(--border);border-radius:3px;font-size:0.82rem" value="'+(data&&data.score!=null?data.score:'')+'">'
-    +'<label style="font-size:0.78rem;color:var(--text-light);white-space:nowrap">Payout ($):</label>'
-    +'<input type="number" class="scramble-payout" placeholder="0" min="0" step="0.01" style="width:70px;padding:4px 8px;border:1px solid var(--border);border-radius:3px;font-size:0.82rem" value="'+(data&&data.payout?data.payout:'')+'">'
-    +'</div>';
-
-  container.appendChild(div);
-
-  // Set player dropdown values after DOM insert
-  var sels = div.querySelectorAll('.scramble-player-sel');
-  members.forEach(function(val, i) {
-    if (!val) return;
-    var inRoster = PLAYERS.some(function(p){return p.first+' '+p.last===val;});
-    sels[i].value = inRoster ? val : '__sub__';
-  });
-}
-
-function scramblePlayerChange(sel) {
-  var sub = sel.nextElementSibling;
-  if (sub) sub.style.display = sel.value === '__sub__' ? 'block' : 'none';
-}
-
-async function saveScramble() {
-  var wk = parseInt(document.getElementById('scramble-week-sel').value);
-  if (!wk) { document.getElementById('scramble-save-status').textContent = 'Select a week first.'; return; }
-  var teams = [];
-  document.querySelectorAll('.scramble-team').forEach(function(div) {
-    var players = [];
-    div.querySelectorAll('.scramble-player-sel').forEach(function(sel) {
-      var sub = sel.nextElementSibling;
-      var val = sel.value === '__sub__' ? (sub ? sub.value.trim() : '') : sel.value;
-      if (val) players.push(val);
-    });
-    var score = parseInt(div.querySelector('.scramble-score').value)||null;
-    var payout = parseFloat(div.querySelector('.scramble-payout').value)||0;
-    if (players.length) teams.push({players:players, score:score, payout:payout});
-  });
-  if (!DB.season2026.scrambles) DB.season2026.scrambles = [];
-  var sched = SCHEDULE.find(function(s){return s.week===wk;})||{};
-  var entry = {week:wk, date:sched.date, course:sched.course, teams:teams};
-  var idx = DB.season2026.scrambles.findIndex(function(e){return e.week===wk;});
-  if (idx>=0) DB.season2026.scrambles[idx]=entry; else DB.season2026.scrambles.push(entry);
-  var ok = await saveDB();
-  document.getElementById('scramble-save-status').textContent = ok ? 'Saved!' : 'Error saving.';
-  if (ok) { renderScrambles(); setTimeout(function(){closeModal('scramble-modal');},1200); }
-}
-
-async function deleteScramble() {
-  var wk = parseInt(document.getElementById('scramble-week-sel').value);
-  if (!wk || !confirm('Delete scramble for Week '+wk+'?')) return;
-  DB.season2026.scrambles = (DB.season2026.scrambles||[]).filter(function(e){return e.week!==wk;});
-  var ok = await saveDB();
-  if (ok) { renderScrambles(); closeModal('scramble-modal'); }
-}
-
-function renderScrambles() {
-  var el = document.getElementById('scrambles-content');
-  if (!el) return;
-  var scrambles = (DB.season2026.scrambles||[]).slice().sort(function(a,b){return b.week-a.week;});
-  if (!scrambles.length) {
-    el.innerHTML = '<div class="empty-state">No scramble results yet.</div>';
-    return;
-  }
-  el.innerHTML = scrambles.map(function(s) {
-    var sched = SCHEDULE.find(function(sc){return sc.week===s.week;})||{};
-    var totalPlayers = s.teams.reduce(function(a,t){return a+t.players.length;},0);
-    var pot = totalPlayers * 10;
-    var sorted = s.teams.slice().sort(function(a,b){return (a.score||99)-(b.score||99);});
-    var teamRows = sorted.map(function(team, i) {
-      var won = team.payout > 0;
-      return '<div style="padding:10px 14px;border-bottom:1px solid #f0f0f0;'+(won?'background:var(--green-pale)':'')+'">'
-        +'<div style="display:flex;justify-content:space-between;align-items:center">'
-        +'<div style="font-weight:'+(won?'700':'400')+'">'+rankBadge(i+1)+' '+team.players.join(', ')+'</div>'
-        +'<div style="font-size:0.95rem;font-weight:700;color:'+(won?'var(--green-mid)':'var(--text-dark)')+'">'+(team.score!=null?(team.score===0||team.score==='E'?'E':team.score):'--')+'</div>'
-        +'</div>'
-        +(function(){
-          var net = (team.payout||0) - 10;
-          var col = net>0?'color:var(--green-mid)':net<0?'color:#c0392b':'';
-          var str = net>0?'+$'+net.toFixed(2):'-$'+Math.abs(net).toFixed(2);
-          return won
-            ? '<div style="font-size:0.72rem;font-weight:600;margin-top:2px;'+col+'">Won $'+team.payout.toFixed(2)+' &middot; Net '+str+' per player</div>'
-            : '<div style="font-size:0.72rem;color:#c0392b;margin-top:2px">Net -$10.00 per player</div>';
-        })()
-        +'</div>';
-    }).join('');
-    return '<div class="card" style="margin-bottom:16px">'
-      +'<div class="card-header">'+cEmoji(sched.course)+' Week '+s.week+' Scramble — '+(s.date||'')+'</div>'
-      +'<div style="padding:6px 14px;font-size:0.72rem;color:var(--text-light)">$'+pot+' pot · '+totalPlayers+' players · '+s.teams.length+' teams</div>'
-      +teamRows
-      +'</div>';
-  }).join('');
-}
-
 function closeModal(id){document.getElementById(id).classList.remove('open');}
 document.querySelectorAll('.modal-overlay').forEach(function(o){o.addEventListener('click',function(e){if(e.target===o)o.classList.remove('open');});});
 
