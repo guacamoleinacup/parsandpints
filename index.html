@@ -855,7 +855,34 @@ function renderHomeRecent() {
     if(titleEl) titleEl.textContent='Recent Results';
     return;
   }
-  var w=weeks[weeks.length-1], sc=SCHEDULE.find(function(s){return s.week===w.weekNum;})||{};
+  var w=weeks[weeks.length-1];
+  // Check if a scramble week is more recent than the last regular week
+  var latestScramble = (DB.season2026.scrambles||[]).slice().sort(function(a,b){return b.week-a.week;})[0];
+  if (latestScramble && latestScramble.week > w.weekNum) {
+    var ssc = SCHEDULE.find(function(s){return s.week===latestScramble.week;})||{};
+    if (titleEl) titleEl.textContent = 'Week '+latestScramble.week+' Scramble Results';
+    var pot = latestScramble.teams.reduce(function(a,t){return a+t.players.length;},0)*10;
+    var sTeams = latestScramble.teams.slice().sort(function(a,b){return (a.score!=null?a.score:99)-(b.score!=null?b.score:99);});
+    var sRows = sTeams.map(function(team,i){
+      var won=team.payout>0, net=(team.payout||0)-10;
+      var netStr=net>=0?'+$'+net.toFixed(2):'-$'+Math.abs(net).toFixed(2);
+      var netCol=net>=0?'color:var(--green-mid)':'color:#c0392b';
+      var sc2=team.score!=null?(team.score===0||team.score==='E'?'E':team.score):'--';
+      return '<tr style="'+(won?'background:var(--green-pale)':'')+'">'
+        +'<td>'+rankBadge(i+1)+' <span style="font-weight:'+(won?'700':'400')+'">'+team.players.join(', ')+'</span>'
+        +(won?'<div style="font-size:0.7rem;color:var(--green-mid);font-weight:600">Won $'+team.payout.toFixed(2)+' each</div>':'')
+        +'</td>'
+        +'<td class="num" style="font-weight:700">'+sc2+'</td>'
+        +'<td class="num" style="font-weight:600;'+netCol+'">'+netStr+'</td>'
+        +'</tr>';
+    }).join('');
+    el.innerHTML='<div class="card"><div class="card-header">'+cEmoji(ssc.course)+' '+(ssc.course||'')+' &middot; '+(latestScramble.date||ssc.date||'')+'</div>'
+      +'<div style="padding:6px 14px;font-size:0.72rem;color:var(--text-light);border-bottom:1px solid var(--border)">$'+pot+' pot &middot; '+latestScramble.teams.length+' teams</div>'
+      +'<table><thead><tr><th>Team</th><th class="num">Score</th><th class="num">Net</th></tr></thead>'
+      +'<tbody>'+sRows+'</tbody></table></div>';
+    return;
+  }
+  var sc=SCHEDULE.find(function(s){return s.week===w.weekNum;})||{};
   // Check if this week is complete (all matchups have both players scored)
   var totalMatchups = w.matchups ? w.matchups.length : 0;
   var completeMatchups = (w.matchups||[]).filter(function(m){
