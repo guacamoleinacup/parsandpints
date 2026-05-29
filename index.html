@@ -811,7 +811,7 @@ function computeSeasonMoney() {
   Object.keys(money).forEach(function(name){
     var m = money[name];
     m.earned = m.skinsEarned + m.lbowEarned + m.scrambleEarned;
-    m.spent  = m.lbowSpent + m.scrambleSpent;
+    m.spent  = m.lbowSpent + m.scrambleSpent + 52; // $52 skins season entry
     m.net    = m.earned - m.spent;
   });
   return money;
