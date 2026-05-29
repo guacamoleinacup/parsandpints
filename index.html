@@ -2678,7 +2678,22 @@ async function openMatchupModal(weekNum) {
 
   var rows = '';
   if (sched.type === 'scramble') {
-    rows = '<div style="padding:24px;text-align:center;color:var(--text-light);font-style:italic">Scramble &mdash; teams TBD on the course.</div>';
+    var scrambleData = (DB.season2026.scrambles||[]).find(function(s){return s.week===weekNum;});
+    if (scrambleData && scrambleData.teams && scrambleData.teams.length) {
+      var sorted = scrambleData.teams.slice().sort(function(a,b){return (a.score||99)-(b.score||99);});
+      rows = sorted.map(function(team, i) {
+        var won = team.payout > 0;
+        return '<div style="padding:11px 16px;border-bottom:1px solid #eee;'+(won?'background:var(--green-pale)':'')+'">'
+          +'<div style="display:flex;justify-content:space-between;align-items:center">'
+          +'<span style="font-weight:'+(won?'700':'400')+'">'+rankBadge(i+1)+' '+team.players.join(', ')+'</span>'
+          +'<span style="font-weight:700;color:'+(won?'var(--green-mid)':'var(--text-dark)')+'">'+( team.score!=null?team.score:'--')+'</span>'
+          +'</div>'
+          +(won?'<div style="font-size:0.72rem;color:var(--green-mid);font-weight:600">Won $'+team.payout.toFixed(2)+' each</div>':'')
+          +'</div>';
+      }).join('');
+    } else {
+      rows = '<div style="padding:24px;text-align:center;color:var(--text-light);font-style:italic">Scramble &mdash; teams TBD on the course.</div>';
+    }
   } else if (sched.type === 'playoff') {
     rows = '<div style="padding:24px;text-align:center;color:var(--text-light);font-style:italic">Playoff bracket determined by standings after Week 15.</div>';
   } else if (!pairs.length) {
@@ -2908,7 +2923,14 @@ function renderScrambles() {
         +'<div style="font-weight:'+(won?'700':'400')+'">'+rankBadge(i+1)+' '+team.players.join(', ')+'</div>'
         +'<div style="font-size:0.95rem;font-weight:700;color:'+(won?'var(--green-mid)':'var(--text-dark)')+'">'+( team.score||'--')+'</div>'
         +'</div>'
-        +(won?'<div style="font-size:0.72rem;color:var(--green-mid);font-weight:600;margin-top:2px">Won $'+team.payout.toFixed(2)+'</div>':'')
+        +(function(){
+          var net = (team.payout||0) - 10;
+          var col = net>0?'color:var(--green-mid)':net<0?'color:#c0392b':'';
+          var str = net>0?'+$'+net.toFixed(2):'-$'+Math.abs(net).toFixed(2);
+          return won
+            ? '<div style="font-size:0.72rem;font-weight:600;margin-top:2px;'+col+'">Won $'+team.payout.toFixed(2)+' &middot; Net '+str+' per player</div>'
+            : '<div style="font-size:0.72rem;color:#c0392b;margin-top:2px">Net -$10.00 per player</div>';
+        })()
         +'</div>';
     }).join('');
     return '<div class="card" style="margin-bottom:16px">'
