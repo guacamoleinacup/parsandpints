@@ -1017,10 +1017,10 @@ function renderSchedule() {
              (m.p2.total && m.p2.total > 0 || m.p2.result === 'DQ');
     });
     if (complete) played[w.weekNum] = true;
-    if (complete) played[w.weekNum] = true;
   });
   // Mark scramble weeks as done if scramble data exists
-  (DB.season2026.scrambles||[]).forEach(function(s){
+  // Mark scramble weeks as done if scramble data exists
+  if (DB) (DB.season2026.scrambles||[]).forEach(function(s){
     if (s.teams && s.teams.length) played[s.week] = true;
   });
   document.getElementById('schedule-grid').innerHTML=SCHEDULE.map(function(w){
