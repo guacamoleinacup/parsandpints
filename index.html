@@ -936,31 +936,6 @@ function renderHomeRecent() {
   var weatherHtml = inProgress
     ? '<div id="recent-weather" style="margin:10px 14px 0;padding:10px 12px;background:var(--green-pale);border-radius:4px;font-size:0.78rem;color:var(--text-light)">Loading forecast...</div>'
     : '';
-  // Show scramble card if this is a scramble week with data
-  var recentScramble = (DB.season2026.scrambles||[]).find(function(s){return s.week===w.weekNum;});
-  if (sc.type==='scramble' && recentScramble) {
-    if (titleEl) titleEl.textContent = 'Week '+w.weekNum+' Scramble Results';
-    var pot = recentScramble.teams.reduce(function(a,t){return a+t.players.length;},0)*10;
-    var sTeams = recentScramble.teams.slice().sort(function(a,b){return (a.score||99)-(b.score||99);});
-    var sRows = sTeams.map(function(team,i){
-      var won=team.payout>0, net=(team.payout||0)-10;
-      var netStr=net>=0?'+$'+net.toFixed(2):'-$'+Math.abs(net).toFixed(2);
-      var netCol=net>=0?'color:var(--green-mid)':'color:#c0392b';
-      return '<tr style="'+(won?'background:var(--green-pale)':'')+'">'
-        +'<td>'+rankBadge(i+1)+' <span style="font-weight:'+(won?'700':'400')+'">'+team.players.join(', ')+'</span>'
-        +(won?'<div style="font-size:0.72rem;color:var(--green-mid);font-weight:600">Won $'+team.payout.toFixed(2)+' each</div>':'')
-        +'</td>'
-        +'<td class="num" style="font-weight:700">'+(team.score!=null?(team.score===0||team.score==='E'?'E':team.score):'--')+'</td>'
-        +'<td class="num" style="font-weight:600;'+netCol+'">'+netStr+'</td>'
-        +'</tr>';
-    }).join('');
-    el.innerHTML='<div class="card"><div class="card-header">'+cEmoji(sc.course)+' '+(sc.course||'Week '+w.weekNum)+' &middot; '+(sc.date||'')+'</div>'
-      +'<div style="padding:6px 14px;font-size:0.72rem;color:var(--text-light);background:var(--cream-dark);border-bottom:1px solid var(--border)">$'+pot+' pot &middot; '+recentScramble.teams.length+' teams</div>'
-      +'<table><thead><tr><th>Team</th><th class="num">Score</th><th class="num">Net</th></tr></thead>'
-      +'<tbody>'+sRows+'</tbody></table></div>';
-    return;
-  }
-
   el.innerHTML='<div class="card"><div class="card-header">'+cEmoji(sc.course)+' '+(sc.course||'Week '+w.weekNum)+' &middot; '+(sc.date||'')+'</div>'
     +progressNote+weatherHtml
     +'<table><thead><tr><th>Matchup</th><th class="num">Score</th><th style="text-align:center">Result</th><th class="num">Pts</th></tr></thead>'
