@@ -2061,10 +2061,19 @@ function renderLBOW() {
     (e.picks || []).forEach(function(pick) {
       if (!pickerTotals[pick.name]) pickerTotals[pick.name] = {spent:0, won:0};
       pickerTotals[pick.name].spent += 10;
-      if (pick.bartels === e.winner) {
+      if (e.winner !== 'TIE' && pick.bartels === e.winner) {
         pickerTotals[pick.name].won += e.payout || 0;
       }
     });
+    // Tiebreaker goes directly to winning Bartels player
+    if (e.tiebreakerWinner && e.tiebreakerPot) {
+      var tbPlayer = PLAYERS.find(function(p){return p.first===e.tiebreakerWinner;});
+      if (tbPlayer) {
+        var tbKey = tbPlayer.first+' '+tbPlayer.last;
+        if (!pickerTotals[tbKey]) pickerTotals[tbKey] = {spent:0, won:0};
+        pickerTotals[tbKey].won += e.tiebreakerPot;
+      }
+    }
   });
 
   var sorted = Object.keys(pickerTotals).sort(function(a,b){
