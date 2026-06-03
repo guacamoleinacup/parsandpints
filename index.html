@@ -2518,6 +2518,8 @@ async function saveWeekResults(){
       };
     }
     var m = {p1:getPlayer(mi,'p1'),p2:getPlayer(mi,'p2')};
+    // Skip matchups with no scores and no result entered
+    if (!m.p1.scores && !m.p2.scores && !m.p1.result && !m.p2.result) continue;
     // Auto-assign pts for WIN/DQ matchups where pts weren't entered
     if (m.p1.result==='DQ' && m.p2.result==='WIN' && !m.p2.pts) { m.p2.pts=7.5; m.p1.pts=2.5; }
     if (m.p2.result==='DQ' && m.p1.result==='WIN' && !m.p1.pts) { m.p1.pts=7.5; m.p2.pts=2.5; }
