@@ -363,9 +363,10 @@ footer strong{color:var(--gold)}
       </div>
       <div style="font-size:0.75rem;color:var(--text-light);margin:-4px 0 12px">Ben gets 3 strokes &mdash; his net = gross - 3</div>
       <div class="form-row">
-        <div class="form-group"><label>Carryover Added ($)</label><input type="number" id="lbow-carryover" placeholder="0" min="0" step="0.01" value="0"></div>
+        <div class="form-group"><label>Tiebreaker Winner</label><select id="lbow-tiebreaker-winner"><option value="">None</option><option value="Zach">Zach</option><option value="Dan">Dan (Kurt)</option><option value="Ben">Ben</option></select></div>
+        <div class="form-group"><label>Tiebreaker Pot ($)</label><input type="number" id="lbow-tiebreaker-pot" placeholder="0" min="0" step="0.01" value="0"></div>
       </div>
-      <div style="font-size:0.75rem;color:var(--text-light);margin:-4px 0 12px">Add any carried-over pot from a previous tie week.</div>
+      <div style="font-size:0.75rem;color:var(--text-light);margin:-4px 0 12px">Tiebreaker pot goes directly to the winning Bartels, separate from regular picks payout.</div>
       <div style="font-weight:600;font-size:0.82rem;margin-bottom:6px">Picks</div>
       <div id="lbow-picks-container" style="margin-bottom:8px"><div class="lbow-placeholder" style="color:var(--text-light);font-size:0.82rem">No picks added yet.</div></div>
       <button onclick="addLBOWPickRow()" style="background:none;border:1px dashed var(--border);padding:6px 14px;border-radius:3px;cursor:pointer;font-size:0.82rem;color:var(--text-light);margin-bottom:14px">+ Add Pick</button>
@@ -807,6 +808,11 @@ function computeSeasonMoney() {
       ensure(pick.name); money[pick.name].lbowSpent += 10;
       if (e.winner && e.winner!=='TIE' && pick.bartels===e.winner) money[pick.name].lbowEarned += e.payout||0;
     });
+    // Tiebreaker goes directly to winning Bartels
+    if (e.tiebreakerWinner && e.tiebreakerPot) {
+      var tbPlayer = PLAYERS.find(function(p){return p.first===e.tiebreakerWinner;});
+      if (tbPlayer) { var tbKey=tbPlayer.first+' '+tbPlayer.last; ensure(tbKey); money[tbKey].lbowEarned += e.tiebreakerPot; }
+    }
   });
   (DB.season2026.scrambles||[]).forEach(function(s){
     (s.teams||[]).forEach(function(team){
@@ -2110,9 +2116,10 @@ function renderLBOW() {
       +'<div style="padding:14px">'
       +bartelsRow
       +'<div style="font-size:0.72rem;color:var(--text-light);margin-bottom:8px">'
-      +(carryover?'$'+totalPotWk+' pot ($'+pot+' entries + $'+carryover+' carryover)':'$'+pot+' pot')
+      +'$'+pot+' pot'
       +' &middot; '+(e.picks||[]).length+' entries'
       +(isTie?' &middot; <span style="color:#c9a84c;font-weight:600">TIE &mdash; carries over</span>':' &middot; $'+payout.toFixed(2)+' per winner')
+      +(e.tiebreakerWinner&&e.tiebreakerPot?' &middot; <span style="color:var(--green-mid);font-weight:600">Tiebreaker: '+e.tiebreakerWinner+' wins $'+e.tiebreakerPot.toFixed(2)+'</span>':'')
       +'</div>'
       +'<table style="width:100%"><thead><tr><th style="text-align:left">Picker</th><th style="text-align:center">Pick</th><th class="num">Payout</th></tr></thead>'
       +'<tbody>'+pickRows+'</tbody></table>'
@@ -2147,7 +2154,8 @@ function openLBOWModal() {
   document.getElementById('lbow-scores-zach').value='';
   document.getElementById('lbow-scores-dan').value='';
   document.getElementById('lbow-scores-ben').value='';
-  document.getElementById('lbow-carryover').value='0';
+  document.getElementById('lbow-tiebreaker-winner').value='';
+  document.getElementById('lbow-tiebreaker-pot').value='0';
   document.getElementById('lbow-picks-container').innerHTML='<div class="lbow-placeholder" style="color:var(--text-light);font-size:0.82rem">Add picks below...</div>';
   document.getElementById('lbow-save-status').textContent='';
   document.getElementById('lbow-delete-btn').style.display='none';
@@ -2167,7 +2175,8 @@ function lbowWeekChange() {
     // Pre-fill from existing entry
     document.getElementById('lbow-winner-sel').value = existing.winner || '';
     document.getElementById('lbow-scores-zach').value = (existing.scores&&existing.scores.Zach)||'';
-    document.getElementById('lbow-carryover').value = existing.carryover||0;
+    document.getElementById('lbow-tiebreaker-winner').value = existing.tiebreakerWinner||'';
+    document.getElementById('lbow-tiebreaker-pot').value = existing.tiebreakerPot||0;
     document.getElementById('lbow-scores-dan').value  = (existing.scores&&existing.scores.Dan)||'';
     document.getElementById('lbow-scores-ben').value  = (existing.scores&&existing.scores.Ben)||'';
     // Re-render picks
@@ -2283,11 +2292,11 @@ async function saveLBOW() {
   var pot = picks.length * 10;
   var winners = picks.filter(function(p){return p.bartels===winner;});
   var payout = winners.length ? Math.round(pot/winners.length*100)/100 : 0;
-  var carryover = parseFloat(document.getElementById('lbow-carryover').value)||0;
-  var totalPot = pot + carryover;
+  var tiebreakerWinner = document.getElementById('lbow-tiebreaker-winner').value||'';
+  var tiebreakerPot = parseFloat(document.getElementById('lbow-tiebreaker-pot').value)||0;
   var winners2 = picks.filter(function(p){return p.bartels===winner;});
-  payout = winner==='TIE' ? 0 : (winners2.length ? Math.round(totalPot/winners2.length*100)/100 : 0);
-  var entry = {week:week, winner:winner, scores:scores, picks:picks, payout:payout, carryover:carryover, totalPot:totalPot};
+  payout = winner==='TIE' ? 0 : (winners2.length ? Math.round(pot/winners2.length*100)/100 : 0);
+  var entry = {week:week, winner:winner, scores:scores, picks:picks, payout:payout, tiebreakerWinner:tiebreakerWinner, tiebreakerPot:tiebreakerPot};
   if (!DB.season2026.lbow) DB.season2026.lbow=[];
   var existing = DB.season2026.lbow.findIndex(function(e){return e.week===week;});
   if (existing>=0) DB.season2026.lbow[existing]=entry; else DB.season2026.lbow.push(entry);
