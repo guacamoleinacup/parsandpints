@@ -2393,7 +2393,12 @@ function weekModalWeekChange() {
   var existing=(DB.season2026.weeks||[]).find(function(w){return w.weekNum===wNum;});
   document.getElementById('modal-delete-btn').style.display=existing?'block':'none';
   var weekPairs = WEEK_MATCHUPS[wNum] || [];
-  var matchups=existing?existing.matchups:weekPairs.map(function(pair){
+  var matchups = weekPairs.map(function(pair) {
+    // Find saved matchup for this pair, or use empty template
+    var saved = existing && existing.matchups.find(function(m){
+      return m.p1.name===pair[0] && m.p2.name===pair[1];
+    });
+    if (saved) return saved;
     return {p1:{name:pair[0],hdcp:'',scores:new Array(9).fill(''),total:'',result:'',pts:''},
             p2:{name:pair[1],hdcp:'',scores:new Array(9).fill(''),total:'',result:'',pts:''}};
   });
