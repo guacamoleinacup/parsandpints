@@ -757,10 +757,12 @@ function renderAll() {
   renderPlayoffBracket(s);
   renderSkins();
   renderHistory();
-  document.getElementById('hero-weeks-played').textContent = (DB.season2026.weeks||[]).length;
+  var regularWeeks = (DB.season2026.weeks||[]).length;
+  var scrambleWeeks = (DB.season2026.scrambles||[]).filter(function(s){return s.teams&&s.teams.length;}).length;
+  document.getElementById('hero-weeks-played').textContent = regularWeeks + scrambleWeeks;
   var leader = s[0];
   if (leader) {
-    document.getElementById('hero-leader-name').textContent = leader.last;
+    document.getElementById('hero-leader-name').textContent = leader.first+' '+leader.last;
     document.getElementById('hero-leader-pts').textContent = leader.pts||0;
   }
 }
