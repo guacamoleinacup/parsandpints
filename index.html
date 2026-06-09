@@ -1544,14 +1544,49 @@ function build2026Stats(p, playerName) {
       +'</div>';
   }).join('');
 
+  // Compute par rankings across all players
+  var allParAvgs = {3:{}, 4:{}, 5:{}};
+  var allPlayers16 = DB.season2026 ? (DB.season2026.players||[]) : [];
+  var allWeeks16 = DB.season2026 ? (DB.season2026.weeks||[]) : [];
+  allWeeks16.forEach(function(wk){
+    var course = (SCHEDULE.find(function(s){return s.week===wk.weekNum;})||{}).course||'';
+    var pars = COURSE_PARS[course]||[];
+    (wk.matchups||[]).forEach(function(m){
+      ['p1','p2'].forEach(function(side){
+        var pl=m[side]; if (!pl.scores||!pl.name) return;
+        if (!allParAvgs[3][pl.name]) allParAvgs[3][pl.name]=[];
+        if (!allParAvgs[4][pl.name]) allParAvgs[4][pl.name]=[];
+        if (!allParAvgs[5][pl.name]) allParAvgs[5][pl.name]=[];
+        pl.scores.forEach(function(sc,hi){
+          if (sc==null) return;
+          var p=pars[hi];
+          if (p===3) allParAvgs[3][pl.name].push(sc);
+          else if (p===4) allParAvgs[4][pl.name].push(sc);
+          else if (p===5) allParAvgs[5][pl.name].push(sc);
+        });
+      });
+    });
+  });
+  function getRank(parNum, name) {
+    var avgs = Object.keys(allParAvgs[parNum]).map(function(n){
+      var sc=allParAvgs[parNum][n];
+      return {name:n, avg:sc.length?sc.reduce(function(a,b){return a+b;},0)/sc.length:999};
+    }).filter(function(x){return x.avg<999;});
+    avgs.sort(function(a,b){return a.avg-b.avg;});
+    var idx=avgs.findIndex(function(x){return x.name===name;});
+    return idx>=0?idx+1:null;
+  }
+
   var parData = [{label:'Par 3',scores:par3s,par:3},{label:'Par 4',scores:par4s,par:4},{label:'Par 5',scores:par5s,par:5}];
   var parRows = parData.filter(function(r){return r.scores.length>0;}).map(function(r){
     var a=avg(r.scores), vp=parseFloat(vsp(r.scores,r.par));
     var col=vp<=0.5?'#2d7a2d':vp<=1.0?'#c9a84c':vp<=1.5?'#e07800':'#c0392b';
+    var rank=getRank(r.par, playerName);
     return '<div style="display:flex;align-items:center;padding:5px 0;border-bottom:1px solid #f0f0f0;font-size:0.8rem">'
       +'<span style="width:50px;color:var(--text-mid)">'+r.label+'</span>'
       +'<span style="font-weight:700;color:'+col+';width:36px">'+a+'</span>'
-      +'<span style="font-size:0.72rem;color:'+col+'">'+(vp>=0?'+':'')+vp.toFixed(2)+' vs par</span>'
+      +'<span style="font-size:0.72rem;color:'+col+'">'+(vp>=0?'+':'')+vp.toFixed(2)+' vs par'
+      +(rank?' <span style="color:var(--text-light)">(#'+rank+'/16)</span>':'')+'</span>'
       +'</div>';
   }).join('');
 
