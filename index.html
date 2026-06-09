@@ -1571,6 +1571,7 @@ function build2026Stats(p, playerName) {
   }).join('');
 
   // Compute par rankings across all players
+  var allWeeks16 = (DB.season2026&&DB.season2026.weeks)||[];
   allWeeks16.forEach(function(wk){
     var course = (SCHEDULE.find(function(s){return s.week===wk.weekNum;})||{}).course||'';
     var pars = COURSE_PARS[course]||[];
