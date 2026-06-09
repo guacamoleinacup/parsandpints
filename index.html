@@ -1534,6 +1534,10 @@ function build2026Stats(p, playerName) {
   function avg(lst){ return lst.length ? (lst.reduce(function(a,b){return a+b;},0)/lst.length).toFixed(2) : null; }
   function vsp(lst,par){ return lst.length ? (lst.reduce(function(a,b){return a+b;},0)/lst.length - par).toFixed(2) : null; }
 
+  // Shared data for rankings
+  var allPlayers16 = DB.season2026 ? (DB.season2026.players||[]) : [];
+  var allWeeks16 = DB.season2026 ? (DB.season2026.weeks||[]) : [];
+
   // Build course avgs for all players for ranking
   var allCourseAvgs = {};
   allWeeks16.forEach(function(wk){
@@ -1575,9 +1579,6 @@ function build2026Stats(p, playerName) {
   }).join('');
 
   // Compute par rankings across all players
-  var allParAvgs = {3:{}, 4:{}, 5:{}};
-  var allPlayers16 = DB.season2026 ? (DB.season2026.players||[]) : [];
-  var allWeeks16 = DB.season2026 ? (DB.season2026.weeks||[]) : [];
   allWeeks16.forEach(function(wk){
     var course = (SCHEDULE.find(function(s){return s.week===wk.weekNum;})||{}).course||'';
     var pars = COURSE_PARS[course]||[];
