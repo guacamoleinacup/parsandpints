@@ -2028,7 +2028,7 @@ function renderSkins() {
     return w.matchups && w.matchups.some(function(m){
       return m.p1.scores && m.p1.scores.some(function(s){return s!=null;});
     });
-  });
+  }).slice().sort(function(a,b){return b.weekNum - a.weekNum;});
 
   if (!weeks.length) {
     el.innerHTML = '<div class="empty-state">Skins will appear here once weekly scores are entered.</div>';
