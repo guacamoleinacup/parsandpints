@@ -1402,6 +1402,15 @@ function calcWeekSkins(weekData) {
       });
   });
 
+  // Fill in any missing players from PLAYERS roster so tiers always have 16
+  PLAYERS.forEach(function(pl) {
+    var name = pl.first+' '+pl.last;
+    if (!allPlayers.find(function(p){return p.name===name;})) {
+      var hdcp = (DB.season2026.players||[]).find(function(p){return p.first===pl.first&&p.last===pl.last;});
+      allPlayers.push({name:name, hdcp:hdcp?hdcp.hdcp:0, scores:null, dq:true});
+    }
+  });
+
   if (allPlayers.length < 2) return null;
 
   // Sort ALL players by handicap to determine tiers (DQ players still hold their tier spot)
@@ -2028,7 +2037,7 @@ function renderSkins() {
     return w.matchups && w.matchups.some(function(m){
       return m.p1.scores && m.p1.scores.some(function(s){return s!=null;});
     });
-  });
+  }).slice().sort(function(a,b){return b.weekNum - a.weekNum;});
 
   if (!weeks.length) {
     el.innerHTML = '<div class="empty-state">Skins will appear here once weekly scores are entered.</div>';
