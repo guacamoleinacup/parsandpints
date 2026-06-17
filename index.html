@@ -2109,7 +2109,7 @@ function renderSkins() {
         var earn = tierData.earnings[p.name]||0;
         var holeCells = '';
         for (var h=0;h<9;h++){
-          var score = (p.scores&&!p.dq)?p.scores[h]:null;
+          var score = p.scores?p.scores[h]:null;
           var isWinner = holeWinners[h]===p.name;
           holeCells += '<td class="num" style="padding:4px 2px;font-size:0.78rem;'+(isWinner?'background:#fffde6;font-weight:700;color:#8a6a00':'')+'">'+( score!=null?score:'-')+'</td>';
         }
