@@ -1402,15 +1402,6 @@ function calcWeekSkins(weekData) {
       });
   });
 
-  // Fill in any missing players from PLAYERS roster using current standings hdcp
-  var standings = computeStandings();
-  standings.forEach(function(sp) {
-    var name = sp.first+' '+sp.last;
-    if (!allPlayers.find(function(p){return p.name===name;})) {
-      allPlayers.push({name:name, hdcp:sp.hdcp||0, scores:null, dq:true});
-    }
-  });
-
   if (allPlayers.length < 2) return null;
 
   // Sort ALL players by handicap to determine tiers (DQ players still hold their tier spot)
@@ -2037,7 +2028,7 @@ function renderSkins() {
     return w.matchups && w.matchups.some(function(m){
       return m.p1.scores && m.p1.scores.some(function(s){return s!=null;});
     });
-  }).slice().sort(function(a,b){return b.weekNum - a.weekNum;});
+  });
 
   if (!weeks.length) {
     el.innerHTML = '<div class="empty-state">Skins will appear here once weekly scores are entered.</div>';
