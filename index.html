@@ -435,7 +435,7 @@ var SCHEDULE = [
   {week:8, date:'Tue Jun 16, 2026',course:'Currie Golf Course',    note:'',           type:'regular'},
   {week:9, date:'Tue Jun 23, 2026',course:'Whitnall Golf Course',  note:'',           type:'regular'},
   {week:10,date:'Tue Jun 30, 2026',course:'Oakwood Golf Course',   note:'',           type:'scramble'},
-  {week:11,date:'Tue Jul 7, 2026', course:'Greenfield Golf Course',note:'',           type:'regular'},
+  {week:11,date:'Tue Jul 7, 2026', course:'Greenfield Golf Course',note:'Back Nine',  type:'regular'},
   {week:12,date:'Tue Jul 14, 2026',course:'Currie Golf Course',    note:'',           type:'regular'},
   {week:13,date:'Tue Jul 21, 2026',course:'Oakwood Golf Course',   note:'Back Nine',  type:'regular'},
   {week:14,date:'Tue Jul 28, 2026',course:'Whitnall Golf Course',  note:'',           type:'regular'},
@@ -498,6 +498,11 @@ var COURSE_HDCPS = {
   'Currie Golf Course':     [13,7,1,11,15,9,5,17,3],
 };
 
+// Back-9 hole handicaps (used when a week's note contains "Back Nine")
+var COURSE_HDCPS_BACK = {
+  'Greenfield Golf Course': [4,18,12,2,8,16,14,10,6],
+};
+
 var LBOW_2025_WEEKS = [{"week":1,"winner":"Dan","payout":25.0,"pot":50,"picks":[{"name":"Dan Bartels","bartels":"Dan"},{"name":"Josh Mack","bartels":"Dan"},{"name":"Zach Bartels","bartels":"Zach"},{"name":"Sam Harmeyer","bartels":"Zach"},{"name":"Matt Sklander","bartels":"Ben"}]},{"week":2,"winner":"Dan","payout":20.0,"pot":40,"picks":[{"name":"Dan Bartels","bartels":"Dan"},{"name":"Josh Mack","bartels":"Dan"},{"name":"Zach Bartels","bartels":"Zach"},{"name":"Alex Henry","bartels":"Zach"}]},{"week":3,"winner":"Dan","payout":16.0,"pot":80,"picks":[{"name":"Dan Bartels","bartels":"Dan"},{"name":"Sam Harmeyer","bartels":"Dan"},{"name":"Alex Henry","bartels":"Dan"},{"name":"Josh Mack","bartels":"Dan"},{"name":"Matt Sklander","bartels":"Dan"},{"name":"Zach Bartels","bartels":"Zach"},{"name":"Nick Kriesel","bartels":"Zach"},{"name":"Matt Phillips","bartels":"Ben"}]},{"week":6,"winner":"Dan","payout":20.0,"pot":40,"picks":[{"name":"Dan Bartels","bartels":"Dan"},{"name":"Matt Sklander","bartels":"Dan"},{"name":"Zach Bartels","bartels":"Zach"}]},{"week":7,"winner":"Dan","payout":20.0,"pot":50,"picks":[{"name":"Dan Bartels","bartels":"Dan"},{"name":"Josh Mack","bartels":"Dan"},{"name":"Zach Bartels","bartels":"Zach"},{"name":"Matt Sklander","bartels":"Zach"},{"name":"TJ (sub)","bartels":"Zach"}]},{"week":8,"winner":"Zach","payout":35.0,"pot":70,"picks":[{"name":"Jack Balistreri","bartels":"Dan"},{"name":"Dan Bartels","bartels":"Dan"},{"name":"Josh Mack","bartels":"Dan"},{"name":"Matt Sklander","bartels":"Dan"},{"name":"Zach Bartels","bartels":"Zach"},{"name":"Sam Harmeyer","bartels":"Zach"}]},{"week":9,"winner":"Dan","payout":17.5,"pot":80,"picks":[{"name":"Dan Bartels","bartels":"Dan"},{"name":"Sam Harmeyer","bartels":"Dan"},{"name":"Josh Mack","bartels":"Dan"},{"name":"Mike Trepanier","bartels":"Dan"},{"name":"Zach Bartels","bartels":"Zach"},{"name":"Matt Sklander","bartels":"Zach"},{"name":"Matt Phillips","bartels":"Ben"},{"name":"Kaden (sub)","bartels":"Ben"}]},{"week":11,"winner":"Zach","payout":50.0,"pot":50,"picks":[{"name":"Dan Bartels","bartels":"Dan"},{"name":"Josh Mack","bartels":"Dan"},{"name":"Matt Sklander","bartels":"Dan"},{"name":"Zach Bartels","bartels":"Zach"}]},{"week":12,"winner":"Dan","payout":10.0,"pot":10,"picks":[{"name":"Dan Bartels","bartels":"Dan"}]},{"week":13,"winner":"Dan","payout":13.33,"pot":80,"picks":[{"name":"Jack Balistreri","bartels":"Dan"},{"name":"Dan Bartels","bartels":"Dan"},{"name":"Alex Henry","bartels":"Dan"},{"name":"Josh Mack","bartels":"Dan"},{"name":"Matt Sklander","bartels":"Dan"},{"name":"Kaden (sub)","bartels":"Dan"},{"name":"Zach Bartels","bartels":"Zach"},{"name":"Matt Phillips","bartels":"Ben"}]},{"week":14,"winner":"Zach","payout":15.0,"pot":60,"picks":[{"name":"Jack Balistreri","bartels":"Zach"},{"name":"Zach Bartels","bartels":"Zach"},{"name":"Sam Harmeyer","bartels":"Zach"},{"name":"Ryan (sub)","bartels":"Zach"},{"name":"Dan Bartels","bartels":"Dan"},{"name":"Josh Mack","bartels":"Dan"}]},{"week":15,"winner":"Dan","payout":16.67,"pot":50,"picks":[{"name":"Jack Balistreri","bartels":"Zach"},{"name":"Zach Bartels","bartels":"Zach"},{"name":"Dan Bartels","bartels":"Dan"},{"name":"Alex Henry","bartels":"Dan"},{"name":"Josh Mack","bartels":"Dan"}]}];
 
 var LBOW_2025 = {"benStrokes":2,"totalBuyin":1270.0,"totalProceeds":1260.01,"players":[{"name":"John Trepanier","buyin":30.0,"proceeds":130.0},{"name":"Dan Bartels","buyin":150.0,"proceeds":248.5},{"name":"Matt Phillips","buyin":60.0,"proceeds":150.0},{"name":"Zach Bartels","buyin":130.0,"proceeds":190.0},{"name":"Sam Harmeyer","buyin":70.0,"proceeds":123.5},{"name":"Josh Mack","buyin":130.0,"proceeds":168.5},{"name":"Ben Bartels","buyin":20.0,"proceeds":40.0},{"name":"Mike Trepanier","buyin":30.0,"proceeds":17.5},{"name":"Jack Mielke","buyin":20.0,"proceeds":0.0},{"name":"Shaun Diederich","buyin":20.0,"proceeds":0.0},{"name":"TJ (sub)","buyin":10.0,"proceeds":0.0},{"name":"Kaden (sub)","buyin":20.0,"proceeds":13.33},{"name":"Ryan (sub)","buyin":10.0,"proceeds":15.0},{"name":"Grant (sub)","buyin":50.0,"proceeds":28.34},{"name":"Alex Henry","buyin":70.0,"proceeds":46.0},{"name":"Alex Hein","buyin":30.0,"proceeds":0.0},{"name":"CJ Malek","buyin":30.0,"proceeds":0.0},{"name":"Jack Balistreri","buyin":80.0,"proceeds":48.33},{"name":"Nick Kriesel","buyin":40.0,"proceeds":0.0},{"name":"Matt Sklander","buyin":110.0,"proceeds":69.34}]};
@@ -510,6 +515,28 @@ var COURSE_PARS = {
   'Greenfield Golf Course':[4,4,4,4,4,3,4,3,4],
   'Currie Golf Course':    [4,4,5,4,3,4,4,3,5]
 };
+
+// Back-9 pars (used when a week's note contains "Back Nine")
+var COURSE_PARS_BACK = {
+  'Greenfield Golf Course':[4,3,4,4,4,4,4,4,4],
+};
+
+// Returns true if this week plays the back nine
+function isBackNine(sched) {
+  return !!(sched && sched.note && sched.note.indexOf('Back Nine') !== -1);
+}
+// Get correct pars for a week (front or back nine)
+function parsForWeek(sched) {
+  if (!sched) return [];
+  if (isBackNine(sched) && COURSE_PARS_BACK[sched.course]) return COURSE_PARS_BACK[sched.course];
+  return COURSE_PARS[sched.course] || [];
+}
+// Get correct hole handicaps for a week (front or back nine)
+function hdcpsForWeek(sched) {
+  if (!sched) return [];
+  if (isBackNine(sched) && COURSE_HDCPS_BACK[sched.course]) return COURSE_HDCPS_BACK[sched.course];
+  return COURSE_HDCPS[sched.course] || [];
+}
 
 var SEED = {
   season2026:{
@@ -1282,11 +1309,12 @@ function renderResults() {
   }).join('');
   panelsEl.innerHTML=weeks.map(function(w,i){
     var sc=SCHEDULE.find(function(s){return s.week===w.weekNum;})||{};
-    var par=COURSE_PARS[sc.course]||[4,4,4,3,5,4,3,4,4];
+    var par=parsForWeek(sc);
+    if (!par.length) par=[4,4,4,3,5,4,3,4,4];
     var parTotal=par.reduce(function(a,b){return a+b;},0);
     var parRow='<tr class="par-row"><td style="text-align:left;font-weight:600;color:var(--green-deep)">Par</td>'
       +par.map(function(p){return '<td>'+p+'</td>';}).join('')+'<td>'+parTotal+'</td><td></td><td></td></tr>';
-    var holeHdcps2026 = COURSE_HDCPS[sc.course] || [];
+    var holeHdcps2026 = hdcpsForWeek(sc);
     var hdcpRow = holeHdcps2026.length
       ? '<tr class="par-row"><td style="text-align:left;font-weight:600;color:var(--text-light);font-size:0.7rem">HDCP</td>'
         + holeHdcps2026.map(function(h){return '<td style="font-size:0.72rem;color:var(--text-light)">'+h+'</td>';}).join('')
@@ -1521,7 +1549,7 @@ function build2026Stats(p, playerName) {
   (DB.season2026.weeks||[]).forEach(function(week){
     var sched = SCHEDULE.find(function(s){return s.week===week.weekNum;})||{};
     var course = (sched.course||'').replace(' Golf Course','');
-    var pars = COURSE_PARS[sched.course]||[];
+    var pars = parsForWeek(sched);
     (week.matchups||[]).forEach(function(m){
       ['p1','p2'].forEach(function(side){
         var pl = m[side];
@@ -1584,8 +1612,8 @@ function build2026Stats(p, playerName) {
   var allParAvgs = {3:{}, 4:{}, 5:{}};
   var allWeeks16 = (DB.season2026&&DB.season2026.weeks)||[];
   allWeeks16.forEach(function(wk){
-    var course = (SCHEDULE.find(function(s){return s.week===wk.weekNum;})||{}).course||'';
-    var pars = COURSE_PARS[course]||[];
+    var wsched = SCHEDULE.find(function(s){return s.week===wk.weekNum;})||{};
+    var pars = parsForWeek(wsched);
     (wk.matchups||[]).forEach(function(m){
       ['p1','p2'].forEach(function(side){
         var pl=m[side]; if (!pl.scores||!pl.name) return;
@@ -2375,7 +2403,8 @@ function weekModalWeekChange() {
     return {p1:{name:pair[0],hdcp:'',scores:new Array(9).fill(''),total:'',result:'',pts:''},
             p2:{name:pair[1],hdcp:'',scores:new Array(9).fill(''),total:'',result:'',pts:''}};
   });
-  var par=COURSE_PARS[sched?sched.course:'']||[4,4,4,3,5,4,3,4,4];
+  var par=parsForWeek(sched);
+  if (!par.length) par=[4,4,4,3,5,4,3,4,4];
   var resultOpts=['','WIN','1UP','2UP','3UP','4UP','5UP','6UP','7UP','8UP','AS','DQ'];
   document.getElementById('modal-matchups-container').innerHTML=matchups.map(function(m,mi){
     function block(p,side){
@@ -2425,8 +2454,8 @@ function autoCalcTotal(mi, side) {
 function autoCalcWinners(mi) {
   var wNum = parseInt(document.getElementById('modal-week-num').value);
   var sched = SCHEDULE.find(function(s){return s.week===wNum;}) || {};
-  var pars = COURSE_PARS[sched.course] || [];
-  var holeHdcps = COURSE_HDCPS[sched.course] || [];
+  var pars = parsForWeek(sched);
+  var holeHdcps = hdcpsForWeek(sched);
 
   var h1 = parseFloat((document.getElementById('hdcp-'+mi+'-p1')||{}).value);
   var h2 = parseFloat((document.getElementById('hdcp-'+mi+'-p2')||{}).value);
