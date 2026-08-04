@@ -62,6 +62,13 @@ tbody td.name{font-weight:600;color:var(--text-dark)}
 .scn-sub{font-size:0.74rem;color:var(--text-light);margin-top:3px}
 .scn-txt{font-size:0.81rem;color:var(--text-mid);margin-top:5px;line-height:1.45}
 .scn-pill{display:inline-block;font-size:0.72rem;font-weight:600;padding:4px 11px;border-radius:12px;border:1px solid var(--border);background:var(--cream)}
+.scn-toggle{background:none;border:none;padding:0;color:var(--green-mid);font-family:'Source Sans 3',sans-serif;font-size:0.75rem;font-weight:600;cursor:pointer;letter-spacing:0.03em}
+.scn-toggle:hover{color:var(--green-deep);text-decoration:underline}
+.scn-d-box{margin-top:7px;padding:10px 12px;background:var(--cream);border:1px solid var(--border);border-radius:3px}
+.scn-d-head{font-size:0.75rem;font-weight:700;color:var(--green-deep);margin-bottom:6px;letter-spacing:0.02em}
+.scn-d-line{font-size:0.78rem;color:var(--text-mid);line-height:1.5;margin-top:3px}
+.scn-d-list{margin:4px 0 4px 18px;padding:0;font-size:0.78rem;color:var(--text-mid);line-height:1.55}
+.scn-d-list li{margin-bottom:2px}
 .schedule-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px}
 .week-card{background:var(--white);border:1px solid var(--border);border-radius:4px;overflow:hidden;box-shadow:0 1px 6px var(--shadow);transition:box-shadow 0.2s,transform 0.2s}
 .week-card:hover{box-shadow:0 4px 16px var(--shadow);transform:translateY(-1px)}
@@ -2008,8 +2015,138 @@ function computePlayoffScenarios(standings){
 
   return {
     week:focus, date:sched.date||'', course:sched.course||'',
-    exact:exact, weeksLeft:remaining.length, maxPts:R, rows:rows
+    exact:exact, weeksLeft:remaining.length, maxPts:R, rows:rows,
+    cur:cur, pairs:pairs
   };
+}
+
+// For one matchup (A,B) splitting R pts, scan every possible split and work out
+// the fewest / most of those two who can finish above T, plus the split range
+// that achieves the fewest. Only 21 splits per matchup, so brute force is fine.
+function scnPairPaths(nA,cA,nB,cB,T,R){
+  var minC = 99, maxC = -1, ok = [];
+  for (var i = 0; i <= R*2; i++) {
+    var a = i/2, b = R - a;
+    var c = ((cA+a > T) ? 1 : 0) + ((cB+b > T) ? 1 : 0);
+    if (c < minC) { minC = c; ok = [a]; }
+    else if (c === minC) ok.push(a);
+    if (c > maxC) maxC = c;
+  }
+  // Collapse the winning splits into contiguous runs
+  var runs = [], start = null, prev = null;
+  ok.forEach(function(a){
+    if (start === null) { start = a; prev = a; return; }
+    if (Math.abs(a - prev - 0.5) < 1e-9) { prev = a; return; }
+    runs.push([start, prev]); start = a; prev = a;
+  });
+  if (start !== null) runs.push([start, prev]);
+
+  var texts = runs.map(function(rn){ return scnRunText(nA,nB,rn[0],rn[1],R); })
+                  .filter(function(t){ return !!t; });
+  return {min:minC, max:maxC, text:texts.join(' &mdash; or &mdash; ')};
+}
+
+// Turn a split range into plain English, naming whoever has to be held down
+function scnRunText(nA,nB,lo,hi,R){
+  function held(who, cap, foe){
+    return cap <= 0 ? who+' gets shut out (0 pts) by '+foe
+                    : who+' takes '+fmtScnPts(cap)+' or fewer vs '+foe;
+  }
+  if (lo <= 0 && hi >= R) return null;                    // anything works
+  if (lo <= 0) return held(nA, hi, nB);
+  if (hi >= R) return held(nB, R-lo, nA);
+  return nA+' takes '+fmtScnPts(lo)+'&ndash;'+fmtScnPts(hi)+' vs '+nB;
+}
+
+// The concrete path in, for a player who isn't already clinched or eliminated
+function scnPathDetail(r, data){
+  if (!data.exact) return null;                       // only meaningful on the final week
+  if (r.status !== 'help' && r.status !== 'control') return null;
+
+  var R = data.maxPts, cur = data.cur;
+  // 'help' players need their best week; 'control' players want to know what
+  // happens if they fall just short of their clinch number.
+  var x = (r.status === 'help') ? R : Math.max(0, r.clinchAt - 0.5);
+  var T = r.pts + x;
+
+  var locked = [], forced = [], conds = [], totalMin = 0;
+
+  if (r.oppName) {
+    var oppFinal = cur[r.oppName] + (R - x);
+    if (oppFinal > T) { locked.push(r.oppName+' ('+fmtScnPts(oppFinal)+')'); totalMin++; }
+  }
+
+  data.pairs.forEach(function(pr){
+    if (pr[0] === r.name || pr[1] === r.name) return;
+    var cA = cur[pr[0]], cB = cur[pr[1]];
+    var d = scnPairPaths(pr[0], cA, pr[1], cB, T, R);
+    totalMin += d.min;
+
+    var lockedHere = 0;
+    [[pr[0],cA],[pr[1],cB]].forEach(function(q){
+      if (q[1] > T) { locked.push(q[0]+' ('+fmtScnPts(q[1])+')'); lockedHere++; }
+    });
+    if (d.min > lockedHere) forced.push(pr[0]+' or '+pr[1]);
+    if (d.max > d.min && d.text) conds.push({text:d.text, cost:d.max-d.min});
+  });
+
+  return {
+    x:x, T:T, locked:locked, forced:forced, conds:conds,
+    totalMin:totalMin, budget:(PLAYOFF_SPOTS-1) - totalMin
+  };
+}
+
+function scnDetailHTML(r, data, idx){
+  var d = null;
+  try { d = scnPathDetail(r, data); } catch(e) { d = null; }
+  if (!d) return '';
+
+  var vs = r.oppName ? ' vs '+r.oppName : '';
+  var head = (r.status === 'help')
+    ? 'Best case: you take all '+fmtScnPts(d.x)+' pts'+vs
+    : 'If you fall short of '+fmtScnPts(r.clinchAt)+' &mdash; say '+fmtScnPts(d.x)+' pts'+vs;
+
+  var body = '<div class="scn-d-line">You&rsquo;d finish on <b>'+fmtScnPts(d.T)+' pts</b>.</div>';
+
+  if (d.locked.length) {
+    body += '<div class="scn-d-line"><b>'+d.locked.length+' finish ahead of you no matter what:</b> '
+          + d.locked.join(', ') + '</div>';
+  }
+  d.forced.forEach(function(t){
+    body += '<div class="scn-d-line">&bull; One of '+t+' passes you &mdash; unavoidable.</div>';
+  });
+
+  if (d.conds.length) {
+    body += '<div class="scn-d-line" style="margin-top:7px"><b>Has to break your way:</b></div>'
+          + '<ul class="scn-d-list">'
+          + d.conds.map(function(c){
+              return '<li>'+c.text+(c.cost>1 ? ' <i>(worth '+c.cost+' spots)</i>' : '')+'</li>';
+            }).join('')
+          + '</ul>'
+          + '<div class="scn-d-line">'
+          + (d.budget <= 0
+              ? 'Every one of those '+d.conds.length+' has to land &mdash; no margin at all.'
+              : 'You can afford <b>'+d.budget+'</b> more '+(d.budget===1?'player':'players')+' to slip past you.')
+          + '</div>';
+  } else {
+    body += '<div class="scn-d-line">Nothing else needed &mdash; that result alone puts you in.</div>';
+  }
+
+  var showLbl = '&#9656; What has to happen', hideLbl = '&#9662; Hide';
+  return '<div style="margin-top:8px">'
+    + '<button class="scn-toggle" onclick="scnToggle(\''+idx+'\',this)">'+showLbl+'</button>'
+    + '<div id="scn-d-'+idx+'" class="scn-d-box" style="display:none">'
+      + '<div class="scn-d-head">'+head+'</div>'
+      + body
+    + '</div></div>';
+}
+
+function scnToggle(idx, btn){
+  var e = document.getElementById('scn-d-'+idx);
+  if (!e) return;
+  var open = e.style.display !== 'none';
+  e.style.display = open ? 'none' : 'block';
+  btn.innerHTML = open ? '&#9656; What has to happen' : '&#9662; Hide';
 }
 
 function scenarioBlurb(r, data){
@@ -2062,7 +2199,7 @@ function renderPlayoffScenarios(standings){
 
   // ── Full table (Standings tab) ──
   if (full) {
-    var body = data.rows.map(function(r){
+    var body = data.rows.map(function(r, ri){
       var tag  = SCN_TAG[r.status];
       var sub  = fmtScnPts(r.pts)+' pts'
                + (r.oppName ? ' &middot; vs '+r.oppName+' ('+fmtScnPts(r.oppPts)+')' : '');
@@ -2075,6 +2212,7 @@ function renderPlayoffScenarios(standings){
         + '<td>'
           + '<span class="tag '+tag.cls+'">'+tag.label+'</span>'
           + '<div class="scn-txt">'+scenarioBlurb(r, data)+'</div>'
+          + scnDetailHTML(r, data, ri)
         + '</td>'
         + '</tr>';
     }).join('');
