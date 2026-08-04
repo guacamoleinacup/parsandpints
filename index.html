@@ -56,6 +56,12 @@ tbody td.name{font-weight:600;color:var(--text-dark)}
 .matchup-divider{height:5px;background:var(--cream-dark)}
 .tag{display:inline-block;font-size:0.65rem;padding:2px 7px;border-radius:10px;font-weight:600;letter-spacing:0.05em;text-transform:uppercase}
 .tag-win{background:#e6f7e6;color:#2d7a2d} .tag-loss{background:#fde8e8;color:var(--red)} .tag-as{background:#f0f0f0;color:#666} .tag-dq{background:#fff3cd;color:#856404}
+.tag-clinch{background:#e6f7e6;color:#2d7a2d} .tag-hunt{background:#fff6d9;color:#8a6a0b} .tag-help{background:#ffeede;color:#a35200} .tag-out{background:#f2f2f2;color:#8a8a8a}
+.scn-row{border-left:4px solid transparent}
+.scn-in{border-left-color:#4a8c5c} .scn-control{border-left-color:var(--gold)} .scn-help{border-left-color:#e08a3c} .scn-out{border-left-color:#cfcfcf}
+.scn-sub{font-size:0.74rem;color:var(--text-light);margin-top:3px}
+.scn-txt{font-size:0.81rem;color:var(--text-mid);margin-top:5px;line-height:1.45}
+.scn-pill{display:inline-block;font-size:0.72rem;font-weight:600;padding:4px 11px;border-radius:12px;border:1px solid var(--border);background:var(--cream)}
 .schedule-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px}
 .week-card{background:var(--white);border:1px solid var(--border);border-radius:4px;overflow:hidden;box-shadow:0 1px 6px var(--shadow);transition:box-shadow 0.2s,transform 0.2s}
 .week-card:hover{box-shadow:0 4px 16px var(--shadow);transform:translateY(-1px)}
@@ -171,6 +177,7 @@ footer strong{color:var(--gold)}
 </div>
 
 <section id="home" class="section active">
+  <div id="home-scenarios"></div>
   <div class="two-col">
     <div>
       <div class="section-title">Standings <small>2026 Season</small></div>
@@ -208,6 +215,7 @@ footer strong{color:var(--gold)}
         <tbody id="full-standings-body"><tr><td colspan="9" style="text-align:center;padding:20px;color:var(--text-light)">Loading...</td></tr></tbody>
       </table>
     </div>
+    <div id="playoff-scenarios-section"></div>
     <div id="playoff-bracket-section"></div>
     <div id="player-modal-anchor"></div>
   </div>
@@ -785,6 +793,7 @@ function renderAll() {
   renderHomeRecent();
   renderHomeUpNext();
   renderResults();
+  renderPlayoffScenarios(s);
   renderPlayoffBracket(s);
   renderSkins();
   renderHistory();
@@ -1872,6 +1881,259 @@ function openPlayerModal(idx) {
     document.getElementById('matchup-modal').classList.add('open');
   }
 }
+
+// ── PLAYOFF SCENARIOS ────────────────
+// "What do I need on Tuesday to make the top 8?"
+// Points are zero-sum inside a matchup (10 pts split between the two players),
+// so a player's fate depends on their own result AND the 7 other matchups.
+//
+// clinchAt = fewest pts that puts you in NO MATTER WHAT (loses every tiebreaker)
+// aliveAt  = fewest pts that leaves ANY path in (wins every tiebreaker)
+var PLAYOFF_SPOTS = 8;
+var PTS_PER_MATCH = 10;
+
+function fmtScnPts(v){ return String(Math.round(v*10)/10); }
+
+function weekHasResults(w){
+  return (w.matchups||[]).some(function(m){
+    return ['p1','p2'].some(function(side){
+      var p = m[side];
+      if (!p) return false;
+      if (p.result) return true;
+      if ((p.pts||0) > 0) return true;
+      if (p.total) return true;
+      return !!(p.scores && p.scores.some(function(s){ return s != null; }));
+    });
+  });
+}
+
+function computePlayoffScenarios(standings){
+  if (!DB || !DB.season2026 || !standings || !standings.length) return null;
+
+  var played = {};
+  (DB.season2026.weeks||[]).forEach(function(w){
+    if (weekHasResults(w)) played[w.weekNum] = true;
+  });
+
+  var remaining = SCHEDULE.filter(function(s){
+    return s.week <= 15 && s.type === 'regular' && !played[s.week];
+  }).map(function(s){ return s.week; });
+
+  if (!remaining.length) return null;             // regular season done — bracket takes over
+
+  var focus  = remaining[0];
+  var sched  = SCHEDULE.find(function(s){ return s.week === focus; }) || {};
+  var exact  = remaining.length === 1;            // final week => exact matchup-aware math
+  var R      = PTS_PER_MATCH * remaining.length;  // max pts still available to any player
+
+  var cur = {};
+  standings.forEach(function(p){ cur[p.first+' '+p.last] = p.pts||0; });
+
+  var oppOf = {}, pairs = [];
+  if (exact) {
+    (WEEK_MATCHUPS[focus]||[]).forEach(function(pr){
+      if (cur[pr[0]] == null || cur[pr[1]] == null) return;
+      oppOf[pr[0]] = pr[1]; oppOf[pr[1]] = pr[0];
+      pairs.push([pr[0], pr[1]]);
+    });
+  }
+
+  // For a matchup (A,B) splitting R pts, how many of the two can finish at/above T?
+  function pairMaxAbove(cA,cB,T){
+    if ((cA+R >= T) && (cB+R >= T) && (cA+cB+R >= 2*T)) return 2;
+    if ((cA+R >= T) || (cB+R >= T)) return 1;
+    return 0;
+  }
+  // ...and how few can finish strictly above T?
+  function pairMinAbove(cA,cB,T){
+    if ((cA <= T) && (cB <= T) && (cA+cB+R <= 2*T)) return 0;
+    if ((cA <= T) || (cB <= T)) return 1;
+    return 2;
+  }
+
+  var rows = standings.map(function(p, idx){
+    var me      = p.first+' '+p.last;
+    var oppName = exact ? (oppOf[me] || null) : null;
+    var cMe     = cur[me];
+
+    // Everything that isn't me or my opponent, grouped so pair constraints are respected
+    var groups = [], covered = {};
+    covered[me] = true;
+    if (oppName) covered[oppName] = true;
+    if (exact) {
+      pairs.forEach(function(pr){
+        if (pr[0] === me || pr[1] === me) return;
+        groups.push({pair:true, a:cur[pr[0]], b:cur[pr[1]]});
+        covered[pr[0]] = true; covered[pr[1]] = true;
+      });
+    }
+    standings.forEach(function(q){
+      var k = q.first+' '+q.last;
+      if (covered[k]) return;
+      groups.push({pair:false, a:cur[k], gain: exact ? 0 : R});
+      covered[k] = true;
+    });
+
+    function countAbove(x, pessimistic){
+      var T = cMe + x, n = 0;
+      groups.forEach(function(g){
+        if (g.pair) n += pessimistic ? pairMaxAbove(g.a,g.b,T) : pairMinAbove(g.a,g.b,T);
+        else        n += pessimistic ? ((g.a+g.gain >= T) ? 1 : 0) : ((g.a > T) ? 1 : 0);
+      });
+      if (oppName) {
+        var oppFinal = cur[oppName] + (R - x);
+        n += pessimistic ? ((oppFinal >= T) ? 1 : 0) : ((oppFinal > T) ? 1 : 0);
+      }
+      return n;
+    }
+
+    var clinchAt = null, aliveAt = null;
+    for (var x = 0; x <= R + 0.001; x += 0.5) {
+      var xv = Math.round(x*10)/10;
+      if (aliveAt  === null && countAbove(xv,false) < PLAYOFF_SPOTS) aliveAt  = xv;
+      if (clinchAt === null && countAbove(xv,true)  < PLAYOFF_SPOTS) clinchAt = xv;
+      if (clinchAt !== null) break;   // both are monotonic in x
+    }
+
+    var status = (clinchAt === 0) ? 'in'
+               : (aliveAt === null) ? 'out'
+               : (clinchAt !== null) ? 'control' : 'help';
+
+    return {
+      name:me, first:p.first, last:p.last, seed:idx+1, pts:cMe,
+      oppName:oppName, oppPts: oppName != null ? cur[oppName] : null,
+      clinchAt:clinchAt, aliveAt:aliveAt, status:status
+    };
+  });
+
+  return {
+    week:focus, date:sched.date||'', course:sched.course||'',
+    exact:exact, weeksLeft:remaining.length, maxPts:R, rows:rows
+  };
+}
+
+function scenarioBlurb(r, data){
+  var vs  = r.oppName ? ' vs ' + r.oppName : '';
+  var win = data.exact ? '' : ' over the final '+data.weeksLeft+' weeks';
+
+  if (r.status === 'in')  return 'Locked into the top 8. Week '+data.week+' only affects seeding.';
+  if (r.status === 'out') return 'Mathematically eliminated &mdash; even a perfect '+fmtScnPts(data.maxPts)+'-point finish isn\'t enough.';
+
+  var parts = [];
+  if (r.clinchAt != null) {
+    parts.push('<b>'+fmtScnPts(r.clinchAt)+'+ pts'+vs+win+'</b> and you\'re in, no help needed.');
+    if (r.aliveAt != null && r.aliveAt < r.clinchAt) {
+      parts.push(r.aliveAt === 0
+        ? 'Anything less and you\'re still alive, but you\'ll need results elsewhere.'
+        : fmtScnPts(r.aliveAt)+'&ndash;'+fmtScnPts(r.clinchAt-0.5)+' pts keeps you alive, but you\'ll need help elsewhere.');
+    }
+  } else {
+    parts.push('No score locks it up &mdash; you need help no matter what you shoot.');
+    if (r.aliveAt != null) parts.push('Still alive with <b>'+fmtScnPts(r.aliveAt)+'+ pts</b>'+win+' plus the right results elsewhere.');
+  }
+  if (r.aliveAt != null && r.aliveAt > 0) {
+    parts.push('Under '+fmtScnPts(r.aliveAt)+' pts and you\'re out.');
+  }
+  return parts.join(' ');
+}
+
+var SCN_TAG = {
+  'in':      {cls:'tag-clinch', label:'&#10003; Clinched'},
+  'control': {cls:'tag-hunt',   label:'Controls Own Fate'},
+  'help':    {cls:'tag-help',   label:'Needs Help'},
+  'out':     {cls:'tag-out',    label:'Eliminated'}
+};
+
+function renderPlayoffScenarios(standings){
+  var full = document.getElementById('playoff-scenarios-section');
+  var home = document.getElementById('home-scenarios');
+
+  var data = null;
+  try { data = computePlayoffScenarios(standings); } catch(e) { data = null; }
+
+  if (!data) {
+    if (full) full.innerHTML = '';
+    if (home) home.innerHTML = '';
+    return;
+  }
+
+  var counts = {in:0, control:0, help:0, out:0};
+  data.rows.forEach(function(r){ counts[r.status]++; });
+
+  // ── Full table (Standings tab) ──
+  if (full) {
+    var body = data.rows.map(function(r){
+      var tag  = SCN_TAG[r.status];
+      var sub  = fmtScnPts(r.pts)+' pts'
+               + (r.oppName ? ' &middot; vs '+r.oppName+' ('+fmtScnPts(r.oppPts)+')' : '');
+      return '<tr class="scn-row scn-'+r.status+'">'
+        + '<td class="name" style="min-width:150px">'
+          + '<span class="rank-badge'+(r.seed<=3?' rank-'+r.seed:'')+'" style="margin-right:7px">'+r.seed+'</span>'
+          + r.first+' '+r.last
+          + '<div class="scn-sub">'+sub+'</div>'
+        + '</td>'
+        + '<td>'
+          + '<span class="tag '+tag.cls+'">'+tag.label+'</span>'
+          + '<div class="scn-txt">'+scenarioBlurb(r, data)+'</div>'
+        + '</td>'
+        + '</tr>';
+    }).join('');
+
+    var headerBits = 'Week '+data.week+' Playoff Scenarios'
+      + (data.course ? ' &mdash; '+data.course : '')
+      + (data.date ? ' &middot; '+data.date : '');
+
+    var intro = data.exact
+      ? 'Final regular-season week. '+fmtScnPts(data.maxPts)+' points on the line for everyone &mdash; and every point you take is one your opponent doesn\'t get. Top 8 make the playoffs.'
+      : data.weeksLeft+' regular-season weeks left ('+fmtScnPts(data.maxPts)+' pts still available). Top 8 make the playoffs.';
+
+    full.innerHTML = '<div class="notice">'+intro+'</div>'
+      + '<div class="card">'
+      + '<div class="card-header">&#127937; '+headerBits+'</div>'
+      + '<table><thead><tr><th>Player</th><th>What It Takes</th></tr></thead>'
+      + '<tbody>'+body+'</tbody></table>'
+      + '<div style="padding:11px 14px;font-size:0.75rem;color:var(--text-light);border-top:1px solid var(--border);line-height:1.5">'
+      + '<b>Clinch</b> = in even if every tiebreaker goes against you. <b>Alive</b> = a path exists if results elsewhere fall your way. '
+      + 'Ties are broken by Points &rarr; Wins &rarr; Losses &rarr; Handicap &rarr; Avg.'
+      + '</div></div>';
+  }
+
+  // ── Compact banner (Home tab) ──
+  if (home) {
+    var bubble = data.rows.filter(function(r){ return r.status==='control' || r.status==='help'; });
+    var bubbleLine = '';
+    if (bubble.length > 8) {
+      bubbleLine = '<div style="font-size:0.82rem;color:var(--text-mid);margin-top:10px;line-height:1.5">'
+        + '<b>Wide open</b> &mdash; '+bubble.length+' players still fighting for the remaining '
+        + (PLAYOFF_SPOTS - counts.in) + ' spots.</div>';
+    } else if (bubble.length) {
+      bubbleLine = '<div style="font-size:0.82rem;color:var(--text-mid);margin-top:10px;line-height:1.5">'
+        + '<b>On the bubble:</b> ' + bubble.map(function(r){ return r.first+' '+r.last; }).join(', ') + '</div>';
+    }
+
+    var pills = ''
+      + '<span class="scn-pill" style="border-color:#4a8c5c;color:#2d7a2d">'+counts.in+' Clinched</span>'
+      + '<span class="scn-pill" style="border-color:var(--gold);color:#8a6a0b">'+(counts.control+counts.help)+' In the Hunt</span>'
+      + '<span class="scn-pill" style="color:#8a8a8a">'+counts.out+' Eliminated</span>';
+
+    home.innerHTML = '<div class="card" style="border-color:var(--gold);box-shadow:0 0 0 1px var(--gold),0 2px 12px var(--shadow)">'
+      + '<div class="card-header">&#127937; Week '+data.week+' &mdash; Playoff Scenarios</div>'
+      + '<div style="padding:14px 18px">'
+      + '<div style="font-size:0.8rem;color:var(--text-light)">'
+        + (data.exact ? 'Final regular-season week' : data.weeksLeft+' weeks left')
+        + (data.course ? ' &middot; '+data.course : '')
+        + (data.date ? ' &middot; '+data.date : '')
+        + ' &middot; Top 8 advance</div>'
+      + '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:11px">'+pills+'</div>'
+      + bubbleLine
+      + '<div style="margin-top:12px">'
+      + '<button onclick="showSection(\'standings\',document.querySelectorAll(\'nav button\')[1]);var e=document.getElementById(\'playoff-scenarios-section\');if(e)e.scrollIntoView({behavior:\'smooth\',block:\'start\'})" '
+      + 'style="background:var(--green-deep);color:var(--gold);border:1px solid var(--gold);border-radius:3px;padding:8px 15px;font-family:\'Source Sans 3\',sans-serif;font-size:0.78rem;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;cursor:pointer">'
+      + 'See Every Player\'s Scenario &rsaquo;</button>'
+      + '</div></div></div>';
+  }
+}
+
 
 // ── PLAYOFF BRACKET ──────────────────
 function renderPlayoffBracket(standings) {
