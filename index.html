@@ -69,6 +69,10 @@ tbody td.name{font-weight:600;color:var(--text-dark)}
 .scn-d-line{font-size:0.78rem;color:var(--text-mid);line-height:1.5;margin-top:3px}
 .scn-d-list{margin:4px 0 4px 18px;padding:0;font-size:0.78rem;color:var(--text-mid);line-height:1.55}
 .scn-d-list li{margin-bottom:2px}
+.scn-odds{display:flex;align-items:center;gap:7px;margin-top:6px}
+.scn-odds-track{flex:1;max-width:96px;height:6px;background:#e8e4d8;border-radius:3px;overflow:hidden}
+.scn-odds-fill{height:100%;border-radius:3px;transition:width 0.3s}
+.scn-odds-val{font-size:0.74rem;font-weight:700;color:var(--green-deep);font-variant-numeric:tabular-nums;min-width:34px}
 .schedule-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px}
 .week-card{background:var(--white);border:1px solid var(--border);border-radius:4px;overflow:hidden;box-shadow:0 1px 6px var(--shadow);transition:box-shadow 0.2s,transform 0.2s}
 .week-card:hover{box-shadow:0 4px 16px var(--shadow);transform:translateY(-1px)}
@@ -2096,10 +2100,11 @@ function scnPathDetail(r, data){
   };
 }
 
-function scnDetailHTML(r, data, idx){
+function scnDetailHTML(r, data, idx, seedLine){
   var d = null;
   try { d = scnPathDetail(r, data); } catch(e) { d = null; }
   if (!d) return '';
+  seedLine = seedLine || '';
 
   var vs = r.oppName ? ' vs '+r.oppName : '';
   var head = (r.status === 'help')
@@ -2137,7 +2142,7 @@ function scnDetailHTML(r, data, idx){
     + '<button class="scn-toggle" onclick="scnToggle(\''+idx+'\',this)">'+showLbl+'</button>'
     + '<div id="scn-d-'+idx+'" class="scn-d-box" style="display:none">'
       + '<div class="scn-d-head">'+head+'</div>'
-      + body
+      + body + seedLine
     + '</div></div>';
 }
 
@@ -2147,6 +2152,127 @@ function scnToggle(idx, btn){
   var open = e.style.display !== 'none';
   e.style.display = open ? 'none' : 'block';
   btn.innerHTML = open ? '&#9656; What has to happen' : '&#9662; Hide';
+}
+
+// ── PLAYOFF ODDS (Monte Carlo) ───────
+// The deterministic clinch/eliminated math above is exact. This is NOT — it's a
+// model. It rates each player by their actual points-per-match this season
+// (shrunk toward the league average of 5 to handle small samples), predicts each
+// Week 15 split from the rating gap, then resamples real observed residuals to
+// add noise. 20k simulated seasons, real tiebreakers applied, count top-8 finishes.
+var SCN_SIMS = 10000;
+var SCN_SHRINK = 4;          // pseudo-matches pulling a rating toward league average
+var scnOddsCache = null;
+
+function computePlayoffOdds(standings, data){
+  if (!data || !data.exact) return null;
+
+  var key = data.week+'|'+standings.map(function(p){ return p.first+p.last+':'+p.pts; }).join(',');
+  if (scnOddsCache && scnOddsCache.key === key) return scnOddsCache.val;
+
+  // ── Ratings: average points per match, shrunk toward 5 ──
+  var hist = {};
+  standings.forEach(function(p){ hist[p.first+' '+p.last] = []; });
+  (DB.season2026.weeks||[]).forEach(function(w){
+    (w.matchups||[]).forEach(function(m){
+      ['p1','p2'].forEach(function(side){
+        var q = m[side];
+        if (!q || !q.name || q.pts == null || !hist[q.name]) return;
+        hist[q.name].push(q.pts);
+      });
+    });
+  });
+  var rating = {};
+  standings.forEach(function(p){
+    var k = p.first+' '+p.last, a = hist[k] || [];
+    var sum = a.reduce(function(x,y){ return x+y; }, 0);
+    rating[k] = (sum + 5*SCN_SHRINK) / (a.length + SCN_SHRINK);
+  });
+  function expFor(nA,nB){ return 5 + ((rating[nA]||5) - (rating[nB]||5))/2; }
+
+  // ── Residual pool: how far real results landed from what the ratings predict ──
+  var resid = [];
+  (DB.season2026.weeks||[]).forEach(function(w){
+    (w.matchups||[]).forEach(function(m){
+      if (!m.p1 || !m.p2 || m.p1.pts == null || m.p2.pts == null) return;
+      if (rating[m.p1.name] == null || rating[m.p2.name] == null) return;
+      var e = expFor(m.p1.name, m.p2.name);
+      resid.push(m.p1.pts - e);
+      resid.push(m.p2.pts - (10 - e));
+    });
+  });
+  if (!resid.length) resid = [0];
+
+  // ── Base state ──
+  var n = standings.length;
+  var base = standings.map(function(p){
+    var avg = (p.scores && p.scores.length)
+      ? p.scores.reduce(function(x,y){return x+y;},0) / p.scores.length : 999;
+    return {name:p.first+' '+p.last, pts:p.pts||0, w:p.w||0, l:p.l||0, hdcp:p.hdcp||0, avg:avg};
+  });
+  var idxOf = {}; base.forEach(function(b,i){ idxOf[b.name] = i; });
+
+  var simPts = new Float64Array(n), simW = new Float64Array(n), simL = new Float64Array(n);
+  var made = new Float64Array(n), seedSum = new Float64Array(n);
+  var order = []; for (var i = 0; i < n; i++) order.push(i);
+
+  function cmp(a,b){
+    if (simPts[b] !== simPts[a]) return simPts[b] - simPts[a];
+    if (simW[b]   !== simW[a])   return simW[b]   - simW[a];
+    if (simL[a]   !== simL[b])   return simL[a]   - simL[b];
+    if (base[a].hdcp !== base[b].hdcp) return base[a].hdcp - base[b].hdcp;
+    return base[a].avg - base[b].avg;
+  }
+
+  for (var s = 0; s < SCN_SIMS; s++) {
+    for (var j = 0; j < n; j++) { simPts[j]=base[j].pts; simW[j]=base[j].w; simL[j]=base[j].l; }
+    for (var m2 = 0; m2 < data.pairs.length; m2++) {
+      var pr = data.pairs[m2];
+      var ia = idxOf[pr[0]], ib = idxOf[pr[1]];
+      if (ia == null || ib == null) continue;
+      var a = expFor(pr[0], pr[1]) + resid[(Math.random()*resid.length)|0];
+      a = Math.round(a*2)/2;
+      if (a < 0) a = 0; else if (a > 10) a = 10;
+      simPts[ia] += a; simPts[ib] += (10 - a);
+      if (a > 5)      { simW[ia]++; simL[ib]++; }
+      else if (a < 5) { simW[ib]++; simL[ia]++; }
+    }
+    order.sort(cmp);
+    for (var r = 0; r < n; r++) {
+      seedSum[order[r]] += (r+1);
+      if (r < PLAYOFF_SPOTS) made[order[r]]++;
+    }
+  }
+
+  var out = {};
+  base.forEach(function(b,i){
+    out[b.name] = {odds: made[i]/SCN_SIMS, avgSeed: seedSum[i]/SCN_SIMS};
+  });
+  scnOddsCache = {key:key, val:out};
+  return out;
+}
+
+// The exact math wins any disagreement with the model: a clinched player always
+// reads 100%, an eliminated one always 0%, and anyone still mathematically alive
+// never reads a flat 0% no matter how bleak the simulation says it is.
+function fmtOdds(v, status){
+  if (status === 'in')  return '100%';
+  if (status === 'out') return '0%';
+  if (v > 0.995) return '>99%';
+  if (v < 0.005) return '<1%';
+  return Math.round(v*100)+'%';
+}
+
+function oddsBarHTML(v, status){
+  var pct = Math.max(0, Math.min(100, v*100));
+  if (status === 'in')  pct = 100;
+  if (status === 'out') pct = 0;
+  else if (pct < 2)     pct = 2;          // keep a visible sliver while alive
+  var col = status === 'out' ? '#c8c8c8'
+          : v >= 0.85 ? '#4a8c5c' : v >= 0.4 ? 'var(--gold)' : v >= 0.1 ? '#e08a3c' : '#d4795a';
+  return '<div class="scn-odds">'
+    + '<div class="scn-odds-track"><div class="scn-odds-fill" style="width:'+pct.toFixed(1)+'%;background:'+col+'"></div></div>'
+    + '<span class="scn-odds-val">'+fmtOdds(v, status)+'</span></div>';
 }
 
 function scenarioBlurb(r, data){
@@ -2199,20 +2325,29 @@ function renderPlayoffScenarios(standings){
 
   // ── Full table (Standings tab) ──
   if (full) {
+    var odds = null;
+    try { odds = computePlayoffOdds(standings, data); } catch(e) { odds = null; }
+
     var body = data.rows.map(function(r, ri){
       var tag  = SCN_TAG[r.status];
       var sub  = fmtScnPts(r.pts)+' pts'
                + (r.oppName ? ' &middot; vs '+r.oppName+' ('+fmtScnPts(r.oppPts)+')' : '');
+      var o    = odds ? odds[r.name] : null;
+      var seedLine = (o && r.status !== 'in' && r.status !== 'out')
+        ? '<div class="scn-d-line" style="color:var(--text-light)">Across 10,000 simulated Week 15s you land in '
+            + (Math.round(o.avgSeed*10)/10) + ' place on average.</div>'
+        : '';
       return '<tr class="scn-row scn-'+r.status+'">'
         + '<td class="name" style="min-width:150px">'
           + '<span class="rank-badge'+(r.seed<=3?' rank-'+r.seed:'')+'" style="margin-right:7px">'+r.seed+'</span>'
           + r.first+' '+r.last
           + '<div class="scn-sub">'+sub+'</div>'
+          + (o ? oddsBarHTML(o.odds, r.status) : '')
         + '</td>'
         + '<td>'
           + '<span class="tag '+tag.cls+'">'+tag.label+'</span>'
           + '<div class="scn-txt">'+scenarioBlurb(r, data)+'</div>'
-          + scnDetailHTML(r, data, ri)
+          + scnDetailHTML(r, data, ri, seedLine)
         + '</td>'
         + '</tr>';
     }).join('');
@@ -2228,11 +2363,13 @@ function renderPlayoffScenarios(standings){
     full.innerHTML = '<div class="notice">'+intro+'</div>'
       + '<div class="card">'
       + '<div class="card-header">&#127937; '+headerBits+'</div>'
-      + '<table><thead><tr><th>Player</th><th>What It Takes</th></tr></thead>'
+      + '<table><thead><tr><th>Player &middot; Playoff Odds</th><th>What It Takes</th></tr></thead>'
       + '<tbody>'+body+'</tbody></table>'
       + '<div style="padding:11px 14px;font-size:0.75rem;color:var(--text-light);border-top:1px solid var(--border);line-height:1.5">'
       + '<b>Clinch</b> = in even if every tiebreaker goes against you. <b>Alive</b> = a path exists if results elsewhere fall your way. '
       + 'Ties are broken by Points &rarr; Wins &rarr; Losses &rarr; Handicap &rarr; Avg.'
+      + '<br><b>Odds</b> are a model, not a fact: 10,000 simulated Week 15s, each player rated by their actual points-per-match this season '
+      + 'and matchups drawn from the spread of real results so far. Small samples, so treat them as a rough feel &mdash; the clinch and elimination numbers above are the exact part.'
       + '</div></div>';
   }
 
