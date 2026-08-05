@@ -746,18 +746,21 @@ function adminLogout() {
 function computeStandings() {
   var map = {};
   PLAYERS.forEach(function(p) {
-    map[p.first+' '+p.last] = {id:p.id,first:p.first,last:p.last,pts:0,w:0,t:0,l:0,scores:[],hdcp:null,skins:0};
+    map[p.first+' '+p.last] = {id:p.id,first:p.first,last:p.last,pts:0,w:0,t:0,l:0,scores:[],poScores:[],hdcp:null,skins:0};
   });
   (DB.season2026.players||[]).forEach(function(dp) {
     var k = dp.first+' '+dp.last;
     if (map[k]) {map[k].hdcp=dp.hdcp; map[k].skins=dp.skins||0;}
   });
   (DB.season2026.weeks||[]).forEach(function(week) {
+    var isPO = week.weekNum >= PLAYOFF_START;
     (week.matchups||[]).forEach(function(m) {
       ['p1','p2'].forEach(function(side) {
         var p=m[side], opp=m[side==='p1'?'p2':'p1'];
         if (!p) return;
         var k=p.name; if (!map[k]) return;
+        // Playoff rounds count toward stats only -- never toward season points or W-T-L
+        if (isPO) { if (p.total) map[k].poScores.push(p.total); return; }
         if (p.result==='DQ') { map[k].pts+=(p.pts||0); map[k].l++; return; }
         map[k].pts+=(p.pts||0);
         if (p.total) map[k].scores.push(p.total);
@@ -1039,7 +1042,7 @@ async function renderHomeUpNext() {
   for(var i=0;i<SCHEDULE.length;i++){if(!played[SCHEDULE[i].week]){next=SCHEDULE[i];break;}}
   var el=document.getElementById('home-up-next');
   if(!next){el.innerHTML='<div class="card"><div class="empty-state">Season complete!</div></div>';return;}
-  var upNextMatchups = WEEK_MATCHUPS[next.week] || [];
+  var upNextMatchups = pairsForWeek(next.week);
   var pairs = '';
   for (var ti = 0; ti < upNextMatchups.length; ti += 2) {
     var group = upNextMatchups.slice(ti, ti + 2);
@@ -1051,9 +1054,9 @@ async function renderHomeUpNext() {
       var hdcp0 = idx0>=0 && standings[idx0].hdcp!=null ? '<small style="color:var(--text-light);font-weight:400"> ('+standings[idx0].hdcp+')</small>' : '';
       var hdcp1 = idx1>=0 && standings[idx1].hdcp!=null ? '<small style="color:var(--text-light);font-weight:400"> ('+standings[idx1].hdcp+')</small>' : '';
       return '<div style="display:grid;grid-template-columns:1fr 28px 1fr;align-items:center;padding:5px 0;border-bottom:1px solid #eee;font-size:0.84rem">'
-        +'<span style="color:var(--green-mid);cursor:pointer;font-weight:600" onclick="openPlayerModal('+idx0+')">'+pair[0]+hdcp0+'</span>'
+        +'<span style="color:var(--green-mid);cursor:pointer;font-weight:600" onclick="openPlayerModal('+idx0+')">'+seedTag(pair[0],next.week)+pair[0]+hdcp0+'</span>'
         +'<span style="color:var(--text-light);font-size:0.73rem;text-align:center">vs</span>'
-        +'<span style="color:var(--green-mid);cursor:pointer;font-weight:600;text-align:right" onclick="openPlayerModal('+idx1+')">'+pair[1]+hdcp1+'</span>'
+        +'<span style="color:var(--green-mid);cursor:pointer;font-weight:600;text-align:right" onclick="openPlayerModal('+idx1+')">'+seedTag(pair[1],next.week)+pair[1]+hdcp1+'</span>'
         +'</div>';
     }).join('');
   }
@@ -1436,6 +1439,7 @@ function calcWeekSkins(weekData) {
   // weekData: {matchups: [{p1:{name,hdcp,scores}, p2:{...}}], pars:[...]}
   // Returns {tier1:[{name,hdcp,scores}], tier2:[...], results:{tier1:{name:skins}, tier2:{name:skins}}, earnings:{...}}
   if (!weekData || !weekData.matchups) return null;
+  if (weekData.weekNum >= PLAYOFF_START) return null;   // playoff weeks: no skins pot
 
   // Build full player list from ALL matchups (including DQ/absent) for tier assignment
   // Tier split must always use all 16 players so tiers stay consistent week to week
@@ -1554,15 +1558,17 @@ function buildMoneyStats(playerName) {
 }
 
 function build2026Stats(p, playerName) {
-  if (!p.scores || p.scores.length === 0) {
+  var allScores = (p.scores||[]).concat(p.poScores||[]);
+  var poCount = (p.poScores||[]).length;
+  if (!allScores.length) {
     return '<div style="padding:14px;border-bottom:1px solid var(--border)">'
       +'<div style="font-size:0.7rem;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-light);margin-bottom:8px">2026 Stats</div>'
       +'<div style="font-size:0.82rem;color:var(--text-light);font-style:italic">No rounds played yet.</div>'
       +'</div>';
   }
-  var roundsPlayed = p.scores.length;
-  var overallAvg = (p.scores.reduce(function(a,b){return a+b;},0)/roundsPlayed).toFixed(1);
-  var bestRound = Math.min.apply(null, p.scores);
+  var roundsPlayed = allScores.length;
+  var overallAvg = (allScores.reduce(function(a,b){return a+b;},0)/roundsPlayed).toFixed(1);
+  var bestRound = Math.min.apply(null, allScores);
 
   // Build course map + par breakdown from hole scores
   var courseMap = {};
@@ -1578,7 +1584,7 @@ function build2026Stats(p, playerName) {
         if (pl.name!==playerName || !pl.total) return;
         if (!courseMap[course]) courseMap[course]=[];
         courseMap[course].push(pl.total);
-        trendRounds.push({total:pl.total, week:week.weekNum, course:course});
+        trendRounds.push({total:pl.total, week:week.weekNum, course:course, po:week.weekNum>=PLAYOFF_START});
         if (pl.scores) {
           pl.scores.forEach(function(score,hi){
             if (score==null||!pars[hi]) return;
@@ -1680,7 +1686,8 @@ function build2026Stats(p, playerName) {
   trendRounds.sort(function(a,b){return a.week-b.week;});
   var trend = trendRounds.map(function(r){
     var col=r.total<=40?'#2d7a2d':r.total<=45?'#c9a84c':r.total<=50?'#e07800':'#c0392b';
-    return '<div style="display:flex;flex-direction:column;align-items:center;gap:2px">'
+    var poStyle=r.po?'outline:2px solid var(--gold);border-radius:3px;padding:1px 3px;':'';
+    return '<div style="display:flex;flex-direction:column;align-items:center;gap:2px;'+poStyle+'">'
       +'<span style="font-size:0.65rem;font-weight:700;color:'+col+'">'+r.total+'</span>'
       +'<span style="font-size:0.55rem;color:var(--text-light)">W'+r.week+'</span>'
       +'</div>';
@@ -1691,7 +1698,7 @@ function build2026Stats(p, playerName) {
     +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">'
     +'<div style="text-align:center;background:var(--cream-dark);border-radius:4px;padding:8px"><div style="font-family:serif;font-size:1.2rem;font-weight:700;color:var(--green-deep)">'+overallAvg+'</div><div style="font-size:0.62rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-light)">Avg Score</div></div>'
     +'<div style="text-align:center;background:var(--cream-dark);border-radius:4px;padding:8px"><div style="font-family:serif;font-size:1.2rem;font-weight:700;color:#2d7a2d">'+bestRound+'</div><div style="font-size:0.62rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-light)">Best Round</div></div>'
-    +'<div style="text-align:center;background:var(--cream-dark);border-radius:4px;padding:8px"><div style="font-family:serif;font-size:1.2rem;font-weight:700;color:var(--green-deep)">'+roundsPlayed+'</div><div style="font-size:0.62rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-light)">Rounds</div></div>'
+    +'<div style="text-align:center;background:var(--cream-dark);border-radius:4px;padding:8px"><div style="font-family:serif;font-size:1.2rem;font-weight:700;color:var(--green-deep)">'+roundsPlayed+'</div><div style="font-size:0.62rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-light)">Rounds'+(poCount?' &middot; '+poCount+'PO':'')+'</div></div>'
     +'</div>'
     +(courseRows?'<div style="margin-bottom:10px"><div style="font-size:0.7rem;font-weight:600;color:var(--text-light);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.08em">By Course</div>'+courseRows+'</div>':'')
     +(parRows?'<div style="margin-bottom:10px"><div style="font-size:0.7rem;font-weight:600;color:var(--text-light);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.08em">Par Breakdown</div>'+parRows+'</div>':'')
@@ -2411,60 +2418,198 @@ function renderPlayoffScenarios(standings){
 
 
 // ── PLAYOFF BRACKET ──────────────────
+// Format: top 8 after Week 15 seed into 1v8, 2v7, 3v6, 4v5.
+// Single elimination, RESEEDED each round — highest surviving seed always
+// draws the lowest surviving seed. Playoff matches award no season points.
+var PLAYOFF_START = 16;
+
+function isPlayoffWeek(wNum) { return wNum >= PLAYOFF_START; }
+
+function playoffRoundLabel(wNum) {
+  return wNum === 16 ? 'Quarterfinals' : wNum === 17 ? 'Semifinals' : wNum === 18 ? 'Championship' : '';
+}
+
+// Regular-season weeks (1-15) that actually have results entered
+function regularWeeksWithResults() {
+  return (DB && DB.season2026 ? (DB.season2026.weeks||[]) : []).filter(function(w){
+    return w.weekNum <= 15 && weekHasResults(w);
+  }).length;
+}
+
+// Top 8 by regular-season standings (weeks 1-15 only — playoff weeks add no points).
+// Returns [] before there's enough played to make seeding meaningful.
+function playoffSeeds(standings) {
+  if (regularWeeksWithResults() < 5) return [];
+  var st = standings || computeStandings();
+  return st.slice(0, PLAYOFF_SPOTS).map(function(p, i){
+    return {seed:i+1, name:p.first+' '+p.last, pts:p.pts, hdcp:p.hdcp};
+  });
+}
+
+// Find a saved matchup for two players in a given week (order-independent)
+function findMatchup(weekNum, nameA, nameB) {
+  var wk = (DB.season2026.weeks||[]).find(function(w){ return w.weekNum === weekNum; });
+  if (!wk) return null;
+  return (wk.matchups||[]).find(function(m){
+    return (m.p1.name===nameA && m.p2.name===nameB) || (m.p1.name===nameB && m.p2.name===nameA);
+  }) || null;
+}
+
+// Winning player name for a match, or null if undecided (not played / all square)
+function matchWinner(m) {
+  if (!m) return null;
+  var r1 = (m.p1.result||'').toUpperCase(), r2 = (m.p2.result||'').toUpperCase();
+  if (r1==='DQ' && r2!=='DQ') return m.p2.name;
+  if (r2==='DQ' && r1!=='DQ') return m.p1.name;
+  function won(r){ return r==='WIN' || /^[0-9]+UP$/.test(r); }
+  if (won(r1) && !won(r2)) return m.p1.name;
+  if (won(r2) && !won(r1)) return m.p2.name;
+  if ((m.p1.pts||0) > (m.p2.pts||0)) return m.p1.name;
+  if ((m.p2.pts||0) > (m.p1.pts||0)) return m.p2.name;
+  return null;
+}
+
+// Seeds advancing out of a playoff week, sorted by seed. [] if the round isn't finished.
+function playoffAdvancers(wNum, seeds) {
+  var pairs = getPlayoffPairs(wNum, seeds);
+  if (!pairs.length) return [];
+  var out = [];
+  for (var i = 0; i < pairs.length; i++) {
+    var wname = matchWinner(findMatchup(wNum, pairs[i].a.name, pairs[i].b.name));
+    if (!wname) return [];
+    out.push(wname === pairs[i].a.name ? pairs[i].a : pairs[i].b);
+  }
+  out.sort(function(a,b){ return a.seed - b.seed; });
+  return out;
+}
+
+// Pairings for a playoff week: [{a:{seed,name}, b:{seed,name}}]. [] if not yet determined.
+function getPlayoffPairs(wNum, seeds) {
+  if (!isPlayoffWeek(wNum) || !DB || !DB.season2026) return [];
+  seeds = seeds || playoffSeeds();
+  if (seeds.length < PLAYOFF_SPOTS) return [];
+  var field;
+  if (wNum === 16) field = seeds;
+  else if (wNum === 17) field = playoffAdvancers(16, seeds);
+  else if (wNum === 18) field = playoffAdvancers(17, seeds);
+  else return [];
+  if (field.length < 2) return [];
+  var pairs = [];
+  for (var i = 0; i < field.length/2; i++) pairs.push({a:field[i], b:field[field.length-1-i]});
+  return pairs;
+}
+
+// Name-pair list for any week — hardcoded schedule for weeks 1-15, live bracket for 16-18
+function pairsForWeek(wNum) {
+  if (WEEK_MATCHUPS[wNum]) return WEEK_MATCHUPS[wNum];
+  if (isPlayoffWeek(wNum)) {
+    return getPlayoffPairs(wNum).map(function(pr){ return [pr.a.name, pr.b.name]; });
+  }
+  return [];
+}
+
+// Seed badge for playoff weeks (empty string elsewhere)
+function seedTag(name, wNum) {
+  if (!isPlayoffWeek(wNum)) return '';
+  var seeds = playoffSeeds();
+  var s = seeds.find(function(x){ return x.name === name; });
+  if (!s) return '';
+  return '<span style="display:inline-block;min-width:15px;text-align:center;font-size:0.6rem;font-weight:700;'
+    + 'background:var(--green-deep);color:var(--gold);border-radius:3px;padding:1px 3px;margin-right:4px">'+s.seed+'</span>';
+}
+
+// True once every regular-season week (1-15, non-scramble) has results in
+function regularSeasonComplete() {
+  var done = {};
+  (DB.season2026.weeks||[]).forEach(function(w){ if (weekHasResults(w)) done[w.weekNum] = true; });
+  return !SCHEDULE.some(function(s){ return s.week <= 15 && s.type === 'regular' && !done[s.week]; });
+}
+
 function renderPlayoffBracket(standings) {
   var el = document.getElementById('playoff-bracket-section');
   if (!el) return;
 
-  // Regular season = weeks 1-15 only
-  var regularWeeks = (DB.season2026.weeks||[]).filter(function(w){ return w.weekNum <= 15; });
-  var weeksPlayed = regularWeeks.length;
+  var regularWeeksPlayed = regularWeeksWithResults();
+  var playoffWeeks = (DB.season2026.weeks||[]).filter(function(w){ return isPlayoffWeek(w.weekNum); });
+  var regularDone = regularSeasonComplete();
 
-  // Only show bracket info once we're past week 14 or any playoff week exists
-  var playoffWeeks = (DB.season2026.weeks||[]).filter(function(w){ return w.weekNum >= 16; });
-  var regularDone = weeksPlayed >= 15;
+  if (!regularDone && !playoffWeeks.length && regularWeeksPlayed < 5) { el.innerHTML = ''; return; }
 
-  if (!regularDone && !playoffWeeks.length) {
-    // Show projected seeding once enough weeks played to be interesting
-    if (weeksPlayed < 5) { el.innerHTML = ''; return; }
-  }
+  var seeds = playoffSeeds(standings);
+  if (seeds.length < PLAYOFF_SPOTS) { el.innerHTML = ''; return; }
 
-  // Top 8 by pts -> w -> hdcp
-  var top8 = standings.slice().sort(function(a,b){
-    if (b.pts !== a.pts) return b.pts - a.pts;
-    if (b.w !== a.w) return b.w - a.w;
-    return (a.hdcp||99) - (b.hdcp||99);
-  }).slice(0,8);
-
-  var label = regularDone ? 'Playoff Seeding' : 'Projected Playoff Seeding (after '+weeksPlayed+' weeks)';
+  var label = regularDone ? 'Playoff Bracket' : 'Projected Playoff Bracket (after '+regularWeeksPlayed+' weeks)';
   var notice = regularDone
-    ? '<div class="notice">Regular season complete. Top 8 advance to single-elimination playoffs. Bracket reseeds each round.</div>'
-    : '<div class="notice">Projected based on current standings. Updates live as weeks are entered. Tiebreaker: Points &rarr; Wins &rarr; Handicap.</div>';
+    ? '<div class="notice">Top 8 advance. Single elimination &mdash; the bracket reseeds every round, so the highest remaining seed always draws the lowest. Playoff matches award no season points.</div>'
+    : '<div class="notice">Projected from current standings &mdash; updates live as weeks are entered. Seeding locks after Week 15. Tiebreakers: Points &rarr; Wins &rarr; Losses &rarr; Handicap.</div>';
 
-  var matchups = [
-    [0,7],[3,4],[2,5],[1,6]  // 1v8, 4v5, 3v6, 2v7 quarterfinal seedings
-  ];
+  var roundsHtml = [16,17,18].map(function(wNum){
+    var sched = SCHEDULE.find(function(s){ return s.week === wNum; }) || {};
+    var pairs = getPlayoffPairs(wNum, seeds);
+    var dateStr = (sched.date||'').replace('Tue ','').replace(', 2026','');
+    var header = '<div style="background:var(--green-deep);color:var(--gold);font-size:0.68rem;font-weight:700;'
+      + 'letter-spacing:0.12em;text-transform:uppercase;padding:7px 14px;display:flex;justify-content:space-between">'
+      + '<span>'+playoffRoundLabel(wNum)+'</span>'
+      + '<span style="font-weight:400;letter-spacing:0.04em;text-transform:none;color:var(--cream)">Week '+wNum
+      + ' &middot; '+dateStr+' &middot; '+(sched.course||'').replace(' Golf Course','')+'</span></div>';
 
-  var bracketRows = matchups.map(function(pair) {
-    var p1 = top8[pair[0]], p2 = top8[pair[1]];
-    if (!p1 || !p2) return '';
-    return '<tr>'
-      +'<td style="text-align:center;width:30px"><span class="rank-badge rank-'+(pair[0]+1)+'">'+(pair[0]+1)+'</span></td>'
-      +'<td class="name">'+p1.first+' '+p1.last+'</td>'
-      +'<td class="num" style="color:var(--text-light);font-size:0.8rem">'+p1.pts+' pts</td>'
-      +'<td style="text-align:center;color:var(--text-light);font-size:0.75rem;padding:0 8px">vs</td>'
-      +'<td style="text-align:center;width:30px"><span class="rank-badge">'+(pair[1]+1)+'</span></td>'
-      +'<td class="name">'+p2.first+' '+p2.last+'</td>'
-      +'<td class="num" style="color:var(--text-light);font-size:0.8rem">'+p2.pts+' pts</td>'
-      +'</tr>';
+    if (!pairs.length) {
+      var waiting = wNum === 16
+        ? 'Seeding locks when Week 15 is posted.'
+        : 'Set once the '+playoffRoundLabel(wNum-1).toLowerCase()+' are complete.';
+      return header + '<div style="padding:16px 14px;text-align:center;color:var(--text-light);font-style:italic;'
+        + 'font-size:0.8rem;border-bottom:1px solid var(--border)">'+waiting+'</div>';
+    }
+
+    var rows = pairs.map(function(pr){
+      var m = findMatchup(wNum, pr.a.name, pr.b.name);
+      var wname = matchWinner(m);
+      var ma = m ? (m.p1.name === pr.a.name ? m.p1 : m.p2) : null;
+      var mb = m ? (m.p1.name === pr.b.name ? m.p1 : m.p2) : null;
+
+      function sideHtml(sd, md, isWinner, right) {
+        var badge = '<span style="display:inline-block;min-width:16px;text-align:center;font-size:0.62rem;font-weight:700;'
+          + 'background:'+(isWinner?'var(--gold)':'var(--cream-dark)')+';color:var(--green-deep);border-radius:3px;padding:1px 4px">'+sd.seed+'</span>';
+        var nm = '<span style="font-weight:'+(isWinner?'700':'600')+';color:'+(isWinner?'var(--green-mid)':'var(--text-dark)')+'">'+sd.name+'</span>';
+        var tot = md && md.total ? '<small style="color:var(--text-light);font-weight:400"> '+md.total+'</small>'
+                : (md && md.result==='DQ' ? '<small style="color:var(--text-light);font-weight:400"> DQ</small>' : '');
+        return right
+          ? '<span style="text-align:right">'+nm+tot+' '+badge+'</span>'
+          : '<span>'+badge+' '+nm+tot+'</span>';
+      }
+
+      var margin = '';
+      if (m) {
+        var wSide = wname ? (wname===pr.a.name ? ma : mb) : null;
+        var r = (wSide && wSide.result) || (ma && ma.result) || (mb && mb.result) || '';
+        if (r === 'DQ') r = 'Opponent DQ';
+        margin = r ? '<div style="font-size:0.7rem;color:var(--text-light);text-align:center;margin-top:3px">'
+          + (wname ? r + ' &middot; ' + wname + ' advances'
+                   : r + ' &middot; winner TBD &mdash; set the advancing player\'s result to WIN') + '</div>' : '';
+      }
+
+      return '<div style="padding:10px 14px;border-bottom:1px solid #eee">'
+        + '<div style="display:grid;grid-template-columns:1fr 28px 1fr;align-items:center;font-size:0.85rem">'
+        + sideHtml(pr.a, ma, wname===pr.a.name, false)
+        + '<span style="font-size:0.7rem;color:var(--text-light);text-align:center">vs</span>'
+        + sideHtml(pr.b, mb, wname===pr.b.name, true)
+        + '</div>' + margin + '</div>';
+    }).join('');
+
+    return header + rows;
   }).join('');
 
+  var champ = playoffAdvancers(18, seeds);
+  var champHtml = champ.length
+    ? '<div style="padding:12px 14px;text-align:center;background:var(--green-pale);border-top:2px solid var(--gold)">'
+      + '<div style="font-size:0.68rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-light)">2026 Champion</div>'
+      + '<div style="font-family:serif;font-size:1.15rem;font-weight:700;color:var(--green-deep);margin-top:2px">&#127942; '
+      + champ[0].name + ' <span style="font-size:0.8rem;font-weight:400;color:var(--text-light)">(#'+champ[0].seed+' seed)</span></div></div>'
+    : '';
+
   el.innerHTML = notice
-    +'<div class="card"><div class="card-header">&#127942; '+label+' &mdash; Quarterfinals (Week 16, Aug 11)</div>'
-    +'<table><thead><tr><th>Seed</th><th>Player</th><th class="num">Pts</th><th></th><th>Seed</th><th>Player</th><th class="num">Pts</th></tr></thead>'
-    +'<tbody>'+bracketRows+'</tbody></table>'
-    +'<div style="padding:12px 14px;font-size:0.78rem;color:var(--text-light);border-top:1px solid var(--border)">'
-    +'SF: Week 17 (Aug 18) &middot; Finals: Week 18 (Aug 25) &middot; Bracket reseeds after each round'
-    +'</div></div>';
+    + '<div class="card"><div class="card-header">&#127942; '+label+'</div>'
+    + roundsHtml + champHtml + '</div>';
 }
 
 
@@ -2473,6 +2618,7 @@ function renderSkins() {
   var el = document.getElementById('skins-content');
   if (!el) return;
   var weeks = (DB.season2026.weeks || []).filter(function(w){
+    if (w.weekNum >= PLAYOFF_START) return false;   // no skins in the playoffs
     return w.matchups && w.matchups.some(function(m){
       return m.p1.scores && m.p1.scores.some(function(s){return s!=null;});
     });
@@ -2932,7 +3078,7 @@ function weekModalWeekChange() {
   document.getElementById('modal-course').value=sched?sched.course:'';
   var existing=(DB.season2026.weeks||[]).find(function(w){return w.weekNum===wNum;});
   document.getElementById('modal-delete-btn').style.display=existing?'block':'none';
-  var weekPairs = WEEK_MATCHUPS[wNum] || [];
+  var weekPairs = pairsForWeek(wNum);
   var matchups = weekPairs.map(function(pair) {
     // Find saved matchup for this pair, or use empty template
     var saved = existing && existing.matchups.find(function(m){
@@ -2942,6 +3088,17 @@ function weekModalWeekChange() {
     return {p1:{name:pair[0],hdcp:'',scores:new Array(9).fill(''),total:'',result:'',pts:''},
             p2:{name:pair[1],hdcp:'',scores:new Array(9).fill(''),total:'',result:'',pts:''}};
   });
+  if (!matchups.length) {
+    document.getElementById('modal-matchups-container').innerHTML =
+      '<div style="padding:18px;text-align:center;color:var(--text-light);font-style:italic;font-size:0.85rem">'
+      + (isPlayoffWeek(wNum)
+          ? (wNum===16 ? 'Playoff seeding sets automatically once Week 15 results are saved.'
+                       : 'Pairings set automatically once ' + playoffRoundLabel(wNum-1).toLowerCase()
+                         + ' are saved with a winner in each match.')
+          : 'No matchups scheduled for this week.')
+      + '</div>';
+    return;
+  }
   var par=parsForWeek(sched);
   if (!par.length) par=[4,4,4,3,5,4,3,4,4];
   var resultOpts=['','WIN','1UP','2UP','3UP','4UP','5UP','6UP','7UP','8UP','AS','DQ'];
@@ -3258,7 +3415,7 @@ async function openMatchupModal(weekNum) {
   modalBackWeek = null;
   document.getElementById('modal-back-btn').style.display = 'none';
   var sched = SCHEDULE.find(function(s){ return s.week === weekNum; }) || {};
-  var pairs = WEEK_MATCHUPS[weekNum] || [];
+  var pairs = pairsForWeek(weekNum);
   document.getElementById('matchup-modal-title').innerHTML = 'Week ' + weekNum + ' &mdash; ' + (sched.course||'').replace(' Golf Course','');
 
   var typeBar = '';
@@ -3294,8 +3451,10 @@ async function openMatchupModal(weekNum) {
     } else {
       rows='<div style="padding:24px;text-align:center;color:var(--text-light);font-style:italic">Scramble &mdash; teams TBD on the course.</div>';
     }
-  } else if (sched.type === 'playoff') {
-    rows = '<div style="padding:24px;text-align:center;color:var(--text-light);font-style:italic">Playoff bracket determined by standings after Week 15.</div>';
+  } else if (sched.type === 'playoff' && !pairs.length) {
+    rows = '<div style="padding:24px;text-align:center;color:var(--text-light);font-style:italic">'
+      + (weekNum === 16 ? 'Bracket sets once Week 15 is posted.' : 'Set once the previous round is complete.')
+      + '</div>';
   } else if (!pairs.length) {
     rows = '<div style="padding:24px;text-align:center;color:var(--text-light);font-style:italic">Matchups not available.</div>';
   } else {
@@ -3339,9 +3498,9 @@ async function openMatchupModal(weekNum) {
         var h1 = h1disp!=null ? ' <small style="color:var(--text-light);font-weight:400">('+h1disp+')</small>' : '';
         return '<div style="padding:11px 16px;border-bottom:1px solid #eee">'
           +'<div style="display:grid;grid-template-columns:1fr 28px 1fr;align-items:center">'
-          + '<span style="font-weight:600;color:'+(p1won?'var(--green-mid)':'var(--text-dark)')+';cursor:pointer" onclick="modalBackWeek='+weekNum+';openPlayerModal('+i0+')">'+pair[0]+h0+'</span>'
+          + '<span style="font-weight:600;color:'+(p1won?'var(--green-mid)':'var(--text-dark)')+';cursor:pointer" onclick="modalBackWeek='+weekNum+';openPlayerModal('+i0+')">'+seedTag(pair[0],weekNum)+pair[0]+h0+'</span>'
           + '<span style="font-size:0.72rem;color:var(--text-light);text-align:center">vs</span>'
-          + '<span style="font-weight:600;color:'+(p2won?'var(--green-mid)':'var(--text-dark)')+';cursor:pointer;text-align:right" onclick="modalBackWeek='+weekNum+';openPlayerModal('+i1+')">'+pair[1]+h1+'</span>'
+          + '<span style="font-weight:600;color:'+(p2won?'var(--green-mid)':'var(--text-dark)')+';cursor:pointer;text-align:right" onclick="modalBackWeek='+weekNum+';openPlayerModal('+i1+')">'+seedTag(pair[1],weekNum)+pair[1]+h1+'</span>'
           +'</div>'+scoreStr+'</div>';
       }).join('');
       return teeLabel + matchRows;
